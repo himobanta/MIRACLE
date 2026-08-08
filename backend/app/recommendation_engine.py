@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from .database import SessionLocal
-from backend.app.models import Product
+from .models import Product
 
 # Concern keyword → category/usage keyword mapping for DB pre-filtering
 CONCERN_CATEGORY_KEYWORDS = {
