@@ -1,0 +1,37 @@
+[
+  {
+    "id": "CONCERN_ACNE",
+    "title": "Acne & Breakouts",
+    "description": "Whiteheads, blackheads, or inflamed pimples.",
+    "image_url": "/assets/concerns/acne.svg",
+    "backend_field": "acne_severity"
+  },
+  {
+    "id": "CONCERN_HYPERPIGMENTATION",
+    "title": "Dark Spots & Pigmentation",
+    "description": "Sun spots, uneven tone, or post-acne dark marks.",
+    "image_url": "/assets/concerns/pigmentation.svg",
+    "backend_field": "hyperpigmentation_severity"
+  },
+  {
+    "id": "CONCERN_REDNESS",
+    "title": "Redness & Sensitivity",
+    "description": "Flushed patches, blotchiness, or irritated skin.",
+    "image_url": "/assets/concerns/redness.svg",
+    "backend_field": "redness_severity"
+  },
+  {
+    "id": "CONCERN_WRINKLES",
+    "title": "Fine Lines & Wrinkles",
+    "description": "Smile lines, crow's feet, or loss of skin elasticity.",
+    "image_url": "/assets/concerns/wrinkles.svg",
+    "backend_field": "wrinkles_severity"
+  },
+  {
+    "id": "CONCERN_DRYNESS",
+    "title": "Dryness & Dehydration",
+    "description": "Flaky patches, tight feeling, or dull moisture barrier.",
+    "image_url": "/assets/concerns/dryness.svg",
+    "backend_field": "dryness_severity"
+  }
+]

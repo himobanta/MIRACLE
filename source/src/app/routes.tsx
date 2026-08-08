@@ -1,0 +1,30 @@
+import { createBrowserRouter, Outlet } from 'react-router';
+import { AppProvider } from './store/AppState';
+import { Landing } from './pages/Landing';
+import { Login } from './pages/Login';
+import { SignUp } from './pages/SignUp';
+import { Dashboard } from './pages/Dashboard';
+
+/* App-wide providers live in the root layout so theme/cart state persists across routes. */
+function Root() {
+  return (
+    <AppProvider>
+      <Outlet />
+    </AppProvider>
+  );
+}
+
+export const router = createBrowserRouter([
+  {
+    path: '/',
+    Component: Root,
+    children: [
+      { index: true, Component: Landing },
+      { path: 'login', Component: Login },
+      { path: 'signup', Component: SignUp },
+      { path: 'dashboard', Component: Dashboard },
+      { path: 'dashboard/:roleParam', Component: Dashboard },
+      { path: '*', Component: Landing },
+    ],
+  },
+]);

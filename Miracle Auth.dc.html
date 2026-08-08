@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; scrollbar-width: none; -ms-overflow-style: none; }
+  body::-webkit-scrollbar { width: 0; height: 0; display: none; }
+  * { scrollbar-width: none; -ms-overflow-style: none; }
+  *::-webkit-scrollbar { width: 0; height: 0; display: none; }
+  a { color: #2f6b4c; text-decoration: none; }
+  a:hover { color: #16301f; }
+  @keyframes floatB { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-22px); } }
+  @keyframes asideIn { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: scale(1); } }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(26px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes fadeUpSm { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes cardIn { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: translateY(0); } }
+  [data-noanim] * { animation: none !important; }
+  .auth-grid { display: grid; min-height: 100vh; height: auto; grid-template-columns: 1fr; align-items: stretch; }
+  html, body { height: auto !important; min-height: 100%; overflow-y: visible !important; }
+  .auth-aside { display: none; }
+  .auth-aside-inner { position: relative; z-index: 10; padding: 0 44px 60px; }
+  .auth-mobilelogo { display: flex; }
+  @media (min-width: 1024px) {
+    .auth-grid { grid-template-columns: 1fr 1fr; }
+    .auth-aside { display: flex; flex-direction: column; justify-content: flex-end; }
+    .auth-mobilelogo { display: none; }
+  }
+  :root { --bg:#f6f1e6; --fg:#16301f; --muted:rgba(22,48,31,0.6); --card-bg:rgba(255,253,248,0.55); --border:rgba(22,48,31,0.12); --form-bg:#f6f1e6; }
+  .dark { --bg:#0c1610; --fg:#eef1e7; --muted:rgba(238,241,231,0.62); --card-bg:rgba(20,33,26,0.72); --border:rgba(238,241,231,0.14); --form-bg:#0a130d; }
+</style>
+<link rel="prefetch" href="Miracle%20Landing.dc.html" />
+<link rel="prefetch" as="image" href="https://images.unsplash.com/photo-1636153279424-cb5d1e00f5a2?w=900&h=1150&fit=crop&auto=format&q=80" />
+<link rel="preload" as="image" fetchpriority="high" href="https://images.unsplash.com/photo-1674932668403-33398b81c92f?w=760&h=950&fit=crop&auto=format&q=80" />
+<link rel="preload" as="image" fetchpriority="high" href="https://images.unsplash.com/photo-1639689413026-68b7f99a0920?w=760&h=950&fit=crop&auto=format&q=80" />
+</helmet>
+
+<div data-noanim="{{ noanim }}" style="position:relative; min-height:100vh; width:100%; overflow-x:hidden; background:var(--bg); color:var(--fg); transition:background .4s, color .4s; font-family:'Inter',ui-sans-serif,system-ui,sans-serif; -webkit-font-smoothing:antialiased;">
+
+  <div style="position:absolute; inset:0; z-index:0; pointer-events:none; background:radial-gradient(120% 80% at 12% 8%, rgba(156,175,146,0.24), transparent 60%), radial-gradient(120% 80% at 92% 92%, rgba(236,225,201,0.5), transparent 55%);"></div>
+
+  <!-- Language selector · top-right header -->
+  <div style="position:absolute; top:26px; right:26px; z-index:60; display:flex; align-items:center; gap:12px;">
+  <div data-lang style="position:relative;">
+    <button onClick="{{ toggleLang }}" style="display:flex; align-items:center; gap:8px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.5); padding:9px 16px; font-size:0.82rem; color:var(--fg); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; box-shadow:0 8px 26px -14px var(--muted); font-family:inherit; transition:background .25s, border-color .25s;" style-hover="background:rgba(255,255,255,0.75); border-color:rgba(47,107,76,0.5);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#2f6b4c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/></svg>
+      {{ langLabel }}
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="{{ chevronStyle }}"><path d="m6 9 6 6 6-6"/></svg>
+    </button>
+    <ul style="{{ langMenuStyle }}">
+      <sc-for list="{{ languages }}" as="lang" hint-placeholder-count="6">
+        <li style="list-style:none;">
+          <button onClick="{{ lang.pick }}" style="{{ lang.style }}">
+            <span style="display:flex; align-items:center; gap:10px;">
+              <span style="font-size:0.78rem; color:#5c6a57;">{{ lang.native }}</span>{{ lang.label }}
+            </span>
+            <sc-if value="{{ lang.active }}" hint-placeholder-val="{{ true }}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><path d="M20 6 9 17l-5-5"/></svg>
+            </sc-if>
+          </button>
+        </li>
+      </sc-for>
+    </ul>
+  </div>
+  </div>
+
+  <!-- ══════════════ LOGIN ══════════════ -->
+  <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+  <div class="auth-grid">
+    <!-- editorial visual panel -->
+    <aside class="auth-aside" style="position:relative; overflow:hidden; animation:asideIn 0.35s cubic-bezier(0.16,1,0.3,1) both;">
+      <img src="https://images.unsplash.com/photo-1674932668403-33398b81c92f?w=760&h=950&fit=crop&auto=format&q=80" alt="Editorial portrait of glowing, radiant skin" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover;" />
+      <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(22,48,31,0.35) 0%, rgba(10,19,13,0.15) 40%, rgba(10,19,13,0.82) 100%);"></div>
+      <div data-bubbles style="position:absolute; inset:0; overflow:hidden; mix-blend-mode:screen; opacity:0.9; pointer-events:none;">
+        <sc-for list="{{ bubbles }}" as="b" hint-placeholder-count="12"><span data-bubble data-depth="{{ b.depth }}" style="{{ b.wrap }}"><span style="{{ b.orb }}"><span style="{{ b.hi }}"></span></span></span></sc-for>
+      </div>
+      <div style="position:absolute; left:40px; top:36px; z-index:10;">
+        <a href="Miracle%20Landing.dc.html" onClick="{{ back }}" style="display:flex; align-items:center; gap:10px; color:#ffffff;">
+          <svg viewBox="0 0 48 48" fill="none" style="width:28px; height:28px;" stroke="currentColor"><circle cx="24" cy="24" r="22" stroke-width="1" opacity="0.35"/><path d="M24 8 C33 14 34 30 24 40 C14 30 15 14 24 8 Z" stroke-width="1.4" stroke-linejoin="round"/><path d="M24 12 L24 38" stroke-width="1.2"/><path d="M24 20 L18.5 16 M24 20 L29.5 16 M24 27 L18 22.5 M24 27 L30 22.5" stroke-width="1" opacity="0.7"/><circle cx="24" cy="8" r="1.9" fill="currentColor"/><circle cx="18.5" cy="16" r="1.4" fill="currentColor"/><circle cx="29.5" cy="16" r="1.4" fill="currentColor"/></svg>
+          <span style="font-family:'Fraunces',serif; letter-spacing:0.34em; padding-left:0.34em; font-size:1.15rem; color:#ffffff;">MIRACLE</span>
+        </a>
+      </div>
+      <!-- editorial typography composition -->
+      <div style="position:relative; z-index:10; padding:0 44px 60px; animation:fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.1s both;">
+        <span style="display:block; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.32em; color:#c3a468;">Miracle · AI Skincare</span>
+        <span style="display:block; margin-top:14px; font-size:0.82rem; text-transform:uppercase; letter-spacing:0.34em; color:rgba(246,241,230,0.72); font-weight:500;">Your skin has a</span>
+        <span style="display:block; margin-top:2px; font-family:'Fraunces',serif; font-style:italic; font-weight:400; font-size:clamp(2.8rem,5.2vw,4.6rem); line-height:1.04; padding-bottom:0.16em; overflow:visible; letter-spacing:-0.02em; background:linear-gradient(104deg,#fffdf8 8%,#ece1c9 42%,#c3a468 72%,#9caf92 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; filter:drop-shadow(0 12px 34px rgba(10,19,13,0.55)) drop-shadow(0 2px 10px rgba(195,164,104,0.35));">story.</span>
+        <p style="margin:6px 0 0; max-width:30rem; font-family:'Fraunces',serif; font-weight:300; font-size:clamp(1.25rem,1.9vw,1.7rem); line-height:1.25; color:rgba(255,255,255,0.94); text-shadow:0 2px 24px rgba(10,19,13,0.5);">Let’s start <em style="font-style:italic; background:linear-gradient(96deg,#f6f1e6,#c3a468 65%,#9caf92); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent;">reading it</em> together.</p>
+        <p style="margin:14px 0 0; font-size:0.82rem; color:rgba(255,255,255,0.7);">Personalised rituals, powered by AI</p>
+      </div>
+    </aside>
+
+    <!-- form panel -->
+    <div style="position:relative; display:flex; min-height:100vh; flex-direction:column; height:auto;">
+      <div data-bubbles style="position:absolute; inset:0; overflow:hidden; opacity:0.6; pointer-events:none;">
+        <sc-for list="{{ bubbles }}" as="b" hint-placeholder-count="12"><span data-bubble data-depth="{{ b.depth }}" style="{{ b.wrap }}"><span style="{{ b.orb }}"><span style="{{ b.hi }}"></span></span></span></sc-for>
+      </div>
+      <div class="auth-mobilelogo" style="position:relative; z-index:10; align-items:center; padding:28px 24px 0;">
+        <a href="Miracle%20Landing.dc.html" onClick="{{ back }}" style="display:flex; align-items:center; gap:10px; color:var(--fg);">
+          <svg viewBox="0 0 48 48" fill="none" style="width:26px; height:26px;" stroke="currentColor"><circle cx="24" cy="24" r="22" stroke-width="1" opacity="0.35"/><path d="M24 8 C33 14 34 30 24 40 C14 30 15 14 24 8 Z" stroke-width="1.4" stroke-linejoin="round"/><path d="M24 12 L24 38" stroke-width="1.2"/><circle cx="24" cy="8" r="1.9" fill="currentColor"/></svg>
+          <span style="font-family:'Fraunces',serif; letter-spacing:0.34em; padding-left:0.34em; font-size:1.1rem;">MIRACLE</span>
+        </a>
+      </div>
+      <div style="position:relative; z-index:10; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:safe center; padding:48px 24px;">
+        <div style="width:100%; max-width:448px; border-radius:28px; border:1px solid rgba(255,255,255,0.6); background:var(--card-bg); padding:40px; box-shadow:0 40px 100px -40px rgba(22,48,31,0.55); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); animation:cardIn 0.4s cubic-bezier(0.16,1,0.3,1) 0.05s both;">
+          <div style="margin-bottom:32px;">
+            <span style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.3em; color:#2f6b4c;">Greetings</span>
+            <h1 style="margin:12px 0 0; font-family:'Fraunces',serif; font-weight:400; color:var(--fg); font-size:clamp(1.9rem,3vw,2.5rem); line-height:1.08; letter-spacing:-0.02em;">Welcome Back</h1>
+            <p style="margin:10px 0 0; font-size:0.9rem; line-height:1.6; color:var(--muted);">Continue your personalized skincare journey powered by AI.</p>
+          </div>
+          <form onSubmit="{{ submitLogin }}" style="display:flex; flex-direction:column; gap:16px;">
+            <div style="{{ f.li_email.wrap }}">
+              <div style="display:flex; align-items:center; gap:12px; padding:0 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="{{ f.li_email.icon }}"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+                <div style="position:relative; flex:1;">
+                  <label for="li_email" style="{{ f.li_email.label }}">Email Address</label>
+                  <input id="li_email" type="email" autoComplete="email" required value="{{ f.li_email.value }}" onFocus="{{ f.li_email.onFocus }}" onBlur="{{ f.li_email.onBlur }}" onInput="{{ f.li_email.onInput }}" style="width:100%; background:transparent; border:none; outline:none; padding:24px 0 10px; font-family:inherit; font-size:0.95rem; color:var(--fg);" />
+                </div>
+              </div>
+            </div>
+            <div style="{{ f.li_password.wrap }}">
+              <div style="display:flex; align-items:center; gap:12px; padding:0 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="{{ f.li_password.icon }}"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <div style="position:relative; flex:1;">
+                  <label for="li_password" style="{{ f.li_password.label }}">Password</label>
+                  <input id="li_password" type="{{ loginPwType }}" autoComplete="current-password" required value="{{ f.li_password.value }}" onFocus="{{ f.li_password.onFocus }}" onBlur="{{ f.li_password.onBlur }}" onInput="{{ f.li_password.onInput }}" style="width:100%; background:transparent; border:none; outline:none; padding:24px 0 10px; font-family:inherit; font-size:0.95rem; color:var(--fg);" />
+                </div>
+                <button type="button" onClick="{{ toggleLoginPw }}" aria-label="Toggle password" style="flex-shrink:0; background:none; border:none; cursor:pointer; color:var(--muted); display:flex; padding:0;">
+                  <sc-if value="{{ loginPwShown }}" hint-placeholder-val="{{ true }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem; height:1.15rem;"><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 7 10 7a13 13 0 0 1-1.67 2.68"/><path d="M6.06 6.06A13 13 0 0 0 2 12s3.5 7 10 7a9 9 0 0 0 4-.94"/><path d="m2 2 20 20"/></svg>
+                  </sc-if>
+                  <sc-if value="{{ loginPwHidden }}" hint-placeholder-val="{{ true }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem; height:1.15rem;"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </sc-if>
+                </button>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end;">
+              <button type="button" style="background:none; border:none; cursor:pointer; font-family:inherit; font-size:0.82rem; color:#2f6b4c; transition:opacity .2s;" style-hover="opacity:0.7;">Forgot Password?</button>
+            </div>
+            <button type="submit" style="{{ submitBtnStyle }}" style-hover="transform:translateY(-2px); box-shadow:0 24px 52px -14px var(--muted), 0 0 34px -6px rgba(195,164,104,0.5);">
+              <span style="display:inline-flex; align-items:center; gap:8px;">{{ loginBtnLabel }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+            </button>
+          </form>
+          <div style="display:flex; align-items:center; gap:16px; margin:28px 0;">
+            <span style="height:1px; flex:1; background:var(--border);"></span>
+            <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.2em; color:var(--muted);">or continue with</span>
+            <span style="height:1px; flex:1; background:var(--border);"></span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
+            <button type="button" aria-label="Continue with Google" onClick="{{ onGoogle }}" style="display:grid; place-items:center; height:48px; width:48px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-3px); box-shadow:0 12px 28px -10px rgba(22,48,31,0.4);" style-active="transform:scale(0.92);">
+              <svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></svg>
+            </button>
+            <button type="button" aria-label="Continue with X" onClick="{{ onX }}" style="display:grid; place-items:center; height:48px; width:48px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.55); color:var(--fg); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-3px); box-shadow:0 12px 28px -10px rgba(22,48,31,0.4);" style-active="transform:scale(0.92);">
+              <svg viewBox="0 0 24 24" style="width:1.1rem;height:1.1rem" fill="#16301f" aria-hidden="true"><path d="M18.9 1.6h3.5l-7.6 8.7L23.7 22h-7l-5.5-7.2L4.9 22H1.4l8.1-9.3L.7 1.6h7.2l5 6.6 5.9-6.6Zm-1.2 18.3h1.9L7.1 3.6H5l12.7 16.3Z"/></svg>
+            </button>
+            <button type="button" aria-label="Continue with Facebook" onClick="{{ onFacebook }}" style="display:grid; place-items:center; height:48px; width:48px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-3px); box-shadow:0 12px 28px -10px rgba(22,48,31,0.4);" style-active="transform:scale(0.92);">
+              <svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.88 11.85v-8.38H7.08V12h3.04V9.36c0-3 1.79-4.67 4.53-4.67 1.31 0 2.68.24 2.68.24v2.95h-1.5c-1.49 0-1.96.93-1.96 1.87V12h3.33l-.53 3.47h-2.8v8.38A12 12 0 0 0 24 12Z"/></svg>
+            </button>
+            <button type="button" aria-label="Continue with Instagram" onClick="{{ onInstagram }}" style="display:grid; place-items:center; height:48px; width:48px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-3px); box-shadow:0 12px 28px -10px rgba(22,48,31,0.4);" style-active="transform:scale(0.92);">
+              <svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><defs><radialGradient id="igGrad" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#igGrad)"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1.2" fill="#fff"/></svg>
+            </button>
+          </div>
+          <p style="margin:32px 0 0; text-align:center; font-size:0.88rem; color:var(--muted);">New here? <a href="#" onClick="{{ goSignup }}" style="color:#2f6b4c;">Create an Account</a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <!-- ══════════════ SIGN UP ══════════════ -->
+  <sc-if value="{{ isSignup }}" hint-placeholder-val="{{ true }}">
+  <div class="auth-grid">
+    <!-- form panel (left on signup) -->
+    <div style="position:relative; display:flex; min-height:100vh; flex-direction:column; height:auto; order:1;">
+      <div data-bubbles style="position:absolute; inset:0; overflow:hidden; opacity:0.6; pointer-events:none;">
+        <sc-for list="{{ bubbles }}" as="b" hint-placeholder-count="12"><span data-bubble data-depth="{{ b.depth }}" style="{{ b.wrap }}"><span style="{{ b.orb }}"><span style="{{ b.hi }}"></span></span></span></sc-for>
+      </div>
+      <div class="auth-mobilelogo" style="position:relative; z-index:10; align-items:center; padding:28px 24px 0;">
+        <a href="Miracle%20Landing.dc.html" onClick="{{ back }}" style="display:flex; align-items:center; gap:10px; color:var(--fg);">
+          <svg viewBox="0 0 48 48" fill="none" style="width:26px; height:26px;" stroke="currentColor"><circle cx="24" cy="24" r="22" stroke-width="1" opacity="0.35"/><path d="M24 8 C33 14 34 30 24 40 C14 30 15 14 24 8 Z" stroke-width="1.4" stroke-linejoin="round"/><path d="M24 12 L24 38" stroke-width="1.2"/><circle cx="24" cy="8" r="1.9" fill="currentColor"/></svg>
+          <span style="font-family:'Fraunces',serif; letter-spacing:0.34em; padding-left:0.34em; font-size:1.1rem;">MIRACLE</span>
+        </a>
+      </div>
+      <div style="position:relative; z-index:10; display:flex; flex:1; flex-direction:column; align-items:center; justify-content:safe center; padding:48px 24px;">
+        <div style="width:100%; max-width:448px; border-radius:28px; border:1px solid rgba(255,255,255,0.6); background:var(--card-bg); padding:40px; box-shadow:0 40px 100px -40px rgba(22,48,31,0.55); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); animation:cardIn 0.4s cubic-bezier(0.16,1,0.3,1) 0.05s both;">
+          <div style="margin-bottom:28px;">
+            <span style="font-size:0.68rem; text-transform:uppercase; letter-spacing:0.3em; color:#2f6b4c;">Get Started</span>
+            <h1 style="margin:12px 0 0; font-family:'Fraunces',serif; font-weight:400; color:var(--fg); font-size:clamp(1.9rem,3vw,2.5rem); line-height:1.08; letter-spacing:-0.02em;">Create Your Account</h1>
+            <p style="margin:10px 0 0; font-size:0.9rem; line-height:1.6; color:var(--muted);">Start your personalized skincare journey with Miracle.</p>
+          </div>
+          <form onSubmit="{{ submitSignup }}" style="display:flex; flex-direction:column; gap:16px;">
+            <div style="{{ f.su_name.wrap }}">
+              <div style="display:flex; align-items:center; gap:12px; padding:0 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="{{ f.su_name.icon }}"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>
+                <div style="position:relative; flex:1;">
+                  <label for="su_name" style="{{ f.su_name.label }}">Full Name</label>
+                  <input id="su_name" type="text" autoComplete="name" required value="{{ f.su_name.value }}" onFocus="{{ f.su_name.onFocus }}" onBlur="{{ f.su_name.onBlur }}" onInput="{{ f.su_name.onInput }}" style="width:100%; background:transparent; border:none; outline:none; padding:24px 0 10px; font-family:inherit; font-size:0.95rem; color:var(--fg);" />
+                </div>
+              </div>
+            </div>
+            <div style="{{ f.su_email.wrap }}">
+              <div style="display:flex; align-items:center; gap:12px; padding:0 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="{{ f.su_email.icon }}"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 7 10 6 10-6"/></svg>
+                <div style="position:relative; flex:1;">
+                  <label for="su_email" style="{{ f.su_email.label }}">Email Address</label>
+                  <input id="su_email" type="email" autoComplete="email" required value="{{ f.su_email.value }}" onFocus="{{ f.su_email.onFocus }}" onBlur="{{ f.su_email.onBlur }}" onInput="{{ f.su_email.onInput }}" style="width:100%; background:transparent; border:none; outline:none; padding:24px 0 10px; font-family:inherit; font-size:0.95rem; color:var(--fg);" />
+                </div>
+              </div>
+            </div>
+            <div style="{{ f.su_password.wrap }}">
+              <div style="display:flex; align-items:center; gap:12px; padding:0 16px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="{{ f.su_password.icon }}"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <div style="position:relative; flex:1;">
+                  <label for="su_password" style="{{ f.su_password.label }}">Password</label>
+                  <input id="su_password" type="{{ signupPwType }}" autoComplete="new-password" required value="{{ f.su_password.value }}" onFocus="{{ f.su_password.onFocus }}" onBlur="{{ f.su_password.onBlur }}" onInput="{{ f.su_password.onInput }}" style="width:100%; background:transparent; border:none; outline:none; padding:24px 0 10px; font-family:inherit; font-size:0.95rem; color:var(--fg);" />
+                </div>
+                <button type="button" onClick="{{ toggleSignupPw }}" aria-label="Toggle password" style="flex-shrink:0; background:none; border:none; cursor:pointer; color:var(--muted); display:flex; padding:0;">
+                  <sc-if value="{{ signupPwShown }}" hint-placeholder-val="{{ true }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem; height:1.15rem;"><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c6.5 0 10 7 10 7a13 13 0 0 1-1.67 2.68"/><path d="M6.06 6.06A13 13 0 0 0 2 12s3.5 7 10 7a9 9 0 0 0 4-.94"/><path d="m2 2 20 20"/></svg>
+                  </sc-if>
+                  <sc-if value="{{ signupPwHidden }}" hint-placeholder-val="{{ true }}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem; height:1.15rem;"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </sc-if>
+                </button>
+              </div>
+            </div>
+            <div>
+              <span style="display:block; margin-bottom:10px; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.18em; color:rgba(22,48,31,0.55);">I am joining as</span>
+              <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:8px; border-radius:16px; border:1px solid rgba(255,255,255,0.5); background:rgba(255,255,255,0.4); padding:6px; backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px);">
+                <button type="button" onClick="{{ roleBtn.User.pick }}" style="{{ roleBtn.User.style }}">
+                  <span style="{{ roleBtn.User.iconStyle }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem;height:1.15rem"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg></span>
+                  <span style="position:relative; z-index:10;">User</span>
+                </button>
+                <button type="button" onClick="{{ roleBtn.Consultant.pick }}" style="{{ roleBtn.Consultant.style }}">
+                  <span style="{{ roleBtn.Consultant.iconStyle }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem;height:1.15rem"><path d="M8 2v4"/><path d="M12 2v4"/><path d="M16 2v4"/><rect width="16" height="18" x="4" y="4" rx="2"/><path d="M8 10h6"/><path d="M8 14h8"/><path d="M8 18h5"/></svg></span>
+                  <span style="position:relative; z-index:10;">Consultant</span>
+                </button>
+                <button type="button" onClick="{{ roleBtn.Dermatologist.pick }}" style="{{ roleBtn.Dermatologist.style }}">
+                  <span style="{{ roleBtn.Dermatologist.iconStyle }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem;height:1.15rem"><path d="M11 2v2"/><path d="M5 2v2"/><path d="M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/></svg></span>
+                  <span style="position:relative; z-index:10;">Dermatologist</span>
+                </button>
+              </div>
+            </div>
+            <button type="submit" style="{{ submitBtnStyle }}" style-hover="transform:translateY(-2px); box-shadow:0 24px 52px -14px var(--muted), 0 0 34px -6px rgba(195,164,104,0.5);">
+              <span style="display:inline-flex; align-items:center; gap:8px;">{{ signupBtnLabel }}
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px; height:16px;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+              </span>
+            </button>
+          </form>
+          <div style="display:flex; align-items:center; gap:16px; margin:28px 0;">
+            <span style="height:1px; flex:1; background:var(--border);"></span>
+            <span style="font-size:0.75rem; text-transform:uppercase; letter-spacing:0.2em; color:var(--muted);">or continue with</span>
+            <span style="height:1px; flex:1; background:var(--border);"></span>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:center; gap:12px;">
+            <button type="button" aria-label="Continue with Google" onClick="{{ onGoogle }}" style="display:grid; place-items:center; height:48px; width:48px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-3px); box-shadow:0 12px 28px -10px rgba(22,48,31,0.4);" style-active="transform:scale(0.92);">
+              <svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></svg>
+            </button>
+            <button type="button" aria-label="Continue with X" onClick="{{ onX }}" style="display:grid; place-items:center; height:48px; width:48px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.55); color:var(--fg); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-3px); box-shadow:0 12px 28px -10px rgba(22,48,31,0.4);" style-active="transform:scale(0.92);">
+              <svg viewBox="0 0 24 24" style="width:1.1rem;height:1.1rem" fill="#16301f" aria-hidden="true"><path d="M18.9 1.6h3.5l-7.6 8.7L23.7 22h-7l-5.5-7.2L4.9 22H1.4l8.1-9.3L.7 1.6h7.2l5 6.6 5.9-6.6Zm-1.2 18.3h1.9L7.1 3.6H5l12.7 16.3Z"/></svg>
+            </button>
+            <button type="button" aria-label="Continue with Facebook" onClick="{{ onFacebook }}" style="display:grid; place-items:center; height:48px; width:48px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-3px); box-shadow:0 12px 28px -10px rgba(22,48,31,0.4);" style-active="transform:scale(0.92);">
+              <svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.88 11.85v-8.38H7.08V12h3.04V9.36c0-3 1.79-4.67 4.53-4.67 1.31 0 2.68.24 2.68.24v2.95h-1.5c-1.49 0-1.96.93-1.96 1.87V12h3.33l-.53 3.47h-2.8v8.38A12 12 0 0 0 24 12Z"/></svg>
+            </button>
+            <button type="button" aria-label="Continue with Instagram" onClick="{{ onInstagram }}" style="display:grid; place-items:center; height:48px; width:48px; border-radius:999px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.55); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); cursor:pointer; transition:transform .2s, box-shadow .2s;" style-hover="transform:translateY(-3px); box-shadow:0 12px 28px -10px rgba(22,48,31,0.4);" style-active="transform:scale(0.92);">
+              <svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><defs><radialGradient id="igGrad" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#igGrad)"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1.2" fill="#fff"/></svg>
+            </button>
+          </div>
+          <p style="margin:32px 0 0; text-align:center; font-size:0.88rem; color:var(--muted);">Already Registered? <a href="#" onClick="{{ goLogin }}" style="color:#2f6b4c;">Sign In</a></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- editorial visual panel (right on signup) -->
+    <aside class="auth-aside" style="position:relative; overflow:hidden; order:2; animation:asideIn 0.35s cubic-bezier(0.16,1,0.3,1) both;">
+      <img src="https://images.unsplash.com/photo-1639689413026-68b7f99a0920?w=760&h=950&fit=crop&auto=format&q=80" alt="Editorial portrait celebrating natural skin texture" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:center 28%;" />
+      <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(22,48,31,0.35) 0%, rgba(10,19,13,0.15) 40%, rgba(10,19,13,0.82) 100%);"></div>
+      <div data-bubbles style="position:absolute; inset:0; overflow:hidden; mix-blend-mode:screen; opacity:0.9; pointer-events:none;">
+        <sc-for list="{{ bubbles }}" as="b" hint-placeholder-count="12"><span data-bubble data-depth="{{ b.depth }}" style="{{ b.wrap }}"><span style="{{ b.orb }}"><span style="{{ b.hi }}"></span></span></span></sc-for>
+      </div>
+      <div style="position:absolute; left:40px; top:36px; z-index:10;">
+        <a href="Miracle%20Landing.dc.html" onClick="{{ back }}" style="display:flex; align-items:center; gap:10px; color:#ffffff;">
+          <svg viewBox="0 0 48 48" fill="none" style="width:28px; height:28px;" stroke="currentColor"><circle cx="24" cy="24" r="22" stroke-width="1" opacity="0.35"/><path d="M24 8 C33 14 34 30 24 40 C14 30 15 14 24 8 Z" stroke-width="1.4" stroke-linejoin="round"/><path d="M24 12 L24 38" stroke-width="1.2"/><path d="M24 20 L18.5 16 M24 20 L29.5 16 M24 27 L18 22.5 M24 27 L30 22.5" stroke-width="1" opacity="0.7"/><circle cx="24" cy="8" r="1.9" fill="currentColor"/><circle cx="18.5" cy="16" r="1.4" fill="currentColor"/><circle cx="29.5" cy="16" r="1.4" fill="currentColor"/></svg>
+          <span style="font-family:'Fraunces',serif; letter-spacing:0.34em; padding-left:0.34em; font-size:1.15rem; color:#ffffff;">MIRACLE</span>
+        </a>
+      </div>
+      <div style="position:relative; z-index:10; padding:0 44px 60px; animation:fadeUp 0.4s cubic-bezier(0.16,1,0.3,1) 0.1s both;">
+        <span style="display:block; font-size:0.68rem; text-transform:uppercase; letter-spacing:0.32em; color:#c3a468;">Miracle · AI Skincare</span>
+        <span style="display:block; margin-top:14px; font-family:'Fraunces',serif; font-weight:300; font-size:clamp(1.35rem,2.1vw,1.85rem); color:rgba(246,241,230,0.9); line-height:1.1;">Design your</span>
+        <span style="display:block; margin-top:2px; font-family:'Fraunces',serif; font-style:italic; font-weight:400; font-size:clamp(3rem,5.6vw,5rem); line-height:1.02; padding-bottom:0.18em; overflow:visible; letter-spacing:-0.02em; background:linear-gradient(102deg,#fffdf8 6%,#ece1c9 34%,#c3a468 60%,#9caf92 82%,#2f6b4c 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; filter:drop-shadow(0 14px 38px rgba(10,19,13,0.55)) drop-shadow(0 2px 12px rgba(195,164,104,0.4));">glow,</span>
+        <span style="display:block; margin-top:-2px; font-family:'Fraunces',serif; font-style:italic; font-weight:400; font-size:clamp(1.55rem,2.5vw,2.15rem); line-height:1.08; padding-bottom:0.16em; overflow:visible; letter-spacing:-0.01em; background:linear-gradient(96deg,#f6f1e6,#9caf92 70%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:transparent; text-shadow:0 2px 22px rgba(10,19,13,0.4);">your way.</span>
+        <p style="margin:12px 0 0; font-size:0.82rem; color:rgba(255,255,255,0.7);">Join a world-class AI skincare platform</p>
+      </div>
+    </aside>
+  </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;initialScreen&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;login&quot;,&quot;signup&quot;],&quot;default&quot;:&quot;login&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Content&quot;},&quot;animate&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Motion&quot;}}">
+const TINT = { emerald:'#2f6b4c', champagne:'#ece1c9', sage:'#9caf92', gold:'#c3a468', sky:'#a9c9d6' };
+const BUBBLE_SPEC = [
+  { id:1, x:'6%', y:'18%', size:150, tint:'emerald', depth:0.9, blur:1, opacity:0.5, dur:11 },
+  { id:2, x:'78%', y:'10%', size:96, tint:'champagne', depth:0.65, blur:0.5, opacity:0.6, dur:9 },
+  { id:3, x:'86%', y:'62%', size:190, tint:'sage', depth:1, blur:2, opacity:0.42, dur:13 },
+  { id:4, x:'14%', y:'72%', size:74, tint:'gold', depth:0.5, blur:0.5, opacity:0.55, dur:8 },
+  { id:5, x:'46%', y:'6%', size:44, tint:'sky', depth:0.35, blur:0, opacity:0.6, dur:7 },
+  { id:6, x:'32%', y:'40%', size:30, tint:'gold', depth:0.28, blur:0, opacity:0.7, dur:6 },
+  { id:7, x:'64%', y:'82%', size:58, tint:'emerald', depth:0.55, blur:0.5, opacity:0.5, dur:10 },
+  { id:8, x:'92%', y:'34%', size:26, tint:'champagne', depth:0.3, blur:0, opacity:0.65, dur:7.5 },
+  { id:9, x:'2%', y:'48%', size:40, tint:'sage', depth:0.4, blur:0, opacity:0.55, dur:8.5 },
+  { id:10, x:'54%', y:'58%', size:22, tint:'sky', depth:0.24, blur:0, opacity:0.7, dur:6.5 },
+  { id:11, x:'70%', y:'44%', size:118, tint:'champagne', depth:0.75, blur:1.5, opacity:0.4, dur:12 },
+  { id:12, x:'22%', y:'12%', size:34, tint:'emerald', depth:0.32, blur:0, opacity:0.6, dur:7 },
+];
+const LANGS = [
+  { code:'en', label:'English', native:'English' },
+  { code:'hi', label:'Hindi', native:'हिन्दी' },
+  { code:'fr', label:'French', native:'Français' },
+  { code:'es', label:'Spanish', native:'Español' },
+  { code:'de', label:'German', native:'Deutsch' },
+  { code:'ja', label:'Japanese', native:'日本語' },
+];
+const SOCIAL_SVGS = [
+  '<svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z"/><path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z"/></svg>',
+  '<svg viewBox="0 0 24 24" style="width:1.15rem;height:1.15rem" fill="#16301f" aria-hidden="true"><path d="M18.9 1.6h3.5l-7.6 8.7L23.7 22h-7l-5.5-7.2L4.9 22H1.4l8.1-9.3L.7 1.6h7.2l5 6.6 5.9-6.6Zm-1.2 18.3h1.9L7.1 3.6H5l12.7 16.3Z"/></svg>',
+  '<svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><path fill="#1877F2" d="M24 12a12 12 0 1 0-13.88 11.85v-8.38H7.08V12h3.04V9.36c0-3 1.79-4.67 4.53-4.67 1.31 0 2.68.24 2.68.24v2.95h-1.5c-1.49 0-1.96.93-1.96 1.87V12h3.33l-.53 3.47h-2.8v8.38A12 12 0 0 0 24 12Z"/></svg>',
+  '<svg viewBox="0 0 24 24" style="width:20px;height:20px" aria-hidden="true"><defs><radialGradient id="ig" cx="30%" cy="107%" r="150%"><stop offset="0%" stop-color="#fdf497"/><stop offset="5%" stop-color="#fdf497"/><stop offset="45%" stop-color="#fd5949"/><stop offset="60%" stop-color="#d6249f"/><stop offset="90%" stop-color="#285AEB"/></radialGradient></defs><rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#ig)"/><circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" stroke-width="1.6"/><circle cx="17.4" cy="6.6" r="1.2" fill="#fff"/></svg>',
+];
+const ROLE_SVGS = {
+  User: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem;height:1.15rem"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="8" r="4"/></svg>',
+  Consultant: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem;height:1.15rem"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M18.5 14.5l.7 1.9 1.9.7-1.9.7-.7 1.9-.7-1.9-1.9-.7 1.9-.7z"/></svg>',
+  Dermatologist: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:1.15rem;height:1.15rem"><path d="M6 3v6a5 5 0 0 0 10 0V3"/><path d="M11 14v3a4 4 0 0 0 8 0v-1"/><circle cx="20" cy="12" r="2"/></svg>',
+};
+const ROLE_KEYS = ['User','Consultant','Dermatologist'];
+
+class Component extends DCLogic {
+  state = {
+    screen: (this.props && this.props.initialScreen === 'signup') ? 'signup' : 'login',
+    langOpen: false,
+    activeLang: 0,
+    focus: null,
+    values: {},
+    showLoginPw: false,
+    showSignupPw: false,
+    role: 'User',
+    loadingLogin: false,
+    loadingSignup: false,
+    theme: 'light',
+  };
+
+  componentDidMount() {
+    this._bubbleEls = null; this._raf = 0; this._nx = 0; this._ny = 0;
+    this._applyParallax = () => {
+      this._raf = 0;
+      const nx = this._nx, ny = this._ny;
+      document.querySelectorAll('[data-bubble]').forEach((el) => {
+        const d = parseFloat(el.getAttribute('data-depth')) || 0.4;
+        el.style.transform = 'translate3d(' + (nx * d * 26).toFixed(1) + 'px,' + (ny * d * 26).toFixed(1) + 'px,0)';
+      });
+    };
+    this._onMove = (e) => {
+      if (this.props && this.props.animate === false) return;
+      this._nx = (e.clientX / window.innerWidth - 0.5) * 2;
+      this._ny = (e.clientY / window.innerHeight - 0.5) * 2;
+      if (!this._raf) this._raf = requestAnimationFrame(this._applyParallax);
+    };
+    this._onDown = (e) => {
+      if (!this.state.langOpen) return;
+      const wrap = e.target.closest && e.target.closest('[data-lang]');
+      if (!wrap) this.setState({ langOpen: false });
+    };
+    window.addEventListener('mousemove', this._onMove, { passive: true });
+    document.addEventListener('mousedown', this._onDown);
+  }
+  componentWillUnmount() {
+    window.removeEventListener('mousemove', this._onMove);
+    document.removeEventListener('mousedown', this._onDown);
+    if (this._raf) cancelAnimationFrame(this._raf);
+  }
+
+  field(id) {
+    const focused = this.state.focus === id;
+    const filled = !!this.state.values[id];
+    const floated = focused || filled;
+    return {
+      value: this.state.values[id] || '',
+      onFocus: () => this.setState({ focus: id }),
+      onBlur: () => this.setState((s) => (s.focus === id ? { focus: null } : null)),
+      onInput: (e) => { const v = e.target.value; this.setState((s) => ({ values: { ...s.values, [id]: v } })); },
+      wrap: {
+        borderRadius: '16px', background: 'rgba(255,255,255,0.4)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)',
+        transition: 'border-color .3s, box-shadow .3s',
+        border: focused ? '1px solid rgba(47,107,76,0.7)' : '1px solid rgba(255,255,255,0.5)',
+        boxShadow: focused ? '0 0 0 4px rgba(47,107,76,0.16)' : 'none',
+      },
+      icon: { width: '1.15rem', height: '1.15rem', flexShrink: 0, color: focused ? '#2f6b4c' : 'var(--muted)', transition: 'color .3s' },
+      label: floated
+        ? { pointerEvents: 'none', position: 'absolute', left: 0, top: '8px', fontSize: '0.62rem', textTransform: 'uppercase', letterSpacing: '0.18em', color: '#2f6b4c', transition: 'all .2s' }
+        : { pointerEvents: 'none', position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', fontSize: '0.92rem', color: 'rgba(22,48,31,0.5)', transition: 'all .2s' },
+    };
+  }
+
+  renderVals() {
+    const s = this.state;
+    const submitBtnStyle = {
+      position: 'relative', display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'center', gap: '8px',
+      overflow: 'hidden', borderRadius: '999px', border: 'none', cursor: 'pointer',
+      background: '#16301f', padding: '16px 32px', fontFamily: 'inherit', fontSize: '0.95rem', letterSpacing: '0.02em',
+      color: '#f6f1e6', boxShadow: '0 18px 40px -12px rgba(22,48,31,0.55)', transition: 'transform .25s, box-shadow .3s',
+    };
+    const languages = LANGS.map((l, i) => ({
+      native: l.native, label: l.label, active: i === s.activeLang,
+      pick: () => this.setState({ activeLang: i, langOpen: false }),
+      style: {
+        display: 'flex', width: '100%', alignItems: 'center', justifyContent: 'space-between',
+        borderRadius: '12px', padding: '10px 14px', fontFamily: 'inherit', fontSize: '0.85rem', border: 'none', cursor: 'pointer',
+        background: i === s.activeLang ? 'rgba(47,107,76,0.12)' : 'transparent',
+        color: i === s.activeLang ? '#2f6b4c' : 'rgba(22,48,31,0.8)', transition: 'background .2s',
+      },
+    }));
+    const langMenuStyle = {
+      position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: '208px', zIndex: 30,
+      overflow: 'hidden', borderRadius: '18px', border: '1px solid rgba(255,255,255,0.6)',
+      background: 'rgba(255,253,248,0.9)', padding: '6px', margin: 0, listStyle: 'none',
+      boxShadow: '0 30px 60px -25px rgba(22,48,31,0.5)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+      transition: 'opacity .22s cubic-bezier(0.16,1,0.3,1), transform .22s cubic-bezier(0.16,1,0.3,1)',
+      transformOrigin: 'top right',
+      opacity: s.langOpen ? 1 : 0,
+      transform: s.langOpen ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.97)',
+      visibility: s.langOpen ? 'visible' : 'hidden',
+      pointerEvents: s.langOpen ? 'auto' : 'none',
+    };
+    const roleBtn = {};
+    ROLE_KEYS.forEach((key) => {
+      const active = s.role === key;
+      roleBtn[key] = {
+        pick: () => this.setState({ role: key }),
+        style: {
+          position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+          borderRadius: '12px', padding: '12px 8px', border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.75rem',
+          background: active ? '#2f6b4c' : 'transparent', color: active ? '#ffffff' : 'rgba(22,48,31,0.7)',
+          boxShadow: active ? '0 10px 24px -10px var(--muted)' : 'none', transition: 'background .25s, color .25s, box-shadow .25s',
+        },
+        iconStyle: { position: 'relative', zIndex: 10, display: 'flex', color: active ? '#ffffff' : 'var(--muted)' },
+      };
+    });
+    const bubbles = BUBBLE_SPEC.map((b) => {
+      const tint = TINT[b.tint];
+      return {
+        depth: b.depth,
+        wrap: {
+          position: 'absolute', left: b.x, top: b.y, width: b.size + 'px', height: b.size + 'px',
+          willChange: 'transform', transition: 'transform 0.5s cubic-bezier(0.16,1,0.3,1)',
+        },
+        orb: {
+          width: '100%', height: '100%', borderRadius: '50%', position: 'relative', display: 'block',
+          filter: 'blur(' + b.blur + 'px)', opacity: b.opacity, willChange: 'transform', backfaceVisibility: 'hidden',
+          background: 'radial-gradient(35% 32% at 32% 28%, rgba(255,255,255,0.9), rgba(255,255,255,0) 60%), radial-gradient(120% 120% at 70% 78%, color-mix(in srgb, ' + tint + ' 62%, transparent), color-mix(in srgb, ' + tint + ' 12%, transparent) 72%)',
+          boxShadow: 'inset 0 2px 8px rgba(255,255,255,0.6), inset 0 -10px 20px color-mix(in srgb, ' + tint + ' 45%, transparent), 0 18px 40px -12px color-mix(in srgb, ' + tint + ' 55%, transparent)',
+          border: '1px solid rgba(255,255,255,0.35)',
+          animation: 'floatB ' + b.dur + 's ease-in-out ' + (-b.id) + 's infinite',
+        },
+        hi: { position: 'absolute', width: '22%', height: '22%', left: '24%', top: '20%', borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,0.95), rgba(255,255,255,0) 70%)' },
+      };
+    });
+
+    return {
+      noanim: (this.props && this.props.animate === false) ? true : undefined,
+      back: (e) => { if (e) e.preventDefault(); if (this.props && this.props.onBack) this.props.onBack(); else window.location.href = 'Miracle%20Landing.dc.html'; },
+      themeClass: s.theme === 'dark' ? 'dark' : '',
+      themeLight: s.theme !== 'dark', themeDark: s.theme === 'dark',
+      toggleTheme: () => this.setState((st) => { const t = st.theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('miracle-theme', t); } catch (e) {} return { theme: t }; }),
+      toggleStyle: { display: 'flex', alignItems: 'center', width: '52px', height: '28px', flexShrink: 0, borderRadius: '999px', border: '1px solid var(--border)', background: 'var(--card-bg)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', cursor: 'pointer', padding: '3px', boxSizing: 'border-box', justifyContent: s.theme === 'dark' ? 'flex-end' : 'flex-start' },
+      knobStyle: { display: 'grid', placeItems: 'center', width: '22px', height: '22px', borderRadius: '999px', background: '#2f6b4c', color: '#ffffff' },
+      isLogin: s.screen === 'login',
+      isSignup: s.screen === 'signup',
+      goLogin: (e) => { if (e) e.preventDefault(); this.setState({ screen: 'login', focus: null }); },
+      goSignup: (e) => { if (e) e.preventDefault(); this.setState({ screen: 'signup', focus: null }); },
+      toggleLang: () => this.setState((st) => ({ langOpen: !st.langOpen })),
+      langOpen: s.langOpen,
+      langLabel: LANGS[s.activeLang].label,
+      chevronStyle: { width: '0.9rem', height: '0.9rem', transition: 'transform .2s', transform: s.langOpen ? 'rotate(180deg)' : 'rotate(0deg)' },
+      languages, langMenuStyle, roleBtn, bubbles, submitBtnStyle,
+      onGoogle: () => window.alert('Continue with Google — connect your provider to enable sign-in.'),
+      onX: () => window.alert('Continue with X — connect your provider to enable sign-in.'),
+      onFacebook: () => window.alert('Continue with Facebook — connect your provider to enable sign-in.'),
+      onInstagram: () => window.alert('Continue with Instagram — connect your provider to enable sign-in.'),
+      f: {
+        li_email: this.field('li_email'), li_password: this.field('li_password'),
+        su_name: this.field('su_name'), su_email: this.field('su_email'), su_password: this.field('su_password'),
+      },
+      loginPwType: s.showLoginPw ? 'text' : 'password',
+      loginPwShown: s.showLoginPw, loginPwHidden: !s.showLoginPw,
+      toggleLoginPw: () => this.setState((st) => ({ showLoginPw: !st.showLoginPw })),
+      signupPwType: s.showSignupPw ? 'text' : 'password',
+      signupPwShown: s.showSignupPw, signupPwHidden: !s.showSignupPw,
+      toggleSignupPw: () => this.setState((st) => ({ showSignupPw: !st.showSignupPw })),
+      loginBtnLabel: s.loadingLogin ? 'Signing in…' : 'Sign In',
+      signupBtnLabel: s.loadingSignup ? 'Creating…' : 'Create Account',
+      submitLogin: (e) => { e.preventDefault(); this.setState({ loadingLogin: true }); setTimeout(() => this.setState({ loadingLogin: false }), 900); },
+      submitSignup: (e) => { e.preventDefault(); this.setState({ loadingSignup: true }); setTimeout(() => this.setState({ loadingSignup: false }), 900); },
+    };
+  }
+}
+</script>
+</body>
+</html>

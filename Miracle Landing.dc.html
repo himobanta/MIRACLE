@@ -1,0 +1,1024 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+  a { color: #2f6b4c; text-decoration: none; }
+  a:hover { color: #16301f; }
+  @keyframes floatY { 0%,100% { transform: translate3d(0,0,0); } 50% { transform: translate3d(0,calc(-1 * var(--dist, 22px)),0); } }
+  /* animated bubbles composite via their transform animation; contain limits repaint scope */
+  [style*="floatY"] { backface-visibility: hidden; contain: layout paint style; }
+  section, footer { content-visibility: auto; contain-intrinsic-size: auto 700px; }
+  #hero { content-visibility: visible; }
+  .hero-inner { padding: 128px 24px 64px; }
+  @media (min-width: 768px) { .hero-inner { padding: 128px 40px 64px; } }
+  @media (min-width: 1024px) { .hero-inner { padding: 128px 64px 64px; } }
+  .hero-grid { display: grid; align-items: center; gap: 40px; grid-template-columns: 1fr; }
+  .nav-underline { position: relative; }
+  .nav-underline::after { content: ''; position: absolute; left: 0; bottom: -6px; height: 1.5px; width: 0; background: #c3a468; transition: all .15s cubic-bezier(0.4,0,0.2,1); }
+  .nav-underline:hover::after { width: 100%; }
+  @media (min-width: 1024px) { .hero-grid { grid-template-columns: 1fr 1.05fr; } }
+  .hero-ambient { display: none; }
+  @media (min-width: 1024px) { .hero-ambient { display: block; } }
+  .products-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 768px) { .products-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .concerns-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 768px) { .concerns-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  .ingredients-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 640px) { .ingredients-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .ingredients-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .routine-img { display: none; }
+  @media (min-width: 768px) { .routine-card { grid-template-columns: auto 1fr 260px !important; } .routine-img { display: block; } }
+  .footer-top { grid-template-columns: 1fr; }
+  .footer-cols { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  @media (min-width: 640px) { .footer-cols { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+  @media (min-width: 1024px) { .footer-top { grid-template-columns: 1.4fr 2fr; } }
+  .cta-accent, .cta-orb { display: none; }
+  @media (min-width: 1024px) { .cta-accent, .cta-orb { display: block; } }
+  .journal-grid { display: grid; gap: 24px; grid-template-columns: 1fr; align-items: stretch; }
+  @media (min-width: 1024px) { .journal-grid { grid-template-columns: 1.2fr 1fr; } }
+  .journal-cards { display: grid; gap: 16px; grid-template-columns: 1fr; align-content: start; }
+  @media (min-width: 640px) { .journal-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  .journal-feature-img { transition: transform .9s cubic-bezier(.16,1,.3,1); }
+  .journal-feature:hover .journal-feature-img { transform: scale(1.05); }
+  .journal-card-img { transition: transform .7s cubic-bezier(.16,1,.3,1); }
+  .journal-card:hover .journal-card-img { transform: scale(1.1); }
+  .journal-card:hover, .journal-feature:hover { transform: translateY(-5px); }
+  .journal-card, .journal-feature { transition: transform .4s cubic-bezier(.16,1,.3,1); }
+  /* Figma-exact card + image motions */
+  .prod-card { transition: transform .5s cubic-bezier(.16,1,.3,1); }
+  .prod-card:hover { transform: translateY(-8px); }
+  .prod-img { transition: transform .7s cubic-bezier(.16,1,.3,1); }
+  .prod-card:hover .prod-img { transform: scale(1.05); }
+  .concern-card { transition: transform .4s cubic-bezier(.16,1,.3,1); }
+  .concern-card:hover { transform: scale(0.99); }
+  .concern-card:active { transform: scale(0.97); }
+  .concern-img { transition: transform .9s cubic-bezier(.16,1,.3,1); }
+  .concern-card:hover .concern-img { transform: scale(1.1); }
+  .ing-card { transition: transform .4s cubic-bezier(.16,1,.3,1); }
+  .ing-card:hover { transform: translateY(-6px); }
+  .ing-img { transition: transform .7s cubic-bezier(.16,1,.3,1); }
+  .ing-card:hover .ing-img { transform: scale(1.1); }
+  .routine-img { transition: transform .7s cubic-bezier(.16,1,.3,1); }
+  .routine-card:hover .routine-img { transform: scale(1.1); }
+  .result-card { transition: transform .4s cubic-bezier(.16,1,.3,1); }
+  .result-card:hover { transform: translateY(-6px); }
+  .result-img { transition: transform .9s cubic-bezier(.16,1,.3,1); }
+  .result-card:hover .result-img { transform: scale(1.04); }
+  @keyframes fadeDown { from { opacity: 0; transform: translateY(-24px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes quizIn { from { opacity: 0; transform: scale(0.94) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  @keyframes quizStepIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+  @keyframes revealIn { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+  [data-reveal] { animation: revealIn .9s cubic-bezier(.16,1,.3,1) both; }
+  .nav-links, .nav-actions { display: none; }
+  .nav-burger { display: grid; }
+  @media (min-width: 1024px) { .nav-links { display: flex; } .nav-actions { display: flex; } .nav-burger { display: none; } }
+  .dark .hero-glow-light { display: none; }
+  :root {
+    --bg:#f6f1e6; --fg:#16261b; --card:#fffdf8; --muted:#5c6a57; --border:rgba(22,48,31,0.12);
+    --sec-forest:#16301f; --forest-fg:#f6f1e6;
+    --hero-bg:radial-gradient(120% 90% at 82% 8%, #eef4e5 0%, #f6f1e6 40%, #efe6d3 100%);
+    --soft-bg:linear-gradient(180deg,#f6f1e6,#f0e8d6);
+    --nav-bg:rgba(246,241,230,0.72); --nav-border:rgba(22,48,31,0.1); --nav-link:rgba(22,38,27,0.75);
+    --cta-overlay:radial-gradient(90% 90% at 50% 20%, rgba(22,48,31,0.82), rgba(8,20,12,0.96));
+  }
+  .dark {
+    --bg:#0c1610; --fg:#eef1e7; --card:#14211a; --muted:#9fb09b; --border:rgba(238,241,231,0.12);
+    --sec-forest:#0a130d; --forest-fg:#eef1e7;
+    --hero-bg:radial-gradient(120% 90% at 82% 8%, #14241a 0%, #0c1610 55%);
+    --soft-bg:linear-gradient(180deg,#0c1610,#0e1913);
+    --nav-bg:rgba(20,33,26,0.72); --nav-border:rgba(238,241,231,0.12); --nav-link:rgba(238,241,231,0.78);
+    --cta-overlay:radial-gradient(90% 90% at 50% 20%, rgba(8,16,11,0.9), rgba(3,8,5,0.985));
+  }
+</style>
+<link rel="prefetch" href="Miracle%20Auth.dc.html" />
+<link rel="prefetch" as="image" href="https://images.unsplash.com/photo-1674932668403-33398b81c92f?w=760&h=950&fit=crop&auto=format&q=80" />
+<link rel="prefetch" as="image" href="https://images.unsplash.com/photo-1639689413026-68b7f99a0920?w=760&h=950&fit=crop&auto=format&q=80" />
+<link rel="preload" as="image" fetchpriority="high" href="https://images.unsplash.com/photo-1636153279424-cb5d1e00f5a2?w=900&h=1150&fit=crop&auto=format&q=80" />
+</helmet>
+
+<div class="{{ themeClass }}" style="position:relative; min-height:100vh; width:100%; overflow-x:hidden; background:var(--bg); color:var(--fg); font-family:'Inter',ui-sans-serif,system-ui,sans-serif; -webkit-font-smoothing:antialiased; transition:background .4s, color .4s;">
+
+  <!-- ══ NAVBAR ══ -->
+  <header style="position:fixed; inset:0 0 auto 0; z-index:50; display:flex; justify-content:center; padding:16px; animation:fadeDown .35s cubic-bezier(.16,1,.3,1) both;">
+    <nav style="{{ navStyle }}">
+      <a href="#" onClick="{{ goTop }}" style="display:flex; align-items:center; gap:10px; color:var(--fg);">
+        <svg viewBox="0 0 48 48" fill="none" style="width:28px; height:28px;" stroke="currentColor"><circle cx="24" cy="24" r="22" stroke-width="1" opacity="0.35"/><path d="M24 8 C33 14 34 30 24 40 C14 30 15 14 24 8 Z" stroke-width="1.4" stroke-linejoin="round"/><path d="M24 12 L24 38" stroke-width="1.2"/><path d="M24 20 L18.5 16 M24 20 L29.5 16 M24 27 L18 22.5 M24 27 L30 22.5" stroke-width="1" opacity="0.7"/><circle cx="24" cy="8" r="1.9" fill="currentColor"/><circle cx="18.5" cy="16" r="1.4" fill="currentColor"/><circle cx="29.5" cy="16" r="1.4" fill="currentColor"/></svg>
+        <span style="font-family:'Fraunces',serif; letter-spacing:0.34em; padding-left:0.34em; font-size:1.15rem;">MIRACLE</span>
+      </a>
+      <ul class="nav-links" style="align-items:center; gap:28px; list-style:none; margin:0; padding:0;">
+        <sc-for list="{{ navLinks }}" as="l" hint-placeholder-count="8">
+          <li><button onClick="{{ l.go }}" class="nav-underline" style="background:none; border:none; cursor:pointer; font-family:inherit; font-size:0.82rem; letter-spacing:0.025em; color:var(--nav-link); transition:color .15s;" style-hover="color:var(--fg);">{{ l.label }}</button></li>
+        </sc-for>
+      </ul>
+      <div class="nav-actions" style="align-items:center; gap:16px;">
+        <button onClick="{{ toggleTheme }}" aria-label="Toggle theme" style="{{ toggleStyle }}"><span style="{{ knobStyle }}"><sc-if value="{{ themeLight }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/></svg></sc-if><sc-if value="{{ themeDark }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M21 12.8A8 8 0 1 1 11 3a6 6 0 0 0 10 9.8z"/></svg></sc-if></span></button>
+        <button onClick="{{ openCart }}" aria-label="Cart" style="position:relative; background:none; border:none; cursor:pointer; color:var(--fg); display:flex;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <sc-if value="{{ hasCart }}" hint-placeholder-val="{{ true }}"><span style="position:absolute; right:-8px; top:-8px; display:grid; place-items:center; height:17px; width:17px; border-radius:999px; background:#c3a468; font-size:0.6rem; color:#16301f;">{{ cartCount }}</span></sc-if>
+        </button>
+        <a href="Miracle%20Auth.dc.html" onClick="{{ openLogin }}" style="display:flex; align-items:center; gap:6px; font-size:0.82rem; color:var(--nav-link);" style-hover="color:var(--fg);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Sign In
+        </a>
+        <button onClick="{{ goProducts }}" style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:none; cursor:pointer; background:#16301f; color:#f6f1e6; padding:11px 22px; font-family:inherit; font-size:0.9rem; transition:transform .25s, box-shadow .3s;" style-hover="transform:translateY(-2px); box-shadow:0 18px 40px -12px rgba(22,48,31,0.55);">Shop Now
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+        </button>
+      </div>
+      <button class="nav-burger" onClick="{{ toggleMenu }}" aria-label="Menu" style="place-items:center; background:none; border:none; cursor:pointer; color:var(--fg);">
+        <sc-if value="{{ menuClosed }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:24px;height:24px;"><path d="M3 6h18M3 12h18M3 18h18"/></svg></sc-if>
+        <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:24px;height:24px;"><path d="M6 6 18 18M18 6 6 18"/></svg></sc-if>
+      </button>
+    </nav>
+    <sc-if value="{{ menuOpen }}" hint-placeholder-val="{{ true }}">
+      <div style="position:fixed; inset:88px 16px auto 16px; z-index:40; border-radius:24px; border:1px solid rgba(22,48,31,0.1); background:rgba(246,241,230,0.96); padding:22px; backdrop-filter:blur(16px); box-shadow:0 30px 70px -30px rgba(22,48,31,0.5);">
+        <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:2px;">
+          <sc-for list="{{ navLinks }}" as="l" hint-placeholder-count="8">
+            <li><button onClick="{{ l.go }}" style="width:100%; text-align:left; padding:10px 0; background:none; border:none; cursor:pointer; font-family:'Fraunces',serif; font-size:1.15rem; color:var(--nav-link);">{{ l.label }}</button></li>
+          </sc-for>
+        </ul>
+        <a href="Miracle%20Auth.dc.html" onClick="{{ openLogin }}" style="margin-top:6px; display:flex; align-items:center; gap:8px; padding:10px 0; font-family:'Fraunces',serif; font-size:1.15rem; color:var(--nav-link);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg> Sign In
+        </a>
+        <div style="margin-top:14px; display:flex; align-items:center; justify-content:space-between; border-top:1px solid var(--border); padding-top:16px;">
+          <span style="font-size:0.9rem; color:var(--muted);">Appearance</span>
+          <button onClick="{{ toggleTheme }}" aria-label="Toggle theme" style="{{ toggleStyle }}"><span style="{{ knobStyle }}"><sc-if value="{{ themeLight }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/></svg></sc-if><sc-if value="{{ themeDark }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><path d="M21 12.8A8 8 0 1 1 11 3a6 6 0 0 0 10 9.8z"/></svg></sc-if></span></button>
+        </div>
+        <button onClick="{{ goProducts }}" style="margin-top:12px; width:100%; display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:999px; border:none; cursor:pointer; background:#16301f; color:#f6f1e6; padding:14px; font-family:inherit; font-size:0.95rem;">Shop Now</button>
+      </div>
+    </sc-if>
+  </header>
+
+  <!-- ══ HERO ══ -->
+  <section id="hero" style="position:relative; min-height:100vh; width:100%; overflow:hidden; background:var(--hero-bg);">
+    <div class="hero-glow-light" style="pointer-events:none; position:absolute; top:-10%; right:-8%; height:560px; width:560px; border-radius:999px; opacity:0.5; filter:blur(64px); background:radial-gradient(circle, rgba(123,171,90,0.4), transparent 70%);"></div>
+    <div class="hero-glow-light" style="pointer-events:none; position:absolute; bottom:-12%; left:-6%; height:480px; width:480px; border-radius:999px; opacity:0.45; filter:blur(64px); background:radial-gradient(circle, rgba(195,164,104,0.4), transparent 70%);"></div>
+    <div class="hero-ambient" style="pointer-events:none; position:absolute; inset:0; z-index:1; opacity:0.7;">
+      <span style="position:absolute; left:1%; top:34%; width:132px; height:132px; --dist:30px; border-radius:999px; opacity:0.6; animation:floatY 12s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(123,171,90,0.4) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(123,171,90,0.4), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+      <span style="position:absolute; left:7%; bottom:9%; width:60px; height:60px; --dist:20px; border-radius:999px; animation:floatY 9s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(195,164,104,0.45) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(195,164,104,0.45), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+      <span style="position:absolute; left:41%; top:9%; width:30px; height:30px; --dist:14px; border-radius:999px; animation:floatY 7s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(169,201,214,0.5) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(169,201,214,0.5), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+      <span style="position:absolute; left:38%; bottom:7%; width:46px; height:46px; --dist:18px; border-radius:999px; opacity:0.8; animation:floatY 10s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(231,198,90,0.45) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(231,198,90,0.45), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+      <span style="position:absolute; right:2%; top:54%; width:84px; height:84px; --dist:26px; border-radius:999px; opacity:0.7; animation:floatY 11s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(169,201,214,0.4) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(169,201,214,0.4), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+      <span style="position:absolute; right:33%; top:7%; width:24px; height:24px; --dist:12px; border-radius:999px; animation:floatY 6.5s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(123,171,90,0.55) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(123,171,90,0.55), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+    </div>
+    <div style="position:relative; z-index:10; margin:0 auto; display:flex; min-height:100vh; max-width:1400px; flex-direction:column; justify-content:center;" class="hero-inner">
+      <div class="hero-grid">
+        <div data-reveal>
+          <h1 style="font-family:'Fraunces',serif; color:var(--fg); font-size:clamp(3rem,6.6vw,6rem); line-height:1; font-weight:400; letter-spacing:-0.025em;">AI Powered<br />Skincare<span style="font-style:italic; color:#2f6b4c;"> Intelligence</span></h1>
+          <p style="margin:32px 0 0; max-width:28rem; font-size:1.08rem; line-height:1.6; color:var(--muted);">Miracle analyses your skin, decodes your concerns and composes a dermatologist-approved ritual — where botanical science meets machine precision.</p>
+          <div style="margin:40px 0 0; display:flex; flex-wrap:wrap; align-items:center; gap:16px;">
+            <button onClick="{{ goProducts }}" style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:none; cursor:pointer; background:#16301f; color:#f6f1e6; padding:16px 32px; font-family:inherit; font-size:0.95rem; transition:transform .25s, box-shadow .3s;" style-hover="transform:translateY(-2px); box-shadow:0 18px 40px -12px rgba(22,48,31,0.55);">Shop Now
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg>
+            </button>
+            <button onClick="{{ openQuiz }}" style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; cursor:pointer; border:1px solid rgba(22,48,31,0.25); background:transparent; color:var(--fg); padding:16px 30px; font-family:inherit; font-size:0.95rem; transition:transform .25s, border-color .25s;" style-hover="transform:translateY(-2px); border-color:rgba(22,48,31,0.6);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/></svg> Analyse My Skin
+            </button>
+          </div>
+          <div style="margin:56px 0 0; display:flex; align-items:center; gap:24px;">
+            <div style="display:flex;">
+              <span style="height:40px; width:40px; margin-left:-12px; overflow:hidden; border-radius:999px; box-shadow:0 0 0 2px #f6f1e6;"><img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1770393391946-7d9b658deec3?w=800&h=1000&fit=crop&auto=format&q=80" alt="" style="height:100%;width:100%;object-fit:cover;" /></span>
+              <span style="height:40px; width:40px; margin-left:-12px; overflow:hidden; border-radius:999px; box-shadow:0 0 0 2px #f6f1e6;"><img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1664117308709-81e5e63501cf?w=800&h=1000&fit=crop&auto=format&q=80" alt="" style="height:100%;width:100%;object-fit:cover;" /></span>
+              <span style="height:40px; width:40px; margin-left:-12px; overflow:hidden; border-radius:999px; box-shadow:0 0 0 2px #f6f1e6;"><img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1764844463559-63d59516380a?w=800&h=1000&fit=crop&auto=format&q=80" alt="" style="height:100%;width:100%;object-fit:cover;" /></span>
+              <span style="height:40px; width:40px; margin-left:-12px; overflow:hidden; border-radius:999px; box-shadow:0 0 0 2px #f6f1e6;"><img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1765607476292-886bc1e648a1?w=800&h=1000&fit=crop&auto=format&q=80" alt="" style="height:100%;width:100%;object-fit:cover;" /></span>
+            </div>
+            <div>
+              <div style="display:flex; gap:3px; color:#c3a468;"><span innerhtmlnote="stars">★★★★★</span></div>
+              <p style="margin:2px 0 0; font-size:0.82rem; color:var(--muted);">Loved by 5M+ people worldwide</p>
+            </div>
+          </div>
+        </div>
+        <div data-reveal style="position:relative; margin:0 auto; width:100%; max-width:600px;">
+          <div style="position:relative; aspect-ratio:4/5; width:100%; overflow:hidden; border-radius:2.6rem; background:rgba(156,175,146,0.2); box-shadow:0 50px 110px -35px rgba(22,48,31,0.55);">
+            <img src="https://images.unsplash.com/photo-1636153279424-cb5d1e00f5a2?w=1400&h=1800&fit=crop&auto=format&q=80" alt="Woman with radiant, healthy skin" style="height:100%; width:100%; object-fit:cover;" />
+            <div style="position:absolute; inset:0; background:linear-gradient(180deg, transparent 58%, rgba(22,48,31,0.32));"></div>
+          </div>
+          <span style="position:absolute; left:-32px; top:64px; width:92px; height:92px; --dist:26px; border-radius:999px; animation:floatY 7s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(123,171,90,0.5) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(123,171,90,0.5), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+          <span style="position:absolute; left:24px; bottom:40px; width:54px; height:54px; --dist:20px; border-radius:999px; animation:floatY 9s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(169,201,214,0.5) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(169,201,214,0.5), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+          <span style="position:absolute; right:-28px; bottom:96px; width:68px; height:68px; --dist:24px; border-radius:999px; animation:floatY 8s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(195,164,104,0.5) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(195,164,104,0.5), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+          <span style="position:absolute; right:40px; top:96px; width:34px; height:34px; --dist:16px; border-radius:999px; animation:floatY 6s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(231,198,90,0.55) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(231,198,90,0.55), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+          <span style="position:absolute; right:96px; bottom:32px; width:22px; height:22px; --dist:14px; border-radius:999px; animation:floatY 7.5s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.9), rgba(123,171,90,0.55) 42%, rgba(255,255,255,0.06) 72%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.35), inset 0 6px 16px rgba(123,171,90,0.55), 0 20px 40px -18px rgba(22,48,31,0.4); border:1px solid rgba(255,255,255,0.4); -webkit-"><span style="position:absolute; left:22%; top:16%; height:26%; width:26%; border-radius:999px; background:rgba(255,255,255,0.7); filter:blur(3px);"></span></span>
+          <div style="position:absolute; right:-16px; top:32px; border-radius:22px; border:1px solid rgba(255,255,255,0.6); background:rgba(255,255,255,0.4); padding:16px 20px; box-shadow:0 20px 50px -20px rgba(22,48,31,0.5); backdrop-filter:blur(14px); animation:floatY 9s ease-in-out infinite;">
+            <div style="display:flex; align-items:center; gap:6px;"><span style="height:6px; width:6px; border-radius:999px; background:#2f6b4c;"></span><p style="margin:0; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.22em; color:#3d5443;">Skin Score</p></div>
+            <p style="margin:4px 0 0; font-family:'Fraunces',serif; font-size:1.9rem; color:#2f6b4c;">94<span style="font-size:1.1rem; color:rgba(61,84,67,0.6);">/100</span></p>
+            <div style="margin:8px 0 0; height:4px; width:112px; overflow:hidden; border-radius:999px; background:rgba(61,84,67,0.15);"><span style="display:block; height:100%; width:94%; border-radius:999px; background:#2f6b4c;"></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ STATS ══ -->
+  <section id="about" style="position:relative; width:100%; padding:96px 24px; background:var(--sec-forest); color:var(--forest-fg); border-radius:48px 48px 0 0;">
+    <div style="position:relative; z-index:1; margin:0 auto; max-width:1400px;">
+      <div style="display:grid; gap:48px; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); align-items:end;">
+        <div data-reveal>
+          <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:#9caf92;"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>Why Miracle</span>
+          <h2 style="margin:20px 0 0; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; font-weight:400; letter-spacing:-0.02em;">The intelligence behind<span style="font-style:italic; color:#c3a468;"> radiant skin.</span></h2>
+          <p style="margin:24px 0 0; max-width:28rem; line-height:1.6; color:rgba(246,241,230,0.7);">A decade of dermatological research, distilled into an engine that learns your skin and evolves your ritual — trusted across the globe.</p>
+        </div>
+        <div style="display:grid; gap:20px; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
+          <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+            <div data-reveal style="border-radius:24px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); padding:24px; transition:transform .5s, background .5s;" style-hover="transform:translateY(-6px); background:rgba(255,255,255,0.08);">
+              <div style="font-family:'Fraunces',serif; font-size:clamp(2rem,3.4vw,2.9rem); color:{{ s.tone }};">{{ s.value }}</div>
+              <p style="margin:8px 0 0; font-size:0.85rem; line-height:1.3; color:rgba(246,241,230,0.7);">{{ s.label }}</p>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div data-reveal style="margin:56px 0 0; display:flex; flex-wrap:wrap; align-items:center; gap:16px 32px; border-top:1px solid rgba(255,255,255,0.1); padding-top:32px;">
+        <div style="display:flex; align-items:center; gap:10px; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg><span style="font-size:0.85rem;">Dermatologist Approved</span></div>
+        <div style="display:flex; align-items:center; gap:10px; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 1 0-7.8 7.8l9 8.5 9-8.5a5.5 5.5 0 0 0 0-7.9z"/></svg><span style="font-size:0.85rem;">Cruelty Free</span></div>
+        <div style="display:flex; align-items:center; gap:10px; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M11 20A7 7 0 0 1 4 13c0-6 7-9 16-9 0 9-4 16-9 16z"/><path d="M4 20 20 4"/></svg><span style="font-size:0.85rem;">Vegan Formulas</span></div>
+        <div style="display:flex; align-items:center; gap:10px; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3"/><path d="M8 3h8"/></svg><span style="font-size:0.85rem;">Clinically Tested</span></div>
+        <div style="display:flex; align-items:center; gap:10px; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/></svg><span style="font-size:0.85rem;">AI Powered</span></div>
+        <div style="display:flex; align-items:center; gap:10px; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/></svg><span style="font-size:0.85rem;">Carbon Neutral</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ PRODUCTS ══ -->
+  <section id="products" style="position:relative; width:100%; padding:96px 24px;">
+    <div style="position:relative; z-index:1; margin:0 auto; max-width:1400px;">
+      <div data-reveal style="margin-bottom:48px; display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:24px;">
+        <div>
+          <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:var(--muted);"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>Featured Products</span>
+          <h2 style="margin:20px 0 0; max-width:36rem; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; font-weight:400; letter-spacing:-0.02em;">Formulated by science.<span style="font-style:italic; color:#2f6b4c;"> Perfected by nature.</span></h2>
+        </div>
+        <button onClick="{{ goProducts }}" style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; cursor:pointer; border:1px solid rgba(22,48,31,0.25); background:transparent; color:var(--fg); padding:13px 24px; font-family:inherit; font-size:0.9rem;" style-hover="border-color:rgba(22,48,31,0.6);">View All Products <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg></button>
+      </div>
+      <div class="products-grid" style="display:grid; gap:24px;">
+        <sc-for list="{{ products }}" as="p" hint-placeholder-count="8">
+          <article data-reveal class="prod-card" style="display:flex; height:100%; flex-direction:column; overflow:hidden; border-radius:24px; border:1px solid var(--border); background:var(--card); box-shadow:0 10px 30px -18px rgba(22,48,31,0.35);">
+            <div style="position:relative; aspect-ratio:4/5; overflow:hidden; background:{{ p.bg }};">
+              <div class="prod-img" style="{{ p.bgImg }}"></div>
+              <span style="position:absolute; left:12px; top:12px; border-radius:999px; background:rgba(255,255,255,0.8); padding:4px 12px; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.14em; color:#16301f;">{{ p.tag }}</span>
+            </div>
+            <div style="display:flex; flex:1; flex-direction:column; padding:20px;">
+              <div style="display:flex; align-items:center; gap:6px; color:#c3a468;"><svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M12 2l2.9 6.3 6.9.6-5.2 4.6 1.6 6.8L12 17.3 5.8 20.9l1.6-6.8L2.2 8.9l6.9-.6z"/></svg><span style="font-size:0.8rem; color:var(--fg);">{{ p.rating }}</span><span style="font-size:0.75rem; color:var(--muted);">({{ p.reviews }})</span></div>
+              <h3 style="margin:8px 0 0; font-family:'Fraunces',serif; font-size:1.15rem; color:var(--fg);">{{ p.name }}</h3>
+              <div style="margin-top:auto; display:flex; align-items:center; justify-content:space-between; padding-top:16px;">
+                <span style="font-family:'Fraunces',serif; font-size:1.25rem; color:var(--fg);">{{ p.priceLabel }}</span>
+                <button onClick="{{ p.add }}" style="display:inline-flex; align-items:center; gap:6px; border-radius:999px; border:none; cursor:pointer; background:#16301f; color:#f6f1e6; padding:8px 16px; font-family:inherit; font-size:0.78rem; transition:transform .25s, box-shadow .3s;" style-hover="transform:translateY(-2px); box-shadow:0 12px 26px -12px rgba(22,48,31,0.6);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg> Add</button>
+              </div>
+            </div>
+          </article>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ CONCERNS ══ -->
+  <section id="concerns" style="position:relative; width:100%; padding:96px 24px; background:var(--soft-bg);">
+    <div style="position:relative; z-index:1; margin:0 auto; max-width:1400px;">
+      <div data-reveal style="margin-bottom:48px; max-width:36rem;">
+        <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:var(--muted);"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>Shop By Concern</span>
+        <h2 style="margin:20px 0 0; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; font-weight:400; letter-spacing:-0.02em; color:var(--fg);">Every skin tells<span style="font-style:italic; color:#2f6b4c;"> a story.</span></h2>
+        <p style="margin:20px 0 0; line-height:1.6; color:var(--muted);">Tell us your concern — our AI maps it to the exact actives and ritual your skin needs.</p>
+      </div>
+      <div class="concerns-grid" style="display:grid; grid-auto-rows:230px; gap:16px;">
+        <sc-for list="{{ concerns }}" as="c" hint-placeholder-count="12">
+          <button data-reveal class="concern-card" style="{{ c.tileStyle }}">
+            <div class="concern-img" style="{{ c.bgImg }}"></div>
+            <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(22,48,31,0.05) 25%, rgba(22,48,31,0.78));"></div>
+            <div style="position:absolute; inset:auto 0 0 0; display:flex; align-items:flex-end; justify-content:space-between; padding:20px;">
+              <div><span style="font-family:'Fraunces',serif; font-size:1.25rem; color:#f6f1e6;">{{ c.name }}</span><p style="margin:2px 0 0; font-size:0.78rem; color:rgba(246,241,230,0.75);">{{ c.desc }}</p></div>
+              <span style="display:grid; height:36px; width:36px; flex-shrink:0; place-items:center; border-radius:999px; background:rgba(246,241,230,0.9); color:#16301f;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg></span>
+            </div>
+          </button>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ INGREDIENTS ══ -->
+  <section id="ingredients" style="position:relative; width:100%; padding:96px 24px; background:var(--sec-forest); color:var(--forest-fg);">
+    <div style="position:relative; z-index:1; margin:0 auto; max-width:1400px;">
+      <div data-reveal style="margin-bottom:48px; display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:24px;">
+        <div style="max-width:36rem;">
+          <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:#9caf92;"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>Powered by Nature + Science</span>
+          <h2 style="margin:20px 0 0; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; font-weight:400; letter-spacing:-0.02em;">Actives you can<span style="font-style:italic; color:#c3a468;"> trust.</span></h2>
+        </div>
+        <p style="max-width:24rem; line-height:1.6; color:rgba(246,241,230,0.7);">Every molecule is chosen for evidence, sourced responsibly and dosed at clinically effective levels.</p>
+      </div>
+      <div class="ingredients-grid" style="display:grid; gap:20px;">
+        <sc-for list="{{ ingredients }}" as="ing" hint-placeholder-count="10">
+          <div data-reveal class="ing-card" style="height:100%; overflow:hidden; border-radius:24px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04);">
+            <div style="position:relative; height:160px; overflow:hidden;">
+              <div class="ing-img" style="{{ ing.bgImg }}"></div>
+              <div style="position:absolute; inset:0; background:{{ ing.grade }};"></div>
+              <div style="position:absolute; right:12px; top:12px; border-radius:12px; background:rgba(22,48,31,0.6); padding:6px; backdrop-filter:blur(4px);"><svg viewBox="0 0 40 40" fill="none" style="width:30px;height:30px; color:{{ ing.tone }};"><path d="M20 8 L31 14 L31 26 L20 32 L9 26 L9 14 Z" stroke="currentColor" stroke-width="1.3"/><circle cx="20" cy="8" r="2.4" fill="currentColor"/><circle cx="31" cy="14" r="2.4" fill="currentColor"/><circle cx="20" cy="32" r="2.4" fill="currentColor"/><circle cx="9" cy="26" r="2.4" fill="currentColor"/></svg></div>
+            </div>
+            <div style="padding:20px;">
+              <h3 style="margin:0; font-family:'Fraunces',serif; font-size:1.1rem;">{{ ing.name }}</h3>
+              <p style="margin:4px 0 0; font-size:0.85rem; color:{{ ing.tone }};">{{ ing.benefit }}</p>
+              <p style="margin:12px 0 0; font-size:0.8rem; line-height:1.5; color:rgba(246,241,230,0.6);">{{ ing.note }}</p>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ ROUTINE ══ -->
+  <section id="routine" style="position:relative; width:100%; padding:96px 24px;">
+    <div style="position:relative; z-index:1; margin:0 auto; max-width:1400px;">
+      <div data-reveal style="margin-bottom:56px; max-width:36rem;">
+        <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:var(--muted);"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>The Complete Ritual</span>
+        <h2 style="margin:20px 0 0; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; font-weight:400; letter-spacing:-0.02em; color:var(--fg);">Six steps to<span style="font-style:italic; color:#2f6b4c;"> luminous skin.</span></h2>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:24px;">
+        <sc-for list="{{ routine }}" as="r" hint-placeholder-count="6">
+          <div data-reveal class="routine-card" style="display:grid; align-items:center; gap:24px; border-radius:24px; border:1px solid var(--border); background:var(--card); padding:20px; grid-template-columns:auto 1fr; transition:transform .5s, box-shadow .5s; overflow:hidden;" style-hover="transform:translateY(-4px); box-shadow:0 20px 50px -24px rgba(22,48,31,0.4);">
+            <div style="display:grid; height:48px; width:48px; place-items:center; border-radius:999px; color:#f6f1e6; box-shadow:0 8px 18px -8px rgba(0,0,0,0.4); background:{{ r.tone }};">{{ r.iconEl }}</div>
+            <div>
+              <div style="display:flex; align-items:baseline; gap:12px;"><span style="font-family:'Fraunces',serif; font-size:0.85rem; color:var(--muted);">{{ r.n }}</span><h3 style="margin:0; font-family:'Fraunces',serif; font-size:1.5rem; color:var(--fg);">{{ r.title }}</h3></div>
+              <p style="margin:8px 0 0; max-width:32rem; line-height:1.6; color:var(--muted);">{{ r.desc }}</p>
+            </div>
+            <div class="routine-img" style="height:128px; margin-right:16px; overflow:hidden; border-radius:16px; background:rgba(156,175,146,0.15);"><div style="{{ r.bgImg }}"></div></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ RESULTS ══ -->
+  <section style="position:relative; width:100%; padding:96px 24px; background:var(--soft-bg);">
+    <div style="margin:0 auto; max-width:1400px;">
+      <div data-reveal style="margin-bottom:48px; display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:24px;">
+        <div style="max-width:36rem;">
+          <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:var(--muted);"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>Visible Results</span>
+          <h2 style="margin:20px 0 0; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; font-weight:400; letter-spacing:-0.02em; color:var(--fg);">Transformations,<span style="font-style:italic; color:#2f6b4c;"> measured.</span></h2>
+        </div>
+        <p style="max-width:24rem; line-height:1.6; color:var(--muted);">Real, AI-tracked progress across our community — every transformation independently verified by dermatologists.</p>
+      </div>
+      <div style="display:grid; gap:24px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));">
+        <sc-for list="{{ results }}" as="c" hint-placeholder-count="4">
+          <div data-reveal class="result-card" style="overflow:hidden; border-radius:24px; border:1px solid var(--border); background:var(--card); padding:12px; box-shadow:0 16px 40px -24px rgba(22,48,31,0.45);">
+            <div style="position:relative; aspect-ratio:4/3; width:100%; overflow:hidden; border-radius:16px; background:rgba(156,175,146,0.15);">
+              <div class="result-img" style="{{ c.bgImg }}"></div>
+              <div style="position:absolute; inset:12px auto 12px 50%; width:1px; background:rgba(255,255,255,0.5);"></div>
+              <span style="position:absolute; left:12px; top:12px; border-radius:999px; background:rgba(0,0,0,0.45); padding:4px 10px; font-size:0.6rem; text-transform:uppercase; letter-spacing:0.14em; color:#fff;">Before</span>
+              <span style="position:absolute; right:12px; top:12px; border-radius:999px; background:rgba(47,107,76,0.9); padding:4px 10px; font-size:0.6rem; text-transform:uppercase; letter-spacing:0.14em; color:#fff;">After</span>
+            </div>
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:16px 8px 8px;">
+              <div>
+                <div style="display:flex; align-items:center; gap:6px;"><svg viewBox="0 0 24 24" fill="none" stroke="#2f6b4c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg><h3 style="margin:0; font-family:'Fraunces',serif; font-size:1.1rem; color:var(--fg);">{{ c.concern }}</h3></div>
+                <p style="margin:2px 0 0; font-size:0.78rem; color:var(--muted);">Over {{ c.weeks }} weeks</p>
+              </div>
+              <div style="text-align:right;"><div class="results-pct" data-target="{{ c.improve }}" style="font-family:'Fraunces',serif; font-size:1.5rem; color:#2f6b4c;">0%</div><p style="margin:0; font-size:0.7rem; color:var(--muted);">improvement</p></div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ WHY CARE ══ -->
+  <section style="position:relative; width:100%; padding:96px 24px;">
+    <div style="margin:0 auto; max-width:1400px; display:grid; gap:40px; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); align-items:center;">
+      <div data-reveal style="position:relative; overflow:hidden; border-radius:38px; box-shadow:0 40px 90px -40px rgba(22,48,31,0.6);">
+        <div style="aspect-ratio:4/5; width:100%;"><img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1551184451-76b762941ad6?w=1200&h=1500&fit=crop&auto=format&q=80" alt="Woman touching radiant skin" style="height:112%; width:100%; object-fit:cover;" /></div>
+        <div style="position:absolute; inset:0; background:linear-gradient(180deg, transparent 55%, rgba(22,48,31,0.5));"></div>
+        <div style="position:absolute; inset:auto 24px 24px 24px; border-radius:16px; border:1px solid rgba(255,255,255,0.3); background:rgba(255,255,255,0.15); padding:20px; backdrop-filter:blur(12px);">
+          <p style="margin:0; font-family:'Fraunces',serif; font-size:1.25rem; color:#fff;">“My skin has never felt more itself.”</p>
+          <p style="margin:4px 0 0; font-size:0.8rem; color:rgba(255,255,255,0.8);">— Verified Miracle member, 6 months</p>
+        </div>
+      </div>
+      <div>
+        <div data-reveal>
+          <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:var(--muted);"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>Skincare That Truly Cares</span>
+          <h2 style="margin:20px 0 0; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.04; font-weight:400; letter-spacing:-0.02em; color:var(--fg);">Care, engineered<span style="font-style:italic; color:#2f6b4c;"> with intention.</span></h2>
+        </div>
+        <div data-reveal style="margin:32px 0 0; display:grid; gap:14px; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));">
+          <sc-for list="{{ whycare }}" as="w" hint-placeholder-count="10">
+            <div style="display:flex; height:100%; align-items:center; gap:12px; border-radius:16px; border:1px solid var(--border); background:var(--card); padding:16px; transition:box-shadow .3s, transform .3s;" style-hover="transform:translateY(-4px); box-shadow:0 12px 26px -16px rgba(22,48,31,0.4);">
+              <span style="display:grid; height:40px; width:40px; flex-shrink:0; place-items:center; border-radius:12px; background:{{ w.bg }}; color:{{ w.tone }};">{{ w.iconEl }}</span>
+              <span style="font-size:0.9rem; line-height:1.2; color:var(--fg);">{{ w.title }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ JOURNAL ══ -->
+  <section id="journal" style="position:relative; width:100%; padding:96px 24px; background:var(--sec-forest); color:var(--forest-fg); border-radius:48px;">
+    <div style="position:relative; z-index:1; margin:0 auto; max-width:1400px;">
+      <div data-reveal style="margin-bottom:48px; display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:24px;">
+        <div style="max-width:36rem;">
+          <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:#9caf92;"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>The Journal</span>
+          <h2 style="margin:20px 0 0; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; font-weight:400; letter-spacing:-0.02em;">Skincare, decoded<span style="font-style:italic; color:#c3a468;"> beautifully.</span></h2>
+        </div>
+        <button onClick="{{ openFeature }}" style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; cursor:pointer; border:1px solid rgba(246,241,230,0.3); background:transparent; color:#f6f1e6; padding:13px 24px; font-family:inherit; font-size:0.9rem;" style-hover="border-color:#c3a468; color:#c3a468;">Visit the Journal <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg></button>
+      </div>
+      <div class="journal-grid">
+        <a data-reveal href="#" onClick="{{ openFeature }}" class="journal-feature" style="display:block; height:100%; overflow:hidden; border-radius:24px; border:1px solid rgba(255,255,255,0.1); color:inherit; cursor:pointer;">
+          <div style="position:relative; min-height:380px; height:100%; overflow:hidden;">
+            <div class="journal-feature-img" style="{{ journalFeature.bgImg }}"></div>
+            <div style="position:absolute; inset:0; background:linear-gradient(180deg, transparent 40%, rgba(10,24,15,0.85));"></div>
+            <div style="position:absolute; inset:auto 0 0 0; padding:28px;">
+              <span style="border-radius:999px; background:#c3a468; padding:4px 12px; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.14em; color:#16301f;">{{ journalFeature.cat }}</span>
+              <h3 style="margin:16px 0 0; max-width:28rem; font-family:'Fraunces',serif; font-size:1.875rem; line-height:1.15; font-weight:400;">{{ journalFeature.title }}</h3>
+              <div style="margin:12px 0 0; display:flex; align-items:center; gap:8px; font-size:0.8rem; color:rgba(246,241,230,0.7);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> {{ journalFeature.read }} read</div>
+            </div>
+          </div>
+        </a>
+        <div class="journal-cards">
+          <sc-for list="{{ journalRest }}" as="a" hint-placeholder-count="4">
+            <a href="#" onClick="{{ a.open }}" class="journal-card" style="display:flex; height:100%; flex-direction:column; overflow:hidden; border-radius:16px; border:1px solid rgba(255,255,255,0.1); background:rgba(255,255,255,0.04); color:inherit; cursor:pointer;">
+              <div style="position:relative; height:128px; overflow:hidden;"><div class="journal-card-img" style="{{ a.bgImg }}"></div></div>
+              <div style="display:flex; flex:1; flex-direction:column; padding:16px;">
+                <span style="font-size:0.62rem; text-transform:uppercase; letter-spacing:0.14em; color:#9caf92;">{{ a.cat }}</span>
+                <h4 style="margin:6px 0 0; font-family:'Fraunces',serif; font-size:1.05rem; line-height:1.3; font-weight:400;">{{ a.title }}</h4>
+                <div style="margin-top:auto; display:flex; align-items:center; justify-content:space-between; padding-top:12px; font-size:0.75rem; color:rgba(246,241,230,0.6);"><span>{{ a.read }}</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M7 17 17 7"/><path d="M7 7h10v10"/></svg></div>
+              </div>
+            </a>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ TESTIMONIALS ══ -->
+  <section id="contact" style="position:relative; width:100%; padding:96px 24px;">
+    <div style="position:relative; z-index:1; margin:0 auto; max-width:1400px;">
+      <div data-reveal style="margin-bottom:48px; text-align:center;">
+        <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.32em; font-size:0.7rem; color:rgba(22,48,31,0.7);"><span style="width:24px; height:1px; background:currentColor; opacity:0.6;"></span>Real People · Real Results</span>
+        <h2 style="margin:20px auto 0; max-width:40rem; font-family:'Fraunces',serif; font-size:clamp(2rem,4vw,3.4rem); line-height:1.05; font-weight:400; letter-spacing:-0.02em; color:var(--fg);">Loved in over 100<span style="font-style:italic; color:#2f6b4c;"> countries.</span></h2>
+      </div>
+      <div data-reveal style="position:relative; margin:0 auto; max-width:64rem; overflow:hidden; border-radius:36px; border:1px solid var(--border); background:var(--card); padding:12px; box-shadow:0 30px 70px -40px rgba(22,48,31,0.5);">
+        <div style="display:grid; align-items:stretch; gap:24px; grid-template-columns:repeat(auto-fit,minmax(240px,1fr));">
+          <div style="position:relative; min-height:256px; overflow:hidden; border-radius:26px; background:rgba(156,175,146,0.2);">
+            <div style="{{ review.thumbBg }}"></div>
+            <span style="position:absolute; left:12px; bottom:12px; border-radius:999px; background:rgba(47,107,76,0.9); padding:4px 12px; font-size:0.62rem; text-transform:uppercase; letter-spacing:0.14em; color:#fff;">Verified transformation</span>
+          </div>
+          <div style="display:flex; flex-direction:column; justify-content:center; padding:24px;">
+            <div style="display:flex; gap:3px; color:#c3a468;"><span>★★★★★</span></div>
+            <p style="margin:20px 0 0; font-family:'Fraunces',serif; font-size:clamp(1.2rem,2vw,1.7rem); line-height:1.35; color:var(--fg);">“{{ review.text }}”</p>
+            <div style="margin:24px 0 0; display:flex; align-items:center; gap:12px;">
+              <span style="height:48px; width:48px; overflow:hidden; border-radius:999px; box-shadow:0 0 0 2px rgba(195,164,104,0.4);"><div style="{{ review.avatarBg }}"></div></span>
+              <div>
+                <div style="display:flex; align-items:center; gap:6px; font-size:0.95rem; color:var(--fg);">{{ review.name }} <span>{{ review.flag }}</span> <svg viewBox="0 0 24 24" fill="none" stroke="#2f6b4c" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="12" cy="12" r="9"/><path d="m9 12 2 2 4-4"/></svg></div>
+                <p style="margin:2px 0 0; font-size:0.78rem; color:var(--muted);">{{ review.type }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="margin:32px 0 0; display:flex; align-items:center; justify-content:center; gap:16px;">
+        <button onClick="{{ testiPrev }}" aria-label="Previous" style="display:grid; height:44px; width:44px; place-items:center; border-radius:999px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--fg); transition:transform .25s, background .25s, color .25s;" style-hover="transform:translateY(-2px); background:#16301f; color:#f6f1e6;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="m15 6-6 6 6 6"/></svg></button>
+        <div style="display:flex; gap:8px;">
+          <sc-for list="{{ testiDots }}" as="d" hint-placeholder-count="5"><button onClick="{{ d.set }}" aria-label="Review" style="{{ d.style }}"></button></sc-for>
+        </div>
+        <button onClick="{{ testiNext }}" aria-label="Next" style="display:grid; height:44px; width:44px; place-items:center; border-radius:999px; cursor:pointer; border:1px solid var(--border); background:transparent; color:var(--fg); transition:transform .25s, background .25s, color .25s;" style-hover="transform:translateY(-2px); background:#16301f; color:#f6f1e6;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="m9 6 6 6-6 6"/></svg></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FINAL CTA ══ -->
+  <section style="position:relative; width:100%; overflow:hidden; padding:112px 24px; background:var(--sec-forest);">
+    <div style="position:absolute; inset:0; z-index:0; background:var(--sec-forest); overflow:hidden;"><img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1760339346612-2fca79db08bb?w=1000&h=1400&fit=crop&auto=format&q=80" alt="Lush botanical backdrop" style="height:100%; width:100%; object-fit:cover;" /><div style="position:absolute; inset:0; background:var(--cta-overlay);"></div></div>
+    <div class="cta-accent" style="position:absolute; left:-40px; top:12%; width:208px; height:208px; --dist:18px; transform:rotate(18deg); opacity:0.25; filter:blur(1px); animation:floatY 11s ease-in-out infinite;"><img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1697192287574-9246218bc6d5?w=1000&h=1400&fit=crop&auto=format&q=80" alt="" style="height:100%; width:100%; border-radius:999px; object-fit:cover;" /></div>
+    <div class="cta-accent" style="position:absolute; right:-32px; bottom:10%; width:176px; height:176px; --dist:22px; transform:rotate(-12deg); opacity:0.25; filter:blur(1px); animation:floatY 13s ease-in-out infinite;"><img loading="lazy" decoding="async" src="https://images.unsplash.com/photo-1640867096164-2430b904a8f3?w=1000&h=1400&fit=crop&auto=format&q=80" alt="" style="height:100%; width:100%; border-radius:999px; object-fit:cover;" /></div>
+    <span class="cta-orb" style="position:absolute; left:10%; top:22%; width:90px; height:90px; --dist:26px; border-radius:999px; animation:floatY 8s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.85), rgba(123,171,90,0.5) 45%, rgba(255,255,255,0.04) 74%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.25), inset 0 6px 16px rgba(123,171,90,0.5); border:1px solid rgba(255,255,255,0.25);"><span style="position:absolute; left:24%; top:18%; height:24%; width:24%; border-radius:999px; background:rgba(255,255,255,0.6); filter:blur(3px);"></span></span>
+    <span class="cta-orb" style="position:absolute; right:14%; top:26%; width:56px; height:56px; --dist:20px; border-radius:999px; animation:floatY 9s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.85), rgba(195,164,104,0.5) 45%, rgba(255,255,255,0.04) 74%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.25), inset 0 6px 16px rgba(195,164,104,0.5); border:1px solid rgba(255,255,255,0.25);"><span style="position:absolute; left:24%; top:18%; height:24%; width:24%; border-radius:999px; background:rgba(255,255,255,0.6); filter:blur(3px);"></span></span>
+    <span class="cta-orb" style="position:absolute; left:18%; bottom:20%; width:38px; height:38px; --dist:16px; border-radius:999px; animation:floatY 7s ease-in-out infinite; background:radial-gradient(circle at 32% 28%, rgba(255,255,255,0.85), rgba(169,201,214,0.5) 45%, rgba(255,255,255,0.04) 74%); box-shadow:inset 0 -8px 20px rgba(255,255,255,0.25), inset 0 6px 16px rgba(169,201,214,0.5); border:1px solid rgba(255,255,255,0.25);"><span style="position:absolute; left:24%; top:18%; height:24%; width:24%; border-radius:999px; background:rgba(255,255,255,0.6); filter:blur(3px);"></span></span>
+    <div style="position:relative; z-index:10; margin:0 auto; max-width:48rem; text-align:center; color:#f6f1e6;">
+      <span data-reveal style="display:block; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.34em; color:#9caf92;">Join 5 Million+ Users</span>
+      <h2 data-reveal style="margin:24px auto 0; max-width:40rem; font-family:'Fraunces',serif; font-size:clamp(2.6rem,6vw,5rem); line-height:1; font-weight:400; letter-spacing:-0.025em;">Begin your personalized<span style="font-style:italic; color:#c3a468;"> skincare journey.</span></h2>
+      <p data-reveal style="margin:24px auto 0; max-width:32rem; font-size:1.05rem; line-height:1.6; color:rgba(246,241,230,0.75);">Take the 2-minute AI skin analysis and receive a ritual composed entirely for you — free, forever personalised.</p>
+      <form data-reveal onSubmit="{{ submitCta }}" style="margin:40px auto 0; display:flex; max-width:32rem; flex-wrap:wrap; gap:12px; border-radius:999px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.1); padding:8px; backdrop-filter:blur(12px);">
+        <input type="email" required value="{{ ctaEmail }}" onInput="{{ onCtaEmail }}" placeholder="Enter your email" style="flex:1; min-width:180px; border-radius:999px; border:none; background:transparent; padding:14px 24px; font-family:inherit; font-size:0.98rem; color:#fff; outline:none;" />
+        <button type="submit" style="display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:999px; border:none; cursor:pointer; background:#c3a468; color:#16301f; padding:14px 32px; font-family:inherit; font-size:0.98rem; transition:transform .25s, box-shadow .3s;" style-hover="transform:translateY(-2px); box-shadow:0 16px 40px -12px rgba(195,164,104,0.75);">{{ ctaLabel }}
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
+      </form>
+      <div data-reveal style="margin:40px auto 0; display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:12px 28px;">
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg> Dermatologist Approved</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/></svg> AI-Powered Analysis</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><circle cx="9" cy="8" r="3"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 5a3 3 0 0 1 0 6"/></svg> 5M+ Users</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Secure Login</div>
+        <div style="display:flex; align-items:center; gap:8px; font-size:0.82rem; color:rgba(246,241,230,0.8);"><svg viewBox="0 0 24 24" fill="none" stroke="#9caf92" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M11 20A7 7 0 0 1 4 13c0-6 7-9 16-9 0 9-4 16-9 16z"/><path d="M4 20 20 4"/></svg> 100% Clean Ingredients</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══ FOOTER ══ -->
+  <footer style="width:100%; background:var(--sec-forest); padding:80px 24px 40px; color:var(--forest-fg);">
+    <div style="margin:0 auto; max-width:1400px;">
+      <div class="footer-top" style="display:grid; gap:48px;">
+        <div>
+          <a href="#" onClick="{{ goTop }}" style="display:flex; align-items:center; gap:10px; color:#f6f1e6;">
+            <svg viewBox="0 0 48 48" fill="none" style="width:28px; height:28px;" stroke="currentColor"><circle cx="24" cy="24" r="22" stroke-width="1" opacity="0.35"/><path d="M24 8 C33 14 34 30 24 40 C14 30 15 14 24 8 Z" stroke-width="1.4" stroke-linejoin="round"/><path d="M24 12 L24 38" stroke-width="1.2"/><circle cx="24" cy="8" r="1.9" fill="currentColor"/></svg>
+            <span style="font-family:'Fraunces',serif; letter-spacing:0.34em; padding-left:0.34em; font-size:1.15rem;">MIRACLE</span>
+          </a>
+          <p style="margin:20px 0 0; max-width:20rem; line-height:1.6; color:rgba(246,241,230,0.6);">Intelligent skincare, naturally perfect. Where botanical science meets machine precision.</p>
+          <div style="margin:28px 0 0;">
+            <p style="margin:0; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.24em; color:#9caf92;">Newsletter</p>
+            <form onSubmit="{{ preventDefault }}" style="margin:12px 0 0; display:flex; max-width:24rem; align-items:center; gap:8px; border-radius:999px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.05); padding:6px 6px 6px 20px;">
+              <input type="email" placeholder="Your email" style="flex:1; background:transparent; border:none; outline:none; font-family:inherit; font-size:0.85rem; color:#fff;" />
+              <button aria-label="Subscribe" style="display:grid; height:36px; width:36px; place-items:center; border-radius:999px; border:none; cursor:pointer; background:#c3a468; color:#16301f; transition:transform .2s;" style-hover="transform:scale(1.05);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg></button>
+            </form>
+          </div>
+        </div>
+        <div class="footer-cols" style="display:grid; gap:32px;">
+          <sc-for list="{{ footerCols }}" as="col" hint-placeholder-count="4">
+            <div>
+              <p style="margin:0; font-size:0.72rem; text-transform:uppercase; letter-spacing:0.24em; color:#9caf92;">{{ col.title }}</p>
+              <ul style="margin:16px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:10px;">
+                <sc-for list="{{ col.links }}" as="lnk" hint-placeholder-count="4"><li><a href="#" style="font-size:0.9rem; color:rgba(246,241,230,0.7);" style-hover="color:#c3a468;">{{ lnk }}</a></li></sc-for>
+              </ul>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="margin:64px 0 0; border-top:1px solid rgba(255,255,255,0.1); padding-top:32px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:24px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <a href="#" aria-label="Instagram" style="display:grid; height:40px; width:40px; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,0.15); color:rgba(246,241,230,0.7);" style-hover="border-color:#c3a468; color:#c3a468; transform:translateY(-2px);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg></a>
+          <a href="#" aria-label="Facebook" style="display:grid; height:40px; width:40px; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,0.15); color:rgba(246,241,230,0.7);" style-hover="border-color:#c3a468; color:#c3a468; transform:translateY(-2px);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M15 3h-3a4 4 0 0 0-4 4v3H5v4h3v7h4v-7h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+          <a href="#" aria-label="TikTok" style="display:grid; height:40px; width:40px; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,0.15); color:rgba(246,241,230,0.7);" style-hover="border-color:#c3a468; color:#c3a468; transform:translateY(-2px);"><svg viewBox="0 0 24 24" fill="currentColor" style="width:16px;height:16px;"><path d="M16.5 3c.3 2 1.5 3.6 3.5 3.9v2.5c-1.3.1-2.5-.3-3.6-1v6.1c0 3.3-2.4 5.5-5.4 5.5-2.9 0-5-2.1-5-4.9 0-2.9 2.3-5 5.3-4.7v2.6c-.4-.1-.9-.2-1.3-.1-1.2.2-2 1.1-1.9 2.4.1 1.2 1 2 2.2 2 1.3 0 2.1-1 2.1-2.5V3h3.6Z"/></svg></a>
+          <a href="#" aria-label="YouTube" style="display:grid; height:40px; width:40px; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,0.15); color:rgba(246,241,230,0.7);" style-hover="border-color:#c3a468; color:#c3a468; transform:translateY(-2px);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="2" y="5" width="20" height="14" rx="4"/><path d="m10 9 5 3-5 3z"/></svg></a>
+          <a href="#" aria-label="LinkedIn" style="display:grid; height:40px; width:40px; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,0.15); color:rgba(246,241,230,0.7);" style-hover="border-color:#c3a468; color:#c3a468; transform:translateY(-2px);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/><path d="M10 21v-6a3 3 0 0 1 6 0v6"/></svg></a>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:1px solid rgba(255,255,255,0.15); background:transparent; cursor:pointer; padding:8px 14px; font-family:inherit; font-size:0.8rem; color:rgba(246,241,230,0.75); transition:border-color .2s, color .2s;" style-hover="border-color:#c3a468; color:#c3a468;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/></svg> English <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;opacity:0.6;"><path d="m6 9 6 6 6-6"/></svg></button>
+          <button style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:1px solid rgba(255,255,255,0.15); background:transparent; cursor:pointer; padding:8px 14px; font-family:inherit; font-size:0.8rem; color:rgba(246,241,230,0.75); transition:border-color .2s, color .2s;" style-hover="border-color:#c3a468; color:#c3a468;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:14px;height:14px;"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z"/></svg> United States <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;opacity:0.6;"><path d="m6 9 6 6 6-6"/></svg></button>
+        </div>
+      </div>
+      <p style="margin:24px 0 0; font-size:0.8rem; color:rgba(246,241,230,0.5);">© {{ year }} Miracle Skincare Intelligence. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <!-- ══ CART DRAWER ══ -->
+  <div style="{{ cartOverlayStyle }}" onClick="{{ closeCart }}"></div>
+  <aside style="{{ cartPanelStyle }}">
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:24px; border-bottom:1px solid rgba(22,48,31,0.1);">
+      <h3 style="margin:0; font-family:'Fraunces',serif; font-size:1.35rem; color:var(--fg);">Your Cart</h3>
+      <div style="display:flex; align-items:center; gap:14px;">
+        <sc-if value="{{ hasCart }}" hint-placeholder-val="{{ true }}">
+          <button onClick="{{ clearCart }}" style="display:inline-flex; align-items:center; gap:5px; background:none; border:none; cursor:pointer; font-family:inherit; font-size:0.78rem; color:var(--muted); transition:color .2s;" style-hover="color:#b4432f;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg> Clear all</button>
+        </sc-if>
+        <button onClick="{{ closeCart }}" aria-label="Close" style="background:none; border:none; cursor:pointer; color:var(--fg); display:flex;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:22px;height:22px;"><path d="M6 6 18 18M18 6 6 18"/></svg></button>
+      </div>
+    </div>
+    <div style="flex:1; overflow-y:auto; padding:16px 24px;">
+      <sc-if value="{{ cartEmpty }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:48px 0; text-align:center; color:var(--muted);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="width:44px;height:44px; opacity:0.4; margin-bottom:12px;"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <p style="margin:0; font-size:0.92rem;">Your cart is empty.</p>
+        </div>
+      </sc-if>
+      <sc-for list="{{ cartItems }}" as="it" hint-placeholder-count="2">
+        <div style="display:flex; gap:14px; padding:14px 0; border-bottom:1px solid rgba(22,48,31,0.08);">
+          <span style="height:64px; width:56px; overflow:hidden; border-radius:12px; flex-shrink:0; background:rgba(156,175,146,0.15);"><div style="{{ it.bgImg }}"></div></span>
+          <div style="flex:1;">
+            <h4 style="margin:0; font-family:'Fraunces',serif; font-size:1rem; color:var(--fg);">{{ it.name }}</h4>
+            <p style="margin:2px 0 0; font-size:0.8rem; color:var(--muted);">{{ it.tag }}</p>
+            <div style="margin:8px 0 0; display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-family:'Fraunces',serif; font-size:0.95rem; color:var(--fg);">{{ it.priceLabel }}</span>
+              <div style="display:flex; align-items:center; gap:10px;">
+                <span style="font-size:0.82rem; color:var(--muted);">Qty {{ it.qty }}</span>
+                <button onClick="{{ it.remove }}" aria-label="Remove" style="background:none; border:none; cursor:pointer; color:var(--muted); display:flex;" style-hover="color:#b4432f;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" style="width:16px;height:16px;"><path d="M6 6 18 18M18 6 6 18"/></svg></button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <sc-if value="{{ hasCart }}" hint-placeholder-val="{{ true }}">
+      <div style="border-top:1px solid rgba(22,48,31,0.1); padding:24px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+          <span style="font-size:0.9rem; color:var(--muted);">Subtotal</span>
+          <span style="font-family:'Fraunces',serif; font-size:1.35rem; color:var(--fg);">{{ subtotal }}</span>
+        </div>
+        <button onClick="{{ goSignInFromCart }}" style="width:100%; display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:999px; border:none; cursor:pointer; background:#16301f; color:#f6f1e6; padding:16px; font-family:inherit; font-size:0.95rem; transition:box-shadow .3s;" style-hover="box-shadow:0 18px 40px -12px rgba(22,48,31,0.55);">Checkout</button>
+      </div>
+    </sc-if>
+  </aside>
+
+  <!-- ══ QUIZ MODAL ══ -->
+  <sc-if value="{{ quizOpen }}" hint-placeholder-val="{{ true }}">
+    <div style="position:fixed; inset:0; z-index:80; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(10,19,13,0.6); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); animation:fadeDown .3s ease both;" onClick="{{ closeQuiz }}">
+      <div onClick="{{ stop }}" style="position:relative; width:100%; max-width:512px; overflow:hidden; border-radius:32px; border:1px solid var(--border); background:var(--card); box-shadow:0 50px 120px -40px rgba(22,48,31,0.6); animation:quizIn .5s cubic-bezier(0.16,1,0.3,1) both;">
+        <div style="height:4px; width:100%; background:var(--muted-track, rgba(22,48,31,0.12));"><div style="{{ quizProgressStyle }}"></div></div>
+        <button onClick="{{ closeQuiz }}" aria-label="Close" style="position:absolute; top:18px; right:18px; z-index:10; background:none; border:none; cursor:pointer; color:var(--fg); display:flex; transition:opacity .2s;" style-hover="opacity:0.6;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:20px;height:20px;"><path d="M6 6 18 18M18 6 6 18"/></svg></button>
+        <div style="padding:32px;">
+          <span style="display:inline-flex; align-items:center; gap:8px; text-transform:uppercase; letter-spacing:0.24em; font-size:0.7rem; color:#2f6b4c;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/></svg> AI Skin Analysis</span>
+
+          <sc-if value="{{ quizAsking }}" hint-placeholder-val="{{ true }}">
+            <div key="{{ quizStepKey }}" style="animation:quizStepIn .35s cubic-bezier(0.16,1,0.3,1) both;">
+              <h3 style="margin:16px 0 0; font-family:'Fraunces',serif; font-size:1.5rem; font-weight:400; line-height:1.3; color:var(--fg);">{{ quizQuestion }}</h3>
+              <p style="margin:4px 0 0; font-size:0.82rem; color:var(--muted);">Step {{ quizStepNum }} of {{ quizStepTotal }}</p>
+              <div style="margin:24px 0 0; display:grid; gap:12px;">
+                <sc-for list="{{ quizOptions }}" as="opt" hint-placeholder-count="4">
+                  <button onClick="{{ opt.choose }}" style="{{ opt.style }}">
+                    {{ opt.label }}
+                    <span style="{{ opt.dotStyle }}"><sc-if value="{{ opt.active }}" hint-placeholder-val="{{ false }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;"><path d="M20 6 9 17l-5-5"/></svg></sc-if></span>
+                  </button>
+                </sc-for>
+              </div>
+              <sc-if value="{{ quizBackVisible }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ quizBack }}" style="margin:24px 0 0; display:inline-flex; align-items:center; gap:6px; background:none; border:none; cursor:pointer; font-family:inherit; font-size:0.85rem; color:var(--muted); transition:color .2s;" style-hover="color:var(--fg);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg> Back</button>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ quizDone }}" hint-placeholder-val="{{ false }}">
+            <div style="animation:quizStepIn .4s cubic-bezier(0.16,1,0.3,1) both;">
+              <h3 style="margin:16px 0 0; font-family:'Fraunces',serif; font-size:1.5rem; font-weight:400; line-height:1.3; color:var(--fg);">Your personalised ritual is ready</h3>
+              <p style="margin:4px 0 0; font-size:0.85rem; color:var(--muted);">{{ quizResultSub }}</p>
+              <ul style="margin:20px 0 0; padding:0; list-style:none; display:flex; flex-direction:column; gap:12px;">
+                <sc-for list="{{ quizRoutine }}" as="p" hint-placeholder-count="4">
+                  <li style="display:flex; align-items:center; gap:12px; border-radius:16px; border:1px solid var(--border); padding:12px;">
+                    <span style="display:grid; height:24px; width:24px; flex-shrink:0; place-items:center; border-radius:999px; background:#2f6b4c; font-size:0.7rem; color:#fff;">{{ p.n }}</span>
+                    <span style="height:48px; width:40px; flex-shrink:0; overflow:hidden; border-radius:8px; background:rgba(156,175,146,0.15);"><div style="{{ p.bgImg }}"></div></span>
+                    <div style="flex:1;"><p style="margin:0; font-size:0.9rem; color:var(--fg);">{{ p.name }}</p><p style="margin:0; font-size:0.75rem; color:var(--muted);">{{ p.priceLabel }}</p></div>
+                  </li>
+                </sc-for>
+              </ul>
+              <button onClick="{{ addRitual }}" style="margin:24px 0 0; width:100%; display:inline-flex; align-items:center; justify-content:center; gap:8px; border-radius:999px; border:none; cursor:pointer; background:#16301f; color:#f6f1e6; padding:16px; font-family:inherit; font-size:0.95rem; transition:transform .25s, box-shadow .3s;" style-hover="transform:translateY(-2px); box-shadow:0 18px 40px -12px rgba(22,48,31,0.55);">Add Ritual to Bag <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ══ ARTICLE MODAL ══ -->
+  <sc-if value="{{ articleOpen }}" hint-placeholder-val="{{ true }}">
+    <div style="position:fixed; inset:0; z-index:90; display:flex; align-items:flex-start; justify-content:center; padding:24px; overflow-y:auto; background:rgba(10,19,13,0.62); backdrop-filter:blur(8px); -webkit-backdrop-filter:blur(8px); animation:fadeDown .3s ease both;" onClick="{{ closeArticle }}">
+      <article onClick="{{ stop }}" style="position:relative; width:100%; max-width:760px; margin:auto; overflow:hidden; border-radius:28px; background:var(--card); box-shadow:0 50px 120px -40px rgba(22,48,31,0.6); animation:quizIn .5s cubic-bezier(0.16,1,0.3,1) both;">
+        <div style="position:relative; height:280px; overflow:hidden;">
+          <div style="{{ article.bgImg }}"></div>
+          <div style="position:absolute; inset:0; background:linear-gradient(180deg, rgba(10,24,15,0.1) 30%, rgba(10,24,15,0.82));"></div>
+          <button onClick="{{ closeArticle }}" aria-label="Close" style="position:absolute; top:18px; right:18px; z-index:10; display:grid; place-items:center; height:38px; width:38px; border-radius:999px; border:none; cursor:pointer; background:rgba(255,255,255,0.85); color:#16301f; transition:transform .2s;" style-hover="transform:scale(1.08);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" style="width:20px;height:20px;"><path d="M6 6 18 18M18 6 6 18"/></svg></button>
+          <div style="position:absolute; inset:auto 0 0 0; padding:28px;">
+            <span style="border-radius:999px; background:#c3a468; padding:5px 14px; font-size:0.66rem; text-transform:uppercase; letter-spacing:0.16em; color:#16301f;">{{ article.cat }}</span>
+            <h2 style="margin:16px 0 0; max-width:34rem; font-family:'Fraunces',serif; font-size:clamp(1.6rem,3.2vw,2.4rem); line-height:1.12; font-weight:400; color:#f6f1e6;">{{ article.title }}</h2>
+            <div style="margin:12px 0 0; display:flex; align-items:center; gap:14px; font-size:0.8rem; color:rgba(246,241,230,0.8);"><span style="display:flex; align-items:center; gap:6px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg> {{ article.read }} read</span><span style="display:flex; align-items:center; gap:6px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/></svg> {{ article.by }}</span></div>
+          </div>
+        </div>
+        <div style="padding:32px;">
+          <p style="margin:0; font-family:'Fraunces',serif; font-size:1.2rem; line-height:1.5; font-weight:300; color:var(--fg);">{{ article.lede }}</p>
+          <div style="margin:24px 0 0; display:flex; flex-direction:column; gap:24px;">
+            <sc-for list="{{ article.sections }}" as="sec" hint-placeholder-count="3">
+              <div>
+                <h3 style="margin:0 0 8px; display:flex; align-items:center; gap:10px; font-family:'Fraunces',serif; font-size:1.15rem; font-weight:400; color:var(--fg);"><span style="{{ sec.dot }}"></span>{{ sec.h }}</h3>
+                <p style="margin:0; font-size:0.95rem; line-height:1.7; color:var(--muted);">{{ sec.p }}</p>
+              </div>
+            </sc-for>
+          </div>
+          <div style="margin:28px 0 0; display:flex; flex-wrap:wrap; gap:8px;">
+            <sc-for list="{{ article.tags }}" as="t" hint-placeholder-count="3"><span style="border-radius:999px; border:1px solid var(--border); background:rgba(156,175,146,0.12); padding:6px 14px; font-size:0.75rem; color:var(--fg);">{{ t }}</span></sc-for>
+          </div>
+          <div style="margin:28px 0 0; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:16px; border-top:1px solid var(--border); padding-top:24px;">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <span style="display:grid; height:44px; width:44px; place-items:center; border-radius:999px; background:#16301f; color:#f6f1e6; font-family:'Fraunces',serif; font-size:1rem;">M</span>
+              <div><p style="margin:0; font-size:0.9rem; color:var(--fg);">{{ article.by }}</p><p style="margin:0; font-size:0.76rem; color:var(--muted);">Miracle Journal</p></div>
+            </div>
+            <button onClick="{{ openQuizFromArticle }}" style="display:inline-flex; align-items:center; gap:8px; border-radius:999px; border:none; cursor:pointer; background:#16301f; color:#f6f1e6; padding:13px 24px; font-family:inherit; font-size:0.9rem; transition:transform .25s, box-shadow .3s;" style-hover="transform:translateY(-2px); box-shadow:0 18px 40px -12px rgba(22,48,31,0.55);">Build my ritual <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:15px;height:15px;"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>
+          </div>
+        </div>
+      </article>
+    </div>
+  </sc-if>
+
+  <!-- ══ AUTH OVERLAY (instant, no page reload) ══ -->
+  <sc-if value="{{ authOpen }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed; inset:0; z-index:200; overflow-y:auto; -webkit-overflow-scrolling:touch; background:var(--bg); animation:fadeDown .28s cubic-bezier(.16,1,.3,1) both;">
+      <dc-import name="Miracle Auth" initial-screen="{{ authScreen }}" on-back="{{ closeAuth }}" hint-size="100%,100%"></dc-import>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900}}">
+const u = (id, w = 1200, h) => `https://images.unsplash.com/photo-${id}?w=${w}${h ? `&h=${h}` : ''}&fit=crop&auto=format&q=80`;
+const IMG = {
+  heroPortrait: u('1636153279424-cb5d1e00f5a2', 900, 1150), portraitGlow: u('1674932668403-33398b81c92f', 720, 900), portraitSoft: u('1581182815808-b6eb627a8798', 720, 900),
+  serumAmber: u('1613803745799-ba6c10aace85', 560, 700), serumClear: u('1608571423902-eed4a5ad8108', 560, 700), serumSand: u('1743309026555-97f545a08490', 560, 700), serumDrop: u('1576426863848-c21f53c60b19', 560, 700),
+  jarGold: u('1631438414076-16e1c4fb438d', 560, 700), jarFrost: u('1779437141537-62577b216307', 560, 700), jarWhite: u('1704819177156-0af385447fdf', 560, 700), tubeCream: u('1712168044214-f5a272c23a5b', 560, 700), trioJars: u('1673922832855-98036363e570', 680, 450),
+  creamSmear: u('1585945037805-5fd82c2e60b1', 560, 560), creamSilk: u('1749143930790-65db0ee6d222', 560, 700), leafDark: u('1760339346612-2fca79db08bb', 620, 870), plantDrops: u('1640867096164-2430b904a8f3', 620, 870), leafMacro: u('1697192287574-9246218bc6d5', 620, 870), leafDrops2: u('1763452453224-dcc58b8cb602', 720, 900),
+  faceDark1: u('1765607476292-886bc1e648a1', 360, 450), faceAfro: u('1770393391946-7d9b658deec3', 360, 450), faceMan: u('1664117308709-81e5e63501cf', 360, 450), faceThought: u('1765607476376-9574ea76b2ee', 360, 450), faceShoulder: u('1762193802438-5255bf2bec5d', 360, 450), faceSide: u('1779400203917-4073f2f174b5', 360, 450), faceBlonde: u('1764844463559-63d59516380a', 360, 450),
+  editorialTouch: u('1551184451-76b762941ad6', 720, 900), ritual: u('1731768466934-3d98b5fff924', 680, 510),
+  skinFreckles: u('1730288951113-9cc087c14b83', 500, 610), skinFrecklesEyes: u('1567671569645-0d21445141c4', 500, 610), skinFrecklesSoft: u('1589221158826-aed6c80c3f15', 500, 610), skinManClose: u('1664192537631-c115ab3e605b', 500, 610), skinManFace: u('1606675130444-3ddf4a6213d6', 500, 610), skinGlowEye: u('1542833807-ad5af0977050', 500, 610), skinDewy: u('1675773051474-55c4b7d2cf53', 500, 610), skinWrinkles: u('1531067332586-ffe9e4d49477', 500, 610), skinRadiant: u('1613730317319-bc2d10ae54ff', 500, 610),
+};
+const inr = (n) => '₹' + n.toLocaleString('en-IN');
+const bgStyle = (url, extra) => Object.assign({ height: '100%', width: '100%', backgroundImage: 'url("' + url + '")', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }, extra || {});
+const PRODUCTS = [
+  { id: 'vit-c', name: 'Vitamin C Serum', tag: 'Brightening', price: 1299, rating: 4.9, reviews: 2140, img: IMG.serumAmber, tone: '#e7c65a' },
+  { id: 'niacinamide', name: 'Niacinamide Serum', tag: 'Pore Refining', price: 1099, rating: 4.8, reviews: 1876, img: IMG.serumClear, tone: '#7fa8c9' },
+  { id: 'barrier', name: 'Barrier Repair Cream', tag: 'Nourishing', price: 1599, rating: 4.9, reviews: 3210, img: IMG.jarGold, tone: '#2f6b4c' },
+  { id: 'retinol', name: 'Retinol Night Serum', tag: 'Renewing', price: 1899, rating: 4.7, reviews: 1544, img: IMG.serumSand, tone: '#c3a468' },
+  { id: 'cleanser', name: 'Gentle Gel Cleanser', tag: 'Purifying', price: 699, rating: 4.8, reviews: 2890, img: IMG.tubeCream, tone: '#7bab5a' },
+  { id: 'moisturizer', name: 'Hydrating Moisturizer', tag: 'Plumping', price: 1199, rating: 4.9, reviews: 4120, img: IMG.jarFrost, tone: '#a9c9d6' },
+  { id: 'spf', name: 'Mineral Sunscreen SPF50', tag: 'Protecting', price: 899, rating: 4.9, reviews: 5230, img: IMG.jarWhite, tone: '#e08a4a' },
+  { id: 'toner', name: 'Hydrating Toner', tag: 'Balancing', price: 799, rating: 4.7, reviews: 1320, img: IMG.serumDrop, tone: '#9caf92' },
+];
+const CONCERNS = [
+  { name: 'Acne', desc: 'Breakouts & congestion', img: 'assets/concern-acne.jpg', wide: true, pos: 'center 30%' },
+  { name: 'Dark Spots', desc: 'Uneven tone & marks', img: 'assets/concern-darkspots.jpg' },
+  { name: 'Redness', desc: 'Inflammation & rosacea', img: 'assets/concern-redness.jpg' },
+  { name: 'Pigmentation', desc: 'Melasma & uneven tone', img: IMG.skinFreckles },
+  { name: 'Dullness', desc: 'Low radiance & fatigue', img: IMG.skinFrecklesSoft },
+  { name: 'Dry Skin', desc: 'Flaky, tight texture', img: IMG.skinManClose },
+  { name: 'Oily Skin', desc: 'Excess shine & sebum', img: IMG.skinGlowEye, wide: true },
+  { name: 'Combination', desc: 'Uneven T-zone', img: IMG.skinFrecklesEyes },
+  { name: 'Sensitive Skin', desc: 'Reactive & delicate', img: IMG.skinDewy },
+  { name: 'Fine Lines', desc: 'Early expression lines', img: IMG.skinWrinkles },
+  { name: 'Wrinkles', desc: 'Deeper set creases', img: IMG.skinManFace },
+  { name: 'Dehydration', desc: 'Water-depleted skin', img: IMG.skinRadiant },
+];
+const INGREDIENTS = [
+  { name: 'Vitamin C', tone: '#e7c65a', img: IMG.serumAmber, benefit: 'Brightens & evens tone', note: '15% L-ascorbic acid, clinically stabilised.' },
+  { name: 'Niacinamide', tone: '#7fa8c9', img: IMG.serumClear, benefit: 'Refines pores & texture', note: '10% concentration for barrier support.' },
+  { name: 'Hyaluronic Acid', tone: '#a9c9d6', img: IMG.serumDrop, benefit: 'Deep multi-weight hydration', note: 'Holds 1000× its weight in water.' },
+  { name: 'Ceramides', tone: '#c3a468', img: IMG.creamSmear, benefit: 'Restores the skin barrier', note: "Identical to skin's own lipids." },
+  { name: 'Retinol', tone: '#e08a4a', img: IMG.serumSand, benefit: 'Smooths lines & renews', note: 'Encapsulated for gentle release.' },
+  { name: 'Salicylic Acid', tone: '#7bab5a', img: IMG.tubeCream, benefit: 'Clears & decongests', note: 'Oil-soluble BHA, 2% exfoliant.' },
+  { name: 'Peptides', tone: '#2f6b4c', img: IMG.creamSilk, benefit: 'Firms & rebuilds collagen', note: 'Signal peptides for elasticity.' },
+  { name: 'Centella Asiatica', tone: '#9caf92', img: IMG.leafMacro, benefit: 'Calms & soothes redness', note: 'Rich in madecassoside.' },
+  { name: 'Green Tea', tone: '#7bab5a', img: IMG.leafDark, benefit: 'Antioxidant defence', note: 'EGCG protects against pollution.' },
+  { name: 'Aloe Vera', tone: '#9caf92', img: IMG.plantDrops, benefit: 'Hydrates & repairs', note: 'Cooling polysaccharide complex.' },
+];
+const ICON = {
+  droplets: '<path d="M12 3s6 6 6 11a6 6 0 0 1-12 0c0-5 6-11 6-11z"/>',
+  waves: '<path d="M2 8c2-2 4-2 6 0s4 2 6 0 4-2 6 0M2 14c2-2 4-2 6 0s4 2 6 0 4-2 6 0"/>',
+  flask: '<path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3"/><path d="M8 3h8"/>',
+  sparkles: '<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/>',
+  moon: '<path d="M21 12.8A8 8 0 1 1 11 3a6 6 0 0 0 10 9.8z"/>',
+};
+const ROUTINE = [
+  { n: '01', title: 'Cleanse', icon: 'droplets', desc: 'Sweep away impurities with a pH-balanced gel that never strips.', tone: '#7bab5a', img: 'assets/ritual-cleanse.png', pos: '48% center' },
+  { n: '02', title: 'Tone', icon: 'waves', desc: 'Rebalance and prep skin to absorb every active that follows.', tone: '#a9c9d6', img: 'assets/ritual-tone.png', pos: '64% center' },
+  { n: '03', title: 'Treat', icon: 'flask', desc: 'Target concerns with AI-matched Vitamin C or Niacinamide serums.', tone: '#e7c65a', img: IMG.serumAmber },
+  { n: '04', title: 'Moisturize', icon: 'sparkles', desc: 'Lock in hydration with a ceramide-rich barrier repair cream.', tone: '#2f6b4c', img: IMG.jarGold },
+  { n: '05', title: 'Protect', icon: 'sun', desc: 'Shield with weightless mineral SPF50 — the anti-ageing essential.', tone: '#e08a4a', img: IMG.jarWhite },
+  { n: '06', title: 'Night Repair', icon: 'moon', desc: 'Renew overnight with encapsulated retinol and peptides.', tone: '#c3a468', img: IMG.serumSand },
+];
+const RESULTS = [
+  { concern: 'Pigmentation', img: 'assets/result-pigmentation.jpg', weeks: 8, improve: 87 },
+  { concern: 'Acne', img: 'assets/result-acne.png', weeks: 12, improve: 92 },
+  { concern: 'Dark Spots', img: 'assets/result-darkspots.png', weeks: 10, improve: 79 },
+  { concern: 'Fine Lines', img: 'assets/result-finelines.jpg?v=2', weeks: 16, improve: 74 },
+];
+const WHYCARE = [
+  { title: 'Made for Real Skin', tone: '#2f6b4c', path: '<path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1a5.5 5.5 0 1 0-7.8 7.8l9 8.5 9-8.5a5.5 5.5 0 0 0 0-7.9z"/>' },
+  { title: 'Dermatologist Approved', tone: '#7fa8c9', path: '<path d="M6 3v6a5 5 0 0 0 10 0V3"/><path d="M11 14v3a4 4 0 0 0 8 0v-1"/><circle cx="20" cy="12" r="2"/>' },
+  { title: 'Spa-Grade Rituals', tone: '#c3a468', path: '<circle cx="12" cy="12" r="3"/><path d="M12 9V4M12 15v5M9 12H4M15 12h5"/>' },
+  { title: 'AI Intelligence', tone: '#a9c9d6', path: '<circle cx="12" cy="12" r="3"/><path d="M12 5v4M12 15v4M5 12h4M15 12h4"/>' },
+  { title: 'Cruelty Free', tone: '#7bab5a', path: '<path d="M11 20A7 7 0 0 1 4 13c0-6 7-9 16-9 0 9-4 16-9 16z"/><path d="M4 20 20 4"/>' },
+  { title: 'Clinically Proven', tone: '#e08a4a', path: '<path d="M9 3v6l-5 9a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-9V3"/><path d="M8 3h8"/>' },
+  { title: 'Sustainable Packaging', tone: '#2f6b4c', path: '<path d="M7 19H4l3-5M17 19h3l-3-5M12 4 9 9h6z"/>' },
+  { title: 'Science + Nature', tone: '#e7c65a', path: '<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/>' },
+  { title: 'Real Results', tone: '#7fa8c9', path: '<path d="M3 3v18h18"/><path d="m7 15 4-4 3 3 5-6"/>' },
+  { title: 'Luxury Experience', tone: '#c3a468', path: '<path d="M6 3h12l4 6-10 12L2 9z"/><path d="M2 9h20"/>' },
+];
+const JOURNAL = [
+  { title: 'Building a Morning Skincare Routine', cat: 'Routine', read: '6 min', img: IMG.ritual, by: 'Dr. Lena Ford', accent: '#7bab5a',
+    lede: 'A luminous complexion is built before breakfast. The morning is when your skin faces its harshest tests — UV light, pollution, blue light and friction — so a considered AM routine is less about pampering and more about protection. Done well, it takes under four minutes and pays dividends for decades.',
+    sections: [
+      { h: 'Start with a gentle cleanse', p: 'Through the night your skin sheds dead cells, secretes sebum and processes whatever you applied before bed. Rinsing with a low-pH gel cleanser — ideally between 4.5 and 5.5 — lifts that residue without stripping the acid mantle that keeps your barrier resilient. If your skin feels tight or squeaky afterwards, your cleanser is too harsh: that tightness is dehydration, not cleanliness. On mornings when skin feels balanced, even a splash of lukewarm water is enough to prep the canvas.' },
+      { h: 'Antioxidants come first', p: 'The single most valuable morning active is a stabilised antioxidant serum. Vitamin C (L-ascorbic acid at 10–15%) neutralises the free radicals generated by daylight and city pollution before they can degrade collagen and trigger dark spots. Applied to slightly damp skin, it also lays down a brightening base that makes every subsequent step more effective. Give it 30–60 seconds to absorb before moving on.' },
+      { h: 'Lock in hydration', p: 'Next, bind water into the skin with a humectant layer — hyaluronic acid holds up to a thousand times its weight in moisture and plumps fine lines within minutes. Seal it with a lightweight moisturiser containing ceramides so the water you just added cannot evaporate away through the day. Combination and oily skin still need this step; skipping moisturiser only pushes the skin to overproduce oil.' },
+      { h: 'Never, ever skip SPF', p: 'Dermatologists agree that up to 80% of visible facial ageing is driven by ultraviolet exposure. A broad-spectrum mineral SPF50 is, without exaggeration, the most powerful anti-ageing product you will ever own — more impactful than any serum. Apply two finger-lengths to the face and neck as the final morning step, and reapply every two hours if you are outdoors or near windows.' },
+      { h: 'Consistency is the real secret', p: 'A simple routine performed every single morning will always outperform an elaborate one you abandon after a fortnight. Anchor these four steps to an existing habit — brushing your teeth, making coffee — so they become automatic. Skin rewards rhythm, and the compounding effect of daily protection is visible within a single season.' },
+    ], tags: ['Morning', 'Vitamin C', 'SPF', 'Barrier', 'Hydration'] },
+  { title: 'Why Vitamin C Belongs in Your AM Routine', cat: 'Ingredients', read: '5 min', img: IMG.serumAmber, by: 'Aria Mehta', accent: '#e7c65a',
+    lede: 'Vitamin C is the most decorated brightening ingredient in skincare — but its reputation is only deserved when the formula is stabilised, correctly dosed and layered with intention. Here is how to turn a good serum into visible, lasting radiance.',
+    sections: [
+      { h: 'What it actually does', p: 'Pure L-ascorbic acid works on three fronts at once: it interrupts melanin overproduction to fade dark spots and post-blemish marks, it is an essential cofactor in collagen synthesis so skin looks firmer over time, and it is a potent antioxidant that defends against daily environmental damage. Unlike an exfoliant, its results are cumulative — most people notice a brighter, more even tone somewhere between weeks eight and twelve of consistent use.' },
+      { h: 'Concentration and stability', p: 'The effective range sits between 10% and 20%; below that you see little benefit, and above it irritation rises without any extra reward. Just as important is stability — Vitamin C oxidises when exposed to light and air, turning yellow-brown and losing potency. Our serum is buffered at 15% and sealed in opaque, air-restrictive packaging so the last drop is as active as the first. If your serum has darkened, it is telling you it has expired.' },
+      { h: 'The partners it loves', p: 'Vitamin C performs best in the company of Vitamin E and ferulic acid, which stabilise it and extend its antioxidant reach. It also sits beautifully under sunscreen, effectively doubling your daytime defence. Introduce it slowly — every other morning for the first week — if your skin is sensitive, and always follow with SPF, since freshly brightened skin is more precious to protect.' },
+      { h: 'Common mistakes to avoid', p: 'Do not layer strong Vitamin C directly with high-strength niacinamide or exfoliating acids in the same step, as it can cause fleeting flushing and blunt the benefits. Store the bottle away from a sunny windowsill, keep the cap sealed, and resist the urge to double the dose — more product does not mean more results, only more irritation.' },
+    ], tags: ['Vitamin C', 'Brightening', 'Antioxidant', 'Even tone'] },
+  { title: "A Beginner's Guide to Retinol", cat: 'Education', read: '8 min', img: IMG.serumSand, by: 'Dr. Lena Ford', accent: '#c3a468',
+    lede: 'Retinol is the most rigorously studied anti-ageing molecule in dermatology — and also the most misused. Handled patiently it smooths texture, softens lines and clears congestion; rushed, it delivers weeks of redness and flaking that make most people quit. This is how to start and actually stick with it.',
+    sections: [
+      { h: 'How retinol works', p: 'Retinol is a form of Vitamin A that, once converted in the skin, accelerates cell turnover and signals fibroblasts to produce fresh collagen. The result over months is smoother texture, faded pigmentation, refined pores and softened fine lines. Because it is speeding up processes that normally slow with age, the early adjustment period — sometimes called retinisation — is temporary, not a sign the product is wrong for you.' },
+      { h: 'Go low and slow', p: 'Begin with a low-strength, encapsulated formula just two nights a week. Encapsulation releases the active gradually, dramatically reducing irritation while preserving results. Hold that frequency for two to four weeks, and only increase to every other night once your skin tolerates it comfortably. There is no prize for rushing — the skin that adapts slowly is the skin that keeps its glow.' },
+      { h: 'The sandwich method', p: 'For reactive or dry skin, apply a thin layer of moisturiser first, then your retinol, then moisturiser again. This "sandwich" buffers delivery so the active works without overwhelming the barrier. Always use retinol at night — it is deactivated by sunlight — and never combine it in the same routine with strong acids or Vitamin C, which belong in your morning.' },
+      { h: 'Protect and be patient', p: 'Retinol makes skin more photosensitive, so daily SPF is non-negotiable while you use it. Expect some dryness in the first fortnight; ride it out with extra moisturiser rather than stopping. Meaningful change — visibly smoother texture and softened lines — typically appears around week eight and deepens over six months of consistent use.' },
+      { h: 'Who should wait', p: 'Retinol is not for everyone right now. If you are pregnant or breastfeeding, dermatologists advise pausing retinoids entirely and leaning on gentler alternatives like bakuchiol or peptides. If your barrier is currently compromised — stinging, flaking, inflamed — repair it first, then introduce retinol onto healthy skin.' },
+    ], tags: ['Retinol', 'Anti-ageing', 'Night', 'Collagen'] },
+  { title: 'Understanding Niacinamide', cat: 'Ingredients', read: '4 min', img: IMG.serumClear, by: 'Aria Mehta', accent: '#7fa8c9',
+    lede: 'Niacinamide is the quiet overachiever of the ingredient world: it calms redness, refines pores, controls shine and reinforces the barrier, all while playing nicely with almost every other active. If you only add one supporting serum to your routine, this is the one.',
+    sections: [
+      { h: 'A genuine all-rounder', p: 'A form of Vitamin B3, niacinamide regulates sebum, visibly tightens the look of enlarged pores, fades uneven tone and — crucially — boosts the skin\'s production of ceramides, the lipids that hold the barrier together. At a 10% concentration it delivers these benefits while remaining gentle enough for daily, twice-daily use across nearly every skin type.' },
+      { h: 'Ideal for oily and combination skin', p: 'By moderating oil production without stripping, niacinamide reduces midday shine and the congestion that leads to breakouts — making it a favourite for the T-zone in combination skin. Because it strengthens rather than dries, it manages oil without triggering the rebound greasiness that harsh mattifying products cause.' },
+      { h: 'How to layer it', p: 'Apply niacinamide to clean skin before your heavier creams, morning or night. It is famously easy-going, sitting happily alongside hyaluronic acid, peptides, retinol and moisturisers. The old warning about not mixing it with Vitamin C has been largely debunked for modern formulas — but if your skin is very sensitive, simply use them at opposite ends of the day.' },
+      { h: 'What to expect', p: 'Niacinamide is a slow, steady worker rather than an overnight sensation. Oil control and a calmer, less red complexion often show within two to three weeks, while pore refinement and tone improvements build over a couple of months. Its reliability and near-universal tolerance are exactly why it appears in so many well-designed routines.' },
+    ], tags: ['Niacinamide', 'Pores', 'Redness', 'Oil control'] },
+  { title: 'How to Layer Your Skincare', cat: 'Routine', read: '7 min', img: IMG.trioJars, by: 'Dr. Lena Ford', accent: '#2f6b4c',
+    lede: '"Thinnest to thickest" is the advice everyone repeats — and it is only half the story. The right order is what lets each active reach the skin, do its job and coexist with the others. Here is a clear framework for both morning and night.',
+    sections: [
+      { h: 'The golden rule of order', p: 'Work from the most water-light textures to the richest: cleanse, then tone or essence, then treatment serums, then eye cream, then moisturiser, and finally any occlusive balm or — in the morning — sunscreen. Thin, water-based formulas cannot penetrate through heavy creams, so applying them first ensures their actives actually reach living skin rather than sitting uselessly on the surface.' },
+      { h: 'Separate the actives that clash', p: 'Some powerhouse ingredients simply work better apart. Reserve Vitamin C and exfoliating acids for the morning, and keep retinol for the night. This rhythm prevents irritation, protects each molecule\'s stability, and lets you enjoy the full benefit of both without the redness that comes from cramming everything into one sitting.' },
+      { h: 'Give each layer a moment', p: 'Pause 30 to 60 seconds between steps so each layer absorbs before the next goes on. This small patience prevents pilling — those little rolls of product — and keeps the whole routine feeling weightless. A useful cue: a layer is ready for the next when the skin feels touch-dry rather than slick.' },
+      { h: 'Match the routine to the goal', p: 'Mornings are about protection: antioxidants, hydration and SPF. Nights are about repair: this is when retinol, richer moisturisers and reparative peptides do their best work, since skin regenerates most actively while you sleep. You do not need a dozen steps — a focused four or five, correctly ordered, will always beat a crowded shelf.' },
+      { h: 'Let your skin lead', p: 'Treat this framework as a foundation, not a rulebook. On a day when skin feels irritated, strip back to cleanse-moisturise-SPF and let it recover. Introduce only one new active at a time so you can tell what is working, and adjust with the seasons — lighter in humid summer, richer in dry winter.' },
+    ], tags: ['Layering', 'AM & PM', 'Routine', 'Actives'] },
+];
+const REVIEWS = [
+  { name: 'Amara Okafor', flag: '🇳🇬', type: 'Combination · Acne-prone', avatar: IMG.faceAfro, thumb: IMG.faceThought, text: 'Miracle read my skin better than I ever could. Twelve weeks in, my breakouts are gone and my glow is undeniable.' },
+  { name: 'Sofia Lindqvist', flag: '🇸🇪', type: 'Dry · Sensitive', avatar: IMG.faceBlonde, thumb: IMG.portraitSoft, text: 'The barrier cream saved my winter skin. It feels like a spa ritual crafted precisely for me — completely obsessed.' },
+  { name: 'Mei Tanaka', flag: '🇯🇵', type: 'Normal · Dullness', avatar: IMG.faceSide, thumb: IMG.portraitGlow, text: 'The AI routine is genius. My tone is even, my texture is smooth, and my dermatologist actually asked what I was using.' },
+  { name: 'Daniel Rivera', flag: '🇪🇸', type: 'Oily · Pigmentation', avatar: IMG.faceMan, thumb: IMG.faceShoulder, text: 'I was skeptical about skincare, but the results speak for themselves. Simple, effective, and genuinely luxurious.' },
+  { name: 'Priya Nair', flag: '🇮🇳', type: 'Combination · Dark spots', avatar: IMG.faceDark1, thumb: IMG.skinFrecklesSoft, text: 'My dark spots faded in two months. The whole experience feels premium — from the app to the packaging.' },
+];
+const STATS = [
+  { value: '100+', label: 'Countries Available', tone: '#2f6b4c' },
+  { value: '5M+', label: 'Happy Customers', tone: '#c3a468' },
+  { value: '98%', label: 'Routine Success', tone: '#7fa8c9' },
+  { value: '100%', label: 'Clean Ingredients', tone: '#7bab5a' },
+];
+const NAV = [['Home', 'hero'], ['Products', 'products'], ['Concerns', 'concerns'], ['Ingredients', 'ingredients'], ['Routine', 'routine'], ['About', 'about'], ['Journal', 'journal'], ['Contact', 'contact']];
+const QUIZ_STEPS = [
+  { key: 'type', q: 'How does your skin usually feel?', a: ['Dry & tight', 'Oily & shiny', 'Combination', 'Balanced'] },
+  { key: 'concern', q: 'What’s your primary concern?', a: ['Acne & breakouts', 'Dark spots', 'Fine lines', 'Dullness'] },
+  { key: 'age', q: 'Which age range fits you?', a: ['Under 25', '25–34', '35–44', '45+'] },
+  { key: 'goal', q: 'What matters most to you?', a: ['Clear skin', 'Even tone', 'Anti-ageing', 'Deep hydration'] },
+];
+function recommendRitual(answers) {
+  const pick = (id) => PRODUCTS.find((p) => p.id === id);
+  const base = [pick('cleanser'), pick('moisturizer'), pick('spf')];
+  const c = answers.concern || '';
+  if (c.indexOf('Acne') > -1) base.splice(1, 0, pick('niacinamide'));
+  else if (c.indexOf('Dark') > -1) base.splice(1, 0, pick('vit-c'));
+  else if (c.indexOf('Fine') > -1) base.splice(1, 0, pick('retinol'));
+  else base.splice(1, 0, pick('vit-c'));
+  return base;
+}
+const FOOTER_COLS = [
+  { title: 'Shop', links: ['Products', 'Best Sellers', 'Bundles', 'Gift Cards'] },
+  { title: 'About', links: ['Our Story', 'Science', 'Mission', 'Press'] },
+  { title: 'Ingredients', links: ['Vitamin C', 'Niacinamide', 'Retinol', 'Ceramides'] },
+  { title: 'Support', links: ['Contact', 'Orders', 'Shipping', 'Privacy', 'Terms'] },
+];
+
+class Component extends DCLogic {
+  state = { scrolled: false, menuOpen: false, cartOpen: false, cart: [], ti: 0, quizOpen: false, quizStep: 0, quizAnswers: {}, ctaEmail: '', ctaDone: false, theme: 'light', articleIdx: -1, authView: null };
+
+  componentDidMount() {
+    this._onScroll = () => { const s = window.scrollY > 24; if (s !== this.state.scrolled) this.setState({ scrolled: s }); };
+    window.addEventListener('scroll', this._onScroll, { passive: true });
+    try { const t = localStorage.getItem('miracle-theme'); if (t === 'dark') this.setState({ theme: 'dark' }); } catch (e) {}
+    document.body.setAttribute('data-reveal-ready', '');
+    this._io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add('in'); this._io.unobserve(e.target); } });
+    }, { rootMargin: '0px 0px -8% 0px' });
+    this._observe = () => document.querySelectorAll('[data-reveal]:not(.in)').forEach((el) => this._io.observe(el));
+    this._observe();
+    this._revealFallback = setTimeout(() => document.querySelectorAll('[data-reveal]').forEach((el) => el.classList.add('in')), 2600);
+    this._pctIO = new IntersectionObserver((entries) => entries.forEach((e) => {
+      if (!e.isIntersecting) return;
+      const el = e.target; this._pctIO.unobserve(el);
+      const target = parseInt(el.getAttribute('data-target'), 10) || 0;
+      const start = performance.now(), dur = 1400;
+      const tick = (now) => {
+        const p = Math.min((now - start) / dur, 1);
+        const eased = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(eased * target) + '%';
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    }), { rootMargin: '0px 0px -10% 0px' });
+    this._observePct = () => document.querySelectorAll('.results-pct').forEach((el) => { if (!el.dataset.counted) { el.dataset.counted = '1'; this._pctIO.observe(el); } });
+    this._observePct();
+  }
+  componentDidUpdate() { if (this._observe) this._observe(); if (this._observePct) this._observePct(); }
+  componentWillUnmount() { window.removeEventListener('scroll', this._onScroll); if (this._io) this._io.disconnect(); if (this._pctIO) this._pctIO.disconnect(); clearTimeout(this._revealFallback); }
+
+  scrollTo(id) {
+    this.setState({ menuOpen: false });
+    const el = document.getElementById(id);
+    if (el) { const top = el.getBoundingClientRect().top + window.scrollY - 84; window.scrollTo({ top, behavior: 'smooth' }); }
+  }
+  addToCart(p) {
+    this.setState((s) => {
+      const cart = s.cart.slice();
+      const ex = cart.find((c) => c.id === p.id);
+      if (ex) ex.qty += 1; else cart.push({ id: p.id, name: p.name, tag: p.tag, price: p.price, img: p.img, qty: 1 });
+      return { cart, cartOpen: true };
+    });
+  }
+  removeItem(id) { this.setState((s) => ({ cart: s.cart.filter((c) => c.id !== id) })); }
+  clearCart() { this.setState({ cart: [] }); }
+
+  renderVals() {
+    const s = this.state;
+    const cartCount = s.cart.reduce((n, c) => n + c.qty, 0);
+    const subtotal = s.cart.reduce((n, c) => n + c.price * c.qty, 0);
+    const r = REVIEWS[s.ti];
+    return {
+      year: new Date().getFullYear(),
+      IMG,
+      navStyle: {
+        display: 'flex', width: '100%', maxWidth: '1400px', alignItems: 'center', justifyContent: 'space-between',
+        borderRadius: '999px', padding: '12px 20px', transition: 'all .5s',
+        background: s.scrolled ? 'var(--nav-bg)' : 'transparent',
+        backdropFilter: s.scrolled ? 'blur(18px)' : 'none', WebkitBackdropFilter: s.scrolled ? 'blur(18px)' : 'none',
+        boxShadow: s.scrolled ? '0 12px 40px -18px rgba(22,48,31,0.35)' : 'none',
+        border: s.scrolled ? '1px solid var(--nav-border)' : '1px solid transparent',
+      },
+      themeClass: s.theme === 'dark' ? 'dark' : '',
+      themeLight: s.theme !== 'dark', themeDark: s.theme === 'dark',
+      toggleTheme: () => this.setState((st) => { const t = st.theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('miracle-theme', t); } catch (e) {} return { theme: t }; }),
+      toggleStyle: { display: 'flex', alignItems: 'center', width: '52px', height: '28px', flexShrink: 0, borderRadius: '999px', border: '1px solid var(--nav-border)', background: 'var(--card)', cursor: 'pointer', padding: '3px', boxSizing: 'border-box', justifyContent: s.theme === 'dark' ? 'flex-end' : 'flex-start', transition: 'background .3s, border-color .3s' },
+      knobStyle: { display: 'grid', placeItems: 'center', width: '22px', height: '22px', borderRadius: '999px', background: 'var(--sec-forest)', color: 'var(--forest-fg)', transition: 'background .3s' },
+      navLinks: NAV.map(([label, id]) => ({ label, go: () => this.scrollTo(id) })),
+      goTop: (e) => { if (e) e.preventDefault(); window.scrollTo({ top: 0, behavior: 'smooth' }); this.setState({ menuOpen: false }); },
+      goProducts: () => this.scrollTo('products'),
+      toggleMenu: () => this.setState((st) => ({ menuOpen: !st.menuOpen })),
+      menuOpen: s.menuOpen, menuClosed: !s.menuOpen,
+      openCart: () => this.setState({ cartOpen: true }), closeCart: () => this.setState({ cartOpen: false }),
+      goSignInFromCart: () => this.setState({ cartOpen: false, authView: 'login' }),
+      authOpen: s.authView !== null,
+      authScreen: s.authView || 'login',
+      openLogin: (e) => { if (e) e.preventDefault(); this.setState({ authView: 'login', menuOpen: false }); },
+      openSignup: (e) => { if (e) e.preventDefault(); this.setState({ authView: 'signup', menuOpen: false }); },
+      closeAuth: () => this.setState({ authView: null }),
+      clearCart: () => this.clearCart(),
+      hasCart: cartCount > 0, cartEmpty: cartCount === 0, cartCount, subtotal: inr(subtotal),
+      cartItems: s.cart.map((c) => ({ ...c, priceLabel: inr(c.price), bgImg: bgStyle(c.img), remove: () => this.removeItem(c.id) })),
+      cartOverlayStyle: {
+        position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(10,19,13,0.4)',
+        transition: 'opacity .4s', opacity: s.cartOpen ? 1 : 0, visibility: s.cartOpen ? 'visible' : 'hidden',
+      },
+      cartPanelStyle: {
+        position: 'fixed', top: 0, right: 0, bottom: 0, zIndex: 70, width: 'min(400px, 92vw)', display: 'flex', flexDirection: 'column',
+        background: '#f6f1e6', boxShadow: '-30px 0 80px -30px rgba(22,48,31,0.5)',
+        transition: 'transform .45s cubic-bezier(.16,1,.3,1)', transform: s.cartOpen ? 'translateX(0)' : 'translateX(100%)',
+      },
+      products: PRODUCTS.map((p) => ({ name: p.name, tag: p.tag, bgImg: bgStyle(p.img), rating: p.rating, reviews: p.reviews.toLocaleString(), priceLabel: inr(p.price), bg: `color-mix(in srgb, ${p.tone} 14%, white)`, add: () => this.addToCart(p) })),
+      concerns: CONCERNS.map((c) => ({ name: c.name, desc: c.desc, bgImg: bgStyle(c.img, c.pos ? { backgroundPosition: c.pos } : null), tileStyle: {
+        position: 'relative', height: '100%', width: '100%', overflow: 'hidden', borderRadius: '24px', border: 'none', cursor: 'pointer', padding: 0,
+        gridColumn: c.wide ? 'span 2' : 'auto', background: 'rgba(156,175,146,0.2)', boxShadow: '0 14px 36px -22px rgba(22,48,31,0.5)', transition: 'transform .4s cubic-bezier(.16,1,.3,1), box-shadow .4s',
+      } })),
+      ingredients: INGREDIENTS.map((i) => ({ name: i.name, tone: i.tone, bgImg: bgStyle(i.img), benefit: i.benefit, note: i.note, grade: `linear-gradient(160deg, color-mix(in srgb, ${i.tone} 45%, transparent), rgba(22,48,31,0.5))` })),
+      routine: ROUTINE.map((r2) => ({ n: r2.n, title: r2.title, desc: r2.desc, tone: r2.tone, bgImg: bgStyle(r2.img, r2.pos ? { backgroundPosition: r2.pos } : null), iconEl: React.createElement('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.6, strokeLinecap: 'round', strokeLinejoin: 'round', style: { width: 20, height: 20 }, dangerouslySetInnerHTML: { __html: ICON[r2.icon] } }) })),
+      results: RESULTS.map((c) => ({ ...c, bgImg: bgStyle(c.img) })),
+      whycare: WHYCARE.map((w) => ({ title: w.title, tone: w.tone, bg: `color-mix(in srgb, ${w.tone} 16%, white)`, iconEl: React.createElement('svg', { viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 1.5, strokeLinecap: 'round', strokeLinejoin: 'round', style: { width: 20, height: 20 }, dangerouslySetInnerHTML: { __html: w.path } }) })),
+      stats: STATS,
+      journalFeature: { ...JOURNAL[0], bgImg: bgStyle(JOURNAL[0].img), open: (e) => { if (e) e.preventDefault(); this.setState({ articleIdx: 0 }); } },
+      journalRest: JOURNAL.slice(1, 5).map((a, i) => ({ ...a, bgImg: bgStyle(a.img), open: (e) => { if (e) e.preventDefault(); this.setState({ articleIdx: i + 1 }); } })),
+      openFeature: (e) => { if (e) e.preventDefault(); this.setState({ articleIdx: 0 }); },
+      articleOpen: s.articleIdx >= 0,
+      closeArticle: () => this.setState({ articleIdx: -1 }),
+      openQuizFromArticle: () => this.setState({ articleIdx: -1, quizOpen: true, quizStep: 0, quizAnswers: {} }),
+      article: (() => {
+        const a = JOURNAL[s.articleIdx >= 0 ? s.articleIdx : 0];
+        return { ...a, bgImg: bgStyle(a.img), sections: a.sections.map((sec) => ({ ...sec, dot: { display: 'inline-block', width: '8px', height: '8px', flexShrink: 0, borderRadius: '999px', background: a.accent } })) };
+      })(),
+      review: { ...r, thumbBg: bgStyle(r.thumb), avatarBg: bgStyle(r.avatar) },
+      testiPrev: () => this.setState((st) => ({ ti: (st.ti - 1 + REVIEWS.length) % REVIEWS.length })),
+      testiNext: () => this.setState((st) => ({ ti: (st.ti + 1) % REVIEWS.length })),
+      testiDots: REVIEWS.map((_, d) => ({ set: () => this.setState({ ti: d }), style: { height: '8px', width: d === s.ti ? '28px' : '8px', borderRadius: '999px', border: 'none', cursor: 'pointer', background: d === s.ti ? '#2f6b4c' : 'rgba(22,48,31,0.15)', transition: 'all .3s' } })),
+      footerCols: FOOTER_COLS,
+      quizOpen: s.quizOpen,
+      openQuiz: () => this.setState({ quizOpen: true, quizStep: 0, quizAnswers: {} }),
+      closeQuiz: () => { this.setState({ quizOpen: false }); setTimeout(() => this.setState({ quizStep: 0, quizAnswers: {} }), 300); },
+      stop: (e) => e.stopPropagation(),
+      quizAsking: s.quizStep < QUIZ_STEPS.length,
+      quizDone: s.quizStep >= QUIZ_STEPS.length,
+      quizStepKey: 'q' + s.quizStep,
+      quizStepNum: Math.min(s.quizStep + 1, QUIZ_STEPS.length),
+      quizStepTotal: QUIZ_STEPS.length,
+      quizQuestion: (QUIZ_STEPS[s.quizStep] || {}).q || '',
+      quizProgressStyle: { height: '100%', width: (Math.min(s.quizStep, QUIZ_STEPS.length) / QUIZ_STEPS.length) * 100 + '%', background: '#2f6b4c', transition: 'width .4s cubic-bezier(0.16,1,0.3,1)' },
+      quizBackVisible: s.quizStep > 0 && s.quizStep < QUIZ_STEPS.length,
+      quizBack: () => this.setState((st) => ({ quizStep: Math.max(0, st.quizStep - 1) })),
+      quizOptions: (QUIZ_STEPS[s.quizStep] ? QUIZ_STEPS[s.quizStep].a : []).map((opt) => {
+        const active = s.quizAnswers[QUIZ_STEPS[s.quizStep].key] === opt;
+        return {
+          label: opt, active,
+          choose: () => { const key = QUIZ_STEPS[s.quizStep].key; this.setState((st) => ({ quizAnswers: { ...st.quizAnswers, [key]: opt } })); setTimeout(() => this.setState((st) => ({ quizStep: st.quizStep + 1 })), 240); },
+          style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', borderRadius: '16px', padding: '16px 20px', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.95rem', cursor: 'pointer', transition: 'border-color .25s, background .25s', border: active ? '1px solid #2f6b4c' : '1px solid var(--border)', background: active ? 'rgba(47,107,76,0.1)' : 'transparent', color: 'var(--fg)' },
+          dotStyle: { display: 'grid', placeItems: 'center', height: '20px', width: '20px', flexShrink: 0, borderRadius: '999px', border: active ? '1px solid #2f6b4c' : '1px solid var(--border)', background: active ? '#2f6b4c' : 'transparent', color: '#fff' },
+        };
+      }),
+      quizResultSub: 'Composed for ' + ((s.quizAnswers.type || '').toLowerCase() || 'your') + ' skin, targeting ' + ((s.quizAnswers.concern || '').toLowerCase() || 'your concerns') + '.',
+      quizRoutine: recommendRitual(s.quizAnswers).map((p, i) => ({ n: i + 1, name: p.name, priceLabel: inr(p.price), bgImg: bgStyle(p.img) })),
+      addRitual: () => { recommendRitual(s.quizAnswers).forEach((p) => this.addToCart(p)); this.setState({ quizOpen: false }); setTimeout(() => this.setState({ quizStep: 0, quizAnswers: {} }), 300); },
+      ctaEmail: s.ctaEmail, onCtaEmail: (e) => { const v = e.target.value; this.setState({ ctaEmail: v }); },
+      ctaLabel: s.ctaDone ? "You're in" : 'Get Started',
+      submitCta: (e) => { e.preventDefault(); if (s.ctaEmail) this.setState({ ctaDone: true }); },
+      preventDefault: (e) => e.preventDefault(),
+    };
+  }
+}
+</script>
+</body>
+</html>

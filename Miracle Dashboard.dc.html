@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,300..700&display=swap" rel="stylesheet" />
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f4efe4; }
+  html { background: #f4efe4; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-thumb { background: #d6d9e6; border-radius: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  .dash-scroll { scrollbar-width: thin; scrollbar-color: #d6d9e6 transparent; }
+  @keyframes floatUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .dash-sidebar { display: flex; }
+</style>
+<link rel="prefetch" href="Miracle%20Landing.dc.html" />
+</helmet>
+
+<div style="position:relative; min-height:100vh; background:#f4efe4;">
+<div id="dashFit" style="width:100%; overflow:hidden; background:#f4efe4;">
+<div id="dashCanvas" style="display:flex; width:1600px; min-height:100vh; background:#f4efe4; color:#1e1b39; font-family:'Plus Jakarta Sans',ui-sans-serif,system-ui,sans-serif; -webkit-font-smoothing:antialiased; font-size:14px;">
+
+  <!-- ══════════ SIDEBAR ══════════ -->
+  <aside class="dash-sidebar dash-scroll" style="width:248px; flex-shrink:0; align-self:stretch; flex-direction:column; background:#ffffff; border-right:1px solid #edeef4;">
+    <a href="Miracle%20Landing.dc.html" style="display:flex; align-items:center; gap:11px; padding:34px 24px 20px; text-decoration:none; cursor:pointer;">
+      <span style="display:grid; place-items:center; width:44px; height:44px; flex-shrink:0;">
+        <svg viewBox="0 0 48 48" fill="none" style="width:34px; height:34px;" stroke="#2f6b4c"><circle cx="24" cy="24" r="22" stroke-width="1" opacity="0.35"/><path d="M24 8 C33 14 34 30 24 40 C14 30 15 14 24 8 Z" stroke-width="1.4" stroke-linejoin="round"/><path d="M24 12 L24 38" stroke-width="1.2"/><path d="M24 20 L18.5 16 M24 20 L29.5 16 M24 27 L18 22.5 M24 27 L30 22.5" stroke-width="1" opacity="0.7"/><circle cx="24" cy="8" r="1.9" fill="#2f6b4c"/><circle cx="18.5" cy="16" r="1.4" fill="#2f6b4c"/><circle cx="29.5" cy="16" r="1.4" fill="#2f6b4c"/></svg>
+      </span>
+      <div style="line-height:1.1;">
+        <div style="font-family:'Fraunces',serif; font-size:1.2rem; font-weight:600; letter-spacing:0.26em; color:#171433;">MIRACLE</div>
+        <div style="font-size:0.74rem; font-weight:600; letter-spacing:0.02em; color:#2f6b4c; margin-top:3px;">{{ panelName }}</div>
+      </div>
+    </a>
+
+    <nav style="flex:1; padding:4px 16px 16px;">
+      <sc-for list="{{ navGroups }}" as="g" hint-placeholder-count="2">
+        <div style="margin-top:14px;">
+          <div style="padding:0 12px 8px; font-size:0.66rem; font-weight:700; letter-spacing:0.12em; color:#a3a7bd;">{{ g.heading }}</div>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="6">
+            <button onClick="{{ it.onClick }}" style="{{ it.style }}">
+              <span style="display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; border-radius:9px; background:{{ it.iconBg }}; color:{{ it.iconColor }};">{{ it.icon }}</span>
+              <span style="text-align:left; line-height:1.2;">
+                <span style="display:block; font-size:0.86rem; font-weight:600; color:{{ it.titleColor }};">{{ it.label }}</span>
+                <span style="display:block; font-size:0.72rem; color:{{ it.subColor }};">{{ it.sub }}</span>
+              </span>
+            </button>
+          </sc-for>
+        </div>
+      </sc-for>
+    </nav>
+
+    <div style="padding:16px; margin-top:auto;">
+      <sc-if value="{{ topbar.addClient }}" hint-placeholder-val="{{ false }}">
+        <button style="width:100%; margin-bottom:12px; display:inline-flex; align-items:center; justify-content:center; gap:8px; border:none; cursor:pointer; border-radius:12px; background:#2f6b4c; color:#fff; padding:12px 16px; font-family:inherit; font-size:0.86rem; font-weight:600; box-shadow:0 12px 24px -12px rgba(47,107,76,0.7);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:16px;height:16px;"><path d="M12 5v14M5 12h14"/></svg> Add New Client</button>
+      </sc-if>
+      <div style="{{ footerCard.wrap }}">
+        <sc-if value="{{ footerCard.isStatus }}" hint-placeholder-val="{{ true }}">
+          <div style="font-size:0.86rem; font-weight:700; color:#171433;">Platform Status</div>
+          <div style="margin-top:8px; display:flex; align-items:center; gap:8px; font-size:0.78rem; color:#3f4a5a;"><span style="width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 3px rgba(34,197,94,0.18);"></span>All systems operational</div>
+          <div style="margin-top:6px; font-size:0.74rem; color:#8b8fa3;">Uptime: 99.9%</div>
+        </sc-if>
+        <sc-if value="{{ footerCard.isAI }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <span style="display:grid; place-items:center; width:38px; height:38px; flex-shrink:0; border-radius:11px; background:rgba(47,107,76,0.14); color:#2f6b4c;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:18px;height:18px;"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M18.5 15l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/></svg></span>
+            <div style="line-height:1.25;"><div style="font-size:0.86rem; font-weight:700; color:#171433;">Ask AI Assistant</div><div style="font-size:0.74rem; color:#8b8fa3;">{{ footerCard.aiSub }}</div></div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ footerCard.isPremium }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:10px;"><span style="display:grid; place-items:center; width:34px; height:34px; border-radius:10px; background:rgba(255,255,255,0.22); color:#fff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><path d="M5 16 3 6l5.5 4L12 4l3.5 6L21 6l-2 10z"/><path d="M5 20h14"/></svg></span><div style="font-size:0.92rem; font-weight:700; color:#fff;">Upgrade to Premium</div></div>
+          <div style="margin-top:8px; font-size:0.76rem; color:rgba(255,255,255,0.82); line-height:1.4;">Unlock AI insights, advanced reports & more.</div>
+          <button style="margin-top:12px; width:100%; border:none; cursor:pointer; border-radius:10px; background:#fff; color:#2f6b4c; padding:10px; font-family:inherit; font-size:0.82rem; font-weight:700;">Upgrade Now</button>
+        </sc-if>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══════════ MAIN ══════════ -->
+  <div style="flex:1; min-width:0;">
+
+    <!-- TOPBAR -->
+    <header style="display:flex; align-items:flex-start; justify-content:space-between; gap:20px; flex-wrap:wrap; padding:30px 24px 6px; background:#f4efe4;">
+      <div style="min-width:220px;">
+        <h1 style="margin:0; font-size:1.72rem; font-weight:800; letter-spacing:-0.02em; color:#171433;">{{ topbar.welcome }}</h1>
+        <p style="margin:6px 0 0; font-size:0.92rem; color:#7c8199;">{{ topbar.subtitle }}</p>
+      </div>
+      <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+        <sc-if value="{{ topbar.showSearch }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex; align-items:center; gap:10px; width:340px; max-width:44vw; border-radius:14px; background:#fff; border:1px solid #edeef4; padding:11px 16px; box-shadow:0 2px 10px -6px rgba(23,20,51,0.2);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#9aa0b4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;flex-shrink:0;"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg>
+            <input placeholder="{{ topbar.searchPlaceholder }}" style="flex:1; border:none; outline:none; background:transparent; font-family:inherit; font-size:0.86rem; color:#1e1b39; min-width:0;" />
+            <span style="display:grid; place-items:center; width:26px; height:26px; border-radius:8px; background:#2f6b4c; color:#fff;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/></svg></span>
+          </div>
+        </sc-if>
+        <button style="position:relative; display:grid; place-items:center; width:46px; height:46px; border-radius:14px; border:1px solid #edeef4; background:#fff; cursor:pointer; color:#3f4a5a; box-shadow:0 2px 10px -6px rgba(23,20,51,0.2);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg>
+          <span style="position:absolute; top:8px; right:9px; min-width:16px; height:16px; padding:0 4px; display:grid; place-items:center; border-radius:999px; background:#f43f5e; color:#fff; font-size:0.62rem; font-weight:700; box-shadow:0 0 0 2px #fff;">{{ topbar.notif }}</span>
+        </button>
+        <button style="display:flex; align-items:center; gap:9px; border-radius:14px; border:1px solid #edeef4; background:#fff; cursor:pointer; padding:11px 16px; font-family:inherit; color:#2b2b40; box-shadow:0 2px 10px -6px rgba(23,20,51,0.2);">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#2f6b4c" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px;"><rect x="3" y="4.5" width="18" height="17" rx="3"/><path d="M3 9h18M8 3v3M16 3v3"/></svg>
+          <span style="font-size:0.85rem; font-weight:600;">May 21, 2025</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#9aa0b4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div style="display:flex; align-items:center; gap:11px; border-radius:14px; border:1px solid #edeef4; background:#fff; padding:8px 14px 8px 8px; box-shadow:0 2px 10px -6px rgba(23,20,51,0.2);">
+          <sc-if value="{{ topbar.avatarPhoto }}" hint-placeholder-val="{{ true }}"><span style="position:relative; width:38px; height:38px; border-radius:11px; overflow:hidden; flex-shrink:0; background:#e9eaf5;"><span style="{{ topbar.avatarBg }}"></span></span></sc-if>
+          <sc-if value="{{ topbar.avatarIcon }}" hint-placeholder-val="{{ true }}"><span style="display:grid; place-items:center; width:38px; height:38px; border-radius:11px; flex-shrink:0; background:rgba(47,107,76,0.14); color:#2f6b4c;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="width:19px;height:19px;"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></span></sc-if>
+          <div style="line-height:1.2;"><div style="font-size:0.85rem; font-weight:700; color:#171433;">{{ topbar.name }}</div><div style="font-size:0.72rem; color:#8b8fa3;">{{ topbar.role }}</div></div>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#9aa0b4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <div style="position:relative;">
+    <div style="position:relative; z-index:1; padding:10px 24px 16px;">
+
+      <!-- stat cards row -->
+      <sc-if value="{{ showStatRow }}" hint-placeholder-val="{{ true }}">
+      <div style="display:grid; gap:14px; grid-template-columns:{{ statCols }};">
+        <sc-for list="{{ stats }}" as="s" hint-placeholder-count="5">
+          <div style="border-radius:18px; background:#fff; border:1px solid #edeef4; padding:18px; box-shadow:0 4px 16px -10px rgba(23,20,51,0.28); animation:floatUp .4s ease both;">
+            <div style="display:flex; align-items:center; gap:11px;">
+              <span style="display:grid; place-items:center; width:46px; height:46px; flex-shrink:0; border-radius:13px; background:{{ s.iconBg }}; color:{{ s.iconColor }};">{{ s.icon }}</span>
+              <div style="min-width:0;"><div style="font-size:0.76rem; font-weight:600; color:#7c8199; line-height:1.25; white-space:nowrap; margin-bottom:5px;">{{ s.label }}</div><div style="font-size:1.5rem; font-weight:800; letter-spacing:-0.02em; color:#171433; line-height:1.15;">{{ s.value }}</div></div>
+            </div>
+            <div style="margin-top:11px; font-size:0.76rem; font-weight:600; color:{{ s.deltaColor }}; display:flex; align-items:center; gap:5px;">{{ s.deltaEl }}</div>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <!-- ROLE CONTENT -->
+      <div style="{{ contentMt }}">{{ content }}</div>
+    </div>
+    </div>
+  </div>
+</div>
+</div>
+
+  <!-- ══════════ ROLE SWITCHER ══════════ -->
+  <div style="position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:60; display:flex; gap:4px; padding:5px; border-radius:999px; background:rgba(23,20,51,0.9); box-shadow:0 18px 44px -16px rgba(23,20,51,0.7); backdrop-filter:blur(8px);">
+    <sc-for list="{{ roleTabs }}" as="t" hint-placeholder-count="4"><button onClick="{{ t.onClick }}" style="{{ t.style }}">{{ t.label }}</button></sc-for>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:940},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;user&quot;,&quot;consultant&quot;,&quot;derma&quot;,&quot;admin&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Dashboard&quot;}}">
+const PUR = '#2f6b4c', BLU = '#3b9df8', ORA = '#f5a623', GRN = '#22c55e', PNK = '#f4568f', TEA = '#22c9b8', GRY = '#c4c9da', YEL = '#f5b53d';
+const face = (id) => `https://images.unsplash.com/photo-${id}?w=140&h=140&fit=crop&crop=faces&auto=format&q=80`;
+const FACE = {
+  ananya: face('1544005313-94ddf0286df2'), neha: face('1494790108377-be9c29b29330'), riya: face('1524504388940-b1c1722653e1'),
+  meera: face('1607746882042-944635dfe10e'), kavya: face('1573496359142-b8d87734a5a2'), rohit: face('1633332755192-727a05c4013d'),
+  priya: face('1573497019940-1c28c88b4f3e'), meeraDr: face('1594824476967-48c8b964273f'), ananyaUser: face('1580489944761-15a19d654956'),
+};
+const prod = (id) => `https://images.unsplash.com/photo-${id}?w=200&h=240&fit=crop&auto=format&q=80`;
+const PRODIMG = [prod('1620916566398-39f1143ab7be'), prod('1608248543803-ba4f8c70ae0b'), prod('1611930022073-b7a4ba5fcccd'), prod('1556228578-8c89e6adf883'), prod('1631730359585-38a4935cbec4')];
+const bg = (url) => ({ position: 'absolute', inset: 0, backgroundImage: 'url("' + url + '")', backgroundSize: 'cover', backgroundPosition: 'center' });
+
+function icon(d, o) { o = o || {}; return React.createElement('svg', { viewBox: '0 0 24 24', fill: o.fill || 'none', stroke: o.stroke || 'currentColor', strokeWidth: o.sw || 1.7, strokeLinecap: 'round', strokeLinejoin: 'round', style: { width: (o.s || 18) + 'px', height: (o.s || 18) + 'px', display: 'block' }, dangerouslySetInnerHTML: { __html: d } }); }
+const P = {
+  grid: '<rect x="3" y="3" width="8" height="8" rx="2"/><rect x="13" y="3" width="8" height="8" rx="2"/><rect x="3" y="13" width="8" height="8" rx="2"/><rect x="13" y="13" width="8" height="8" rx="2"/>',
+  home: '<path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/>',
+  users: '<circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5a3.2 3.2 0 0 1 0 6.2"/><path d="M21.5 20a5.5 5.5 0 0 0-4-5.3"/>',
+  shield: '<path d="M12 3l7 3v5c0 5-3.5 8-7 10-3.5-2-7-5-7-10V6z"/><circle cx="12" cy="10" r="2"/><path d="M9 16a3 3 0 0 1 6 0"/>',
+  clip: '<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4V3h6v1"/><path d="m9.5 12 2 2 3.5-3.5"/>',
+  cal: '<rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9h18M8 3v3M16 3v3"/>',
+  box: '<path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/>',
+  beaker: '<path d="M9 3v6l-5 8a2 2 0 0 0 2 3h12a2 2 0 0 0 2-3l-5-8V3"/><path d="M8 3h8"/>',
+  doc: '<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 12h6M9 16h6"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1l-.3-2.5H9.4l-.3 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L5 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1l.3 2.5h4.2l.3-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5a7 7 0 0 0 .1-1z"/>',
+  log: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  lock: '<rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  db: '<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+  trend: '<path d="M3 17 9 11l4 4 8-8"/><path d="M15 7h6v6"/>',
+  star: '<path d="M12 3l2.6 5.6L21 9.3l-4.5 4.3 1.1 6.2L12 17l-5.6 2.8 1.1-6.2L3 9.3l6.4-.7z"/>',
+  pill: '<rect x="3" y="9" width="18" height="6" rx="3" transform="rotate(45 12 12)"/><path d="M8.5 8.5 15.5 15.5"/>',
+  chat: '<path d="M4 5h16v11H9l-4 4z"/><path d="M8 9h8M8 12h5"/>',
+  refresh: '<path d="M4 12a8 8 0 0 1 14-5l2 2"/><path d="M20 4v5h-5"/><path d="M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M4 20v-5h5"/>',
+  book: '<path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 0-3 3z"/><path d="M5 4v16"/>',
+  note: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/>',
+  scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><circle cx="12" cy="12" r="3"/>',
+  spark: '<path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6z"/><path d="M18.5 15l.6 1.6 1.6.6-1.6.6-.6 1.6-.6-1.6-1.6-.6 1.6-.6z"/>',
+  upload: '<path d="M12 15V4M8 8l4-4 4 4"/><path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/>',
+  heart: '<path d="M12 20s-7-4.5-9-9a4.5 4.5 0 0 1 8-3 4.5 4.5 0 0 1 8 3c-1.5 4.5-7 9-7 9z"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.2-3.2"/>',
+  thumb: '<path d="M7 22V11l5-8 1.5 1a2 2 0 0 1 .8 2.2L13 9h5a2 2 0 0 1 2 2.3l-1.2 7A2 2 0 0 1 16.8 20H7z"/><path d="M7 11H4v11h3"/>',
+  face: '<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0"/>',
+  eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  bottle: '<path d="M9 2h6M10 2v3M14 2v3M8 8a4 4 0 0 1 8 0v12a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2z"/><path d="M8 12h8"/>',
+  dropper: '<path d="M12 3s5 5.5 5 9a5 5 0 0 1-10 0c0-3.5 5-9 5-9z"/>',
+  jar: '<rect x="5" y="8" width="14" height="13" rx="2"/><path d="M8 8V6a4 4 0 0 1 8 0v2"/><path d="M5 12h14"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"/>',
+};
+const upEl = (t, color) => React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '4px', color } }, icon(color === '#ef4444' ? '<path d="M12 5v14M6 13l6 6 6-6"/>' : '<path d="M12 19V5M6 11l6-6 6 6"/>', { s: 12, sw: 2.4 }), t);
+
+function donut(segs, size, thick) {
+  size = size || 150; thick = thick || 26;
+  let a = 0; const stops = segs.map(s => { const from = a; a += s.pct; return `${s.color} ${from}% ${a}%`; }).join(',');
+  return { ring: { position: 'relative', width: size + 'px', height: size + 'px', flexShrink: 0, borderRadius: '50%', background: `conic-gradient(${stops})` }, hole: { position: 'absolute', inset: thick + 'px', borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center', textAlign: 'center' } };
+}
+function lineChart(vals, o) {
+  o = o || {}; const min = o.min != null ? o.min : Math.min(...vals), max = o.max != null ? o.max : Math.max(...vals);
+  const n = vals.length, color = o.color || PUR, gid = 'lg' + Math.random().toString(36).slice(2, 7);
+  const pts = vals.map((v, i) => [n === 1 ? 0 : (i / (n - 1)) * 100, 94 - ((v - min) / (max - min || 1)) * 86]);
+  const line = pts.map(p => p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' ');
+  const el = React.createElement('svg', { viewBox: '0 0 100 100', preserveAspectRatio: 'none', style: { position: 'absolute', inset: 0, width: '100%', height: '100%' } },
+    React.createElement('defs', null, React.createElement('linearGradient', { id: gid, x1: 0, y1: 0, x2: 0, y2: 1 }, React.createElement('stop', { offset: '0%', stopColor: color, stopOpacity: 0.2 }), React.createElement('stop', { offset: '100%', stopColor: color, stopOpacity: 0 }))),
+    o.area !== false ? React.createElement('polygon', { points: line + ' 100,100 0,100', fill: 'url(#' + gid + ')' }) : null,
+    React.createElement('polyline', { points: line, fill: 'none', stroke: color, strokeWidth: o.sw || 2, strokeLinecap: 'round', strokeLinejoin: 'round', vectorEffect: 'non-scaling-stroke' }));
+  const dots = pts.map((p, i) => ({ style: { position: 'absolute', left: p[0] + '%', top: p[1] + '%', width: '7px', height: '7px', marginLeft: '-3.5px', marginTop: '-3.5px', borderRadius: '50%', background: '#fff', border: '2px solid ' + color, boxSizing: 'border-box' }, last: i === n - 1 }));
+  return { el, dots, lastLeft: pts[n - 1][0] + '%', lastTop: pts[n - 1][1] + '%' };
+}
+
+const navIcon = (k, active) => ({ /* placeholder */ });
+
+const N = { /* nav data per role */
+  admin: [
+    { heading: 'MAIN MENU', items: [
+      ['Dashboard', 'Overview & Analytics', 'grid', 1], ['User Management', 'Manage users & roles', 'users'], ['Role & Permissions', 'Manage roles & access', 'shield'],
+      ['Skin Assessments', 'View all assessments', 'clip'], ['Routine Management', 'Manage routines & plans', 'cal'], ['Product Management', 'Manage products', 'box'],
+      ['Ingredient Database', 'Manage ingredients', 'beaker'], ['Content Management', 'Manage articles & resources', 'doc'], ['Reports & Analytics', 'Platform reports', 'trend'],
+      ['Notifications', 'System notifications', 'bell'], ['System Settings', 'Configure platform settings', 'gear'] ] },
+    { heading: 'SYSTEM & SECURITY', items: [ ['Audit Logs', 'System activity logs', 'log'], ['Security & Access', 'Manage security settings', 'lock'], ['Backup & Restore', 'Data backup & restore', 'db'] ] },
+  ],
+  derma: [
+    { heading: 'MAIN MENU', items: [
+      ['Dashboard', 'Overview & key insights', 'home', 1], ['Patients', 'Manage patient profiles', 'users'], ['Assessments', 'Skin assessments & analysis', 'clip'],
+      ['Clinical Insights', 'AI insights & risk analysis', 'spark'], ['Treatment Plans', 'Create & manage plans', 'note'], ['Progress Tracking', 'Monitor patient progress', 'trend'],
+      ['Prescriptions', 'Manage prescriptions', 'pill'], ['Reports', 'Clinical reports & analytics', 'doc'], ['Consultations', 'Appointments & notes', 'chat'],
+      ['Follow-ups', 'Follow-up tracking', 'refresh'], ['Reminders', 'Treatment reminders', 'bell'] ] },
+    { heading: 'TOOLS & RESOURCES', items: [ ['Ingredient Database', 'Search & analyze ingredients', 'beaker'], ['Treatment Protocols', 'Clinical treatment guides', 'book'], ['Skin Conditions Guide', 'Reference & solutions', 'book'], ['Research & Publications', 'Latest dermatology research', 'beaker'] ] },
+  ],
+  consultant: [
+    { heading: 'MAIN MENU', items: [
+      ['Dashboard', 'Overview & key metrics', 'home', 1], ['Clients', 'Manage client profiles', 'users'], ['Assessments', 'Skin assessments & analysis', 'clip'],
+      ['Routine Plans', 'Create & manage routines', 'cal'], ['Product Recommendations', 'View & recommend products', 'thumb'], ['Progress Tracking', 'Track client progress', 'trend'],
+      ['Reports', 'Client reports & analytics', 'doc'], ['Follow-ups & Notes', 'Notes & follow-up history', 'note'], ['Reminders', 'Appointments & reminders', 'bell'] ] },
+    { heading: 'TOOLS & RESOURCES', items: [ ['Ingredient Database', 'Search & analyze ingredients', 'beaker'], ['Skin Concerns Guide', 'Reference & solutions', 'book'], ['Treatment Protocols', 'Clinical treatment guides', 'book'] ] },
+  ],
+  user: [
+    { heading: 'MAIN MENU', items: [
+      ['Dashboard', '', 'home', 1], ['My Skin Profile', 'View & update your profile', 'users'], ['Skin Assessment', 'Analyze your skin condition', 'clip'],
+      ['My Routine', 'Your personalized routine', 'cal'], ['Product Recommendations', 'Products for your skin', 'box'], ['Ingredient Analyzer', 'Check ingredients & safety', 'search'],
+      ['Progress Tracking', 'Track your skin progress', 'trend'], ['Lifestyle & Habits', 'Sleep, water & lifestyle', 'heart'], ['Reports', 'View & download reports', 'doc'],
+      ['Reminders', 'Routine & habit reminders', 'bell'], ['Settings', 'Account & preferences', 'gear'] ] },
+    { heading: 'QUICK ACTIONS', items: [ ['Skin Scan', 'Start new skin assessment', 'scan'], ['Ask AI', 'Get skincare guidance', 'spark'], ['Upload Photo', 'Analyze your skin', 'upload'] ] },
+  ],
+};
+
+class Component extends DCLogic {
+  state = { role: (this.props && this.props.role) || 'admin' };
+  set(role) { this.setState({ role }); }
+  componentDidMount() {
+    const fit = () => {
+      const wrap = document.getElementById('dashFit'), canvas = document.getElementById('dashCanvas');
+      if (!wrap || !canvas) return;
+      canvas.style.zoom = 1;
+      const k = Math.min(1, wrap.clientWidth / 1600);
+      canvas.style.zoom = k;
+    };
+    this._fit = fit;
+    fit(); requestAnimationFrame(fit); setTimeout(fit, 200); setTimeout(fit, 600);
+    window.addEventListener('resize', fit);
+    this._ro = new ResizeObserver(fit);
+    const w = document.getElementById('dashFit'); if (w) this._ro.observe(w);
+  }
+  componentDidUpdate() { if (this._fit) { this._fit(); setTimeout(this._fit, 50); } }
+  componentWillUnmount() { window.removeEventListener('resize', this._fit); if (this._ro) this._ro.disconnect(); }
+
+  navGroups() {
+    const role = this.state.role;
+    return N[role].map(g => ({ heading: g.heading, items: g.items.map(([label, sub, ic, active]) => ({
+      label, sub, active: !!active,
+      icon: icon(P[ic] || P.grid, { s: 17, stroke: active ? '#fff' : '#8b8fa3' }),
+      onClick: () => {},
+      style: { display: 'flex', alignItems: 'center', gap: '11px', width: '100%', textAlign: 'left', border: 'none', cursor: 'pointer', borderRadius: '12px', padding: '9px 12px', marginBottom: '2px', fontFamily: 'inherit', background: active ? 'linear-gradient(135deg,#3f8a63,#2f6b4c)' : 'transparent', boxShadow: active ? '0 12px 24px -12px rgba(47,107,76,0.8)' : 'none' },
+      iconBg: active ? 'rgba(255,255,255,0.18)' : '#f4f5fa', iconColor: active ? '#fff' : '#8b8fa3',
+      titleColor: active ? '#fff' : '#2b2b40', subColor: active ? 'rgba(255,255,255,0.8)' : '#a3a7bd',
+    })) }));
+  }
+
+  statCard(label, value, iconKey, tint, delta, deltaColor) {
+    const tints = { pur: ['rgba(47,107,76,0.12)', PUR], grn: ['rgba(34,197,94,0.14)', '#16a34a'], blu: ['rgba(59,157,248,0.14)', '#2f8fe0'], ora: ['rgba(245,166,35,0.16)', '#e08a1e'], red: ['rgba(244,63,94,0.13)', '#e23b57'], tea: ['rgba(34,201,184,0.16)', '#12a99a'] };
+    const [ib, icl] = tints[tint];
+    return { label, value, icon: icon(P[iconKey], { s: 22, stroke: icl }), iconBg: ib, iconColor: icl, deltaColor: deltaColor || '#16a34a', deltaEl: delta };
+  }
+
+  renderVals() {
+    const role = this.state.role;
+    const R = React.createElement;
+    // shells
+    const panelName = { admin: 'Admin Panel', derma: 'Dermatologist Panel', consultant: 'Consultant Panel', user: 'AI Skincare Companion' }[role];
+    const footerCard = {
+      wrap: role === 'user' ? { borderRadius: '16px', padding: '16px', background: 'linear-gradient(135deg,#3f8a63,#2f6b4c)' } : { borderRadius: '16px', padding: '16px', background: role === 'admin' ? '#f6f7fb' : 'linear-gradient(135deg,#e8f0ea,#f1f6f2)', border: role === 'admin' ? '1px solid #edeef4' : '1px solid #cfe0d4' },
+      isStatus: role === 'admin', isAI: role === 'derma' || role === 'consultant', isPremium: role === 'user',
+      aiSub: role === 'derma' ? 'Get AI-powered clinical support' : 'Get AI-powered suggestions',
+    };
+    const topbarMap = {
+      admin: { welcome: 'Welcome back, Admin 👋', subtitle: "Here's what's happening on your platform today.", showSearch: true, searchPlaceholder: 'Search users, reports, assessments...', notif: 5, avatarIcon: true, avatarPhoto: false, name: 'Admin User', role: 'Super Administrator', addClient: false },
+      derma: { welcome: 'Welcome back, Dr. Meera Iyer 👋', subtitle: "Here's an overview of your patients and clinical insights.", showSearch: true, searchPlaceholder: 'Search patients, assessments...', notif: 5, avatarPhoto: true, avatarBg: bg(FACE.meeraDr), avatarIcon: false, name: 'Dr. Meera Iyer', role: 'Dermatologist', addClient: false },
+      consultant: { welcome: 'Welcome back, Dr. Priya Sharma 👋', subtitle: "Here's what's happening with your clients today.", showSearch: true, searchPlaceholder: 'Search clients, assessments...', notif: 3, avatarPhoto: true, avatarBg: bg(FACE.priya), avatarIcon: false, name: 'Dr. Priya Sharma', role: 'Skincare Consultant', addClient: true },
+      user: { welcome: 'Welcome back, Ananya 👋', subtitle: "Here's your skin summary and personalized recommendations.", showSearch: false, notif: 3, avatarPhoto: true, avatarBg: bg(FACE.ananyaUser), avatarIcon: false, name: 'Ananya Sharma', role: 'Premium User', addClient: false },
+    };
+    const topbar = topbarMap[role];
+
+    // stat cards
+    let stats;
+    if (role === 'admin') stats = [
+      this.statCard('Total Users', '12,845', 'users', 'pur', upEl('18% this month', '#16a34a')),
+      this.statCard('Assessments Completed', '8,932', 'clip', 'grn', upEl('22% this month', '#16a34a')),
+      this.statCard('Active Routines', '6,742', 'cal', 'blu', upEl('16% this month', '#16a34a')),
+      this.statCard('Total Products', '1,248', 'box', 'ora', upEl('12% this month', '#16a34a')),
+      this.statCard('Platform Revenue', '₹24.8L', 'trend', 'red', upEl('20% this month', '#16a34a')),
+      this.statCard('System Uptime', '99.9%', 'db', 'tea', R('span', { style: { color: '#8b8fa3' } }, 'All systems healthy')),
+    ];
+    else if (role === 'derma') stats = [
+      this.statCard('Total Patients', '156', 'users', 'pur', upEl('14% this month', '#16a34a')),
+      this.statCard('Assessments Done', '203', 'clip', 'grn', upEl('18% this month', '#16a34a')),
+      this.statCard('Active Treatment Plans', '128', 'trend', 'blu', upEl('16% this month', '#16a34a')),
+      this.statCard('Patients Improving', '68%', 'star', 'ora', upEl('8% this month', '#16a34a')),
+      this.statCard('Follow-ups Due', '23', 'cal', 'red', R('span', { style: { color: PUR, fontWeight: 600 } }, 'View all follow-ups →')),
+    ];
+    else if (role === 'consultant') stats = [
+      this.statCard('Total Clients', '128', 'users', 'pur', upEl('12% this month', '#16a34a')),
+      this.statCard('Assessments Done', '86', 'clip', 'grn', upEl('18% this month', '#16a34a')),
+      this.statCard('Active Routines', '92', 'trend', 'blu', upEl('15% this month', '#16a34a')),
+      this.statCard('Avg. Improvement', '24%', 'star', 'ora', upEl('6% this month', '#16a34a')),
+      this.statCard('Upcoming Follow-ups', '14', 'cal', 'red', R('span', { style: { color: PUR, fontWeight: 600 } }, 'View Calendar →')),
+    ];
+    else stats = [
+      { label: 'Skin Health Score', value: '78', icon: icon(P.face, { s: 22, stroke: PUR }), iconBg: 'rgba(47,107,76,0.12)', iconColor: PUR, deltaColor: '#16a34a', deltaEl: upEl('8% improvement this week', '#16a34a') },
+      { label: 'Skin Type', value: 'Combination', icon: icon(P.face, { s: 22, stroke: PUR }), iconBg: 'rgba(47,107,76,0.12)', iconColor: PUR, deltaColor: '#8b8fa3', deltaEl: R('span', { style: { color: '#8b8fa3' } }, 'T-Zone: Oily · Cheeks: Normal') },
+      { label: 'Top Concerns', value: 'Acne & Marks', icon: icon(P.spark, { s: 22, stroke: PNK }), iconBg: 'rgba(244,86,143,0.14)', iconColor: PNK, deltaColor: PUR, deltaEl: R('span', { style: { color: PUR, fontWeight: 600 } }, 'View Analysis →') },
+      { label: 'Skin Age', value: '24', icon: icon(P.scan, { s: 22, stroke: BLU }), iconBg: 'rgba(59,157,248,0.14)', iconColor: BLU, deltaColor: '#8b8fa3', deltaEl: R('span', { style: { color: '#8b8fa3' } }, 'Your actual age 21') },
+      { label: 'Hydration Level', value: 'Good', icon: icon('<path d="M12 3s6 6 6 11a6 6 0 0 1-12 0c0-5 6-11 6-11z"/>', { s: 22, stroke: TEA }), iconBg: 'rgba(34,201,184,0.16)', iconColor: TEA, deltaColor: '#16a34a', deltaEl: R('span', { style: { color: '#8b8fa3' } }, 'Water: 1.8 L / 2.5 L · 72%') },
+    ];
+
+    const content = this.renderContent(role, R);
+
+    const roleTabs = [['user', 'User'], ['consultant', 'Consultant'], ['derma', 'Dermatologist'], ['admin', 'Admin']].map(([k, lbl]) => ({
+      label: lbl, onClick: () => this.set(k),
+      style: { border: 'none', cursor: 'pointer', borderRadius: '999px', padding: '8px 16px', fontFamily: 'inherit', fontSize: '0.78rem', fontWeight: 600, background: role === k ? '#fff' : 'transparent', color: role === k ? '#171433' : 'rgba(255,255,255,0.7)' },
+    }));
+
+    return { panelName, navGroups: this.navGroups(), footerCard, topbar, stats, content, roleTabs, statCols: role === 'admin' ? 'repeat(6,1fr)' : 'repeat(5,1fr)', showStatRow: role !== 'user', contentMt: role === 'user' ? '' : 'margin-top:16px;' };
+  }
+
+  // ---------- panel helpers ----------
+  card(children, extra) { return React.createElement('div', { style: Object.assign({ borderRadius: '16px', background: '#fff', border: '1px solid #edeef4', boxShadow: '0 4px 16px -10px rgba(23,20,51,0.28)', padding: '18px' }, extra || {}) }, children); }
+  cardHead(title, right) { return React.createElement('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', marginBottom: '20px' } }, React.createElement('h3', { style: { margin: 0, fontSize: '0.98rem', fontWeight: 700, color: '#171433', whiteSpace: 'nowrap' } }, title), right || null); }
+  pill(text) { return React.createElement('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0, borderRadius: '9px', border: '1px solid #edeef4', background: '#fafbfe', padding: '5px 10px', fontSize: '0.72rem', fontWeight: 600, color: '#6b7189', whiteSpace: 'nowrap' } }, text, icon('<path d="m6 9 6 6 6-6"/>', { s: 12, sw: 2, stroke: '#9aa0b4' })); }
+  linkR(text) { return React.createElement('span', { style: { fontSize: '0.82rem', fontWeight: 600, color: PUR } }, text); }
+  donutBlock(segs, center, sub, size) {
+    const d = donut(segs, size || 150, (size || 150) * 0.17);
+    return React.createElement('div', { style: { position: 'relative', ...d.ring } }, React.createElement('div', { style: d.hole }, React.createElement('div', null, React.createElement('div', { style: { fontSize: '1.3rem', fontWeight: 800, color: '#171433' } }, center), React.createElement('div', { style: { fontSize: '0.68rem', color: '#8b8fa3' } }, sub))));
+  }
+  legend(rows) {
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '11px', flex: 1, minWidth: 0 } }, rows.map((r, i) =>
+      React.createElement('div', { key: i, style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' } },
+        React.createElement('span', { style: { display: 'flex', alignItems: 'center', gap: '9px', fontSize: '0.82rem', color: '#3f4a5a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, React.createElement('span', { style: { width: '10px', height: '10px', flexShrink: 0, borderRadius: '50%', background: r[2] } }), r[0]),
+        React.createElement('span', { style: { fontSize: '0.82rem', fontWeight: 600, color: '#171433', whiteSpace: 'nowrap', flexShrink: 0 } }, r[1]))));
+  }
+  bars(rows) {
+    return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '15px' } }, rows.map((r, i) =>
+      React.createElement('div', { key: i },
+        React.createElement('div', { style: { display: 'flex', justifyContent: 'space-between', fontSize: '0.83rem', marginBottom: '7px' } }, React.createElement('span', { style: { color: '#3f4a5a' } }, r[0]), React.createElement('span', { style: { fontWeight: 700, color: '#171433' } }, r[2] || (r[1] + '%'))),
+        React.createElement('div', { style: { height: '8px', borderRadius: '999px', background: '#f4efe4', overflow: 'hidden' } }, React.createElement('div', { style: { height: '100%', width: r[1] + '%', borderRadius: '999px', background: 'linear-gradient(90deg,#3f8a63,#2f6b4c)' } })))));
+  }
+  chartFrame(chart, yLabels, xLabels, tip, h) {
+    const R = React.createElement;
+    return R('div', { style: { display: 'flex', gap: '10px' } },
+      R('div', { style: { display: 'flex', flexDirection: 'column', justifyContent: 'space-between', fontSize: '0.68rem', color: '#a3a7bd', height: (h || 200) + 'px', paddingBottom: '18px' } }, yLabels.map((l, i) => R('div', { key: i }, l))),
+      R('div', { style: { flex: 1 } },
+        R('div', { style: { position: 'relative', height: (h || 200) + 'px' } }, chart.el,
+          chart.dots.map((d, i) => R('span', { key: i, title: d.title, style: d.last ? Object.assign({}, d.style, { width: '9px', height: '9px', marginLeft: '-4.5px', marginTop: '-4.5px', boxShadow: '0 0 0 4px rgba(47,107,76,0.16)' }) : d.style }))),
+        R('div', { style: { display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.68rem', color: '#a3a7bd' } }, xLabels.map((l, i) => R('div', { key: i }, l)))));
+  }
+  scoreRing(v) {
+    const color = v >= 75 ? GRN : v >= 68 ? ORA : ORA;
+    return React.createElement('span', { style: { position: 'relative', display: 'grid', placeItems: 'center', width: '44px', height: '44px', flexShrink: 0, borderRadius: '50%', background: `conic-gradient(${color} ${v}%, #f4efe4 0)` } },
+      React.createElement('span', { style: { position: 'absolute', inset: '4px', borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center', fontSize: '0.74rem', fontWeight: 700, color: '#171433' } }, v));
+  }
+  avatarRow(src, name, subtitle, subEl) {
+    const R = React.createElement;
+    return R('span', { style: { display: 'flex', alignItems: 'center', gap: '11px' } },
+      R('span', { style: { position: 'relative', width: '38px', height: '38px', flexShrink: 0, borderRadius: '11px', overflow: 'hidden', background: '#e9eaf5' } }, R('span', { style: bg(src) })),
+      R('span', { style: { lineHeight: '1.3' } }, R('span', { style: { display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#171433', whiteSpace: 'nowrap' } }, name), R('span', { style: { display: 'block', fontSize: '0.74rem', color: '#8b8fa3', whiteSpace: 'nowrap' } }, subEl || subtitle)));
+  }
+  statusChip(text, kind) {
+    const map = { active: ['#e7f7ee', '#16a34a'], due: ['#fdf3e0', '#d99a0b'] };
+    const [b, c] = map[kind];
+    return React.createElement('span', { style: { display: 'inline-block', borderRadius: '999px', background: b, color: c, padding: '4px 12px', fontSize: '0.74rem', fontWeight: 600, whiteSpace: 'nowrap' } }, text);
+  }
+  scoreChip(score, label, kind) {
+    const map = { good: ['#e7f7ee', '#16a34a'], fair: ['#fdf3e0', '#d99a0b'] };
+    const [b, c] = map[kind];
+    return React.createElement('span', { style: { display: 'inline-flex', flexDirection: 'column', alignItems: 'center', minWidth: '58px', borderRadius: '10px', background: b, color: c, padding: '6px 10px', lineHeight: 1.2 } }, React.createElement('span', { style: { fontSize: '0.78rem', fontWeight: 700 } }, score), React.createElement('span', { style: { fontSize: '0.68rem', fontWeight: 600 } }, label));
+  }
+
+  renderContent(role, R) {
+    if (role === 'admin') return this.adminContent(R);
+    if (role === 'derma') return this.clinicalContent(R, 'derma');
+    if (role === 'consultant') return this.clinicalContent(R, 'consultant');
+    return this.userContent(R);
+  }
+
+  grid(cols, gap, kids) { return React.createElement('div', { style: { display: 'grid', gap: (gap || 16) + 'px', gridTemplateColumns: cols } }, kids); }
+
+  adminContent(R) {
+    const userOverview = this.card([
+      this.cardHead('User Overview', this.pill('This Month')),
+      R('div', { style: { display: 'flex', flexWrap: 'nowrap', gap: '20px', alignItems: 'center' } },
+        this.donutBlock([{ pct: 79.7, color: PUR }, { pct: 12, color: BLU }, { pct: 5.3, color: ORA }, { pct: 2.9, color: GRN }], '12,845', 'Total Users', 168),
+        this.legend([['Users', '10,243 (79.7%)', PUR], ['Consultants', '1,542 (12.0%)', BLU], ['Dermatologists', '687 (5.3%)', ORA], ['Admins', '373 (2.9%)', GRN]])),
+      R('div', { style: { marginTop: '18px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: '#f6f7fb', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View All Users →'),
+    ]);
+    const growth = this.card([
+      this.cardHead('User Growth', this.pill('This Month')),
+      this.chartFrame(lineChart([3.5, 4.6, 5.4, 6.2, 7, 8, 9.2, 10.2, 11, 11.8, 12.845], { min: 0, max: 14, titles: ['Apr 21, 2025 · 3,500 Users', 'Apr 24, 2025 · 4,600 Users', 'Apr 28, 2025 · 5,400 Users', 'May 1, 2025 · 6,200 Users', 'May 5, 2025 · 7,000 Users', 'May 8, 2025 · 8,000 Users', 'May 11, 2025 · 9,200 Users', 'May 14, 2025 · 10,200 Users', 'May 17, 2025 · 11,000 Users', 'May 19, 2025 · 11,800 Users', 'May 21, 2025 · 12,845 Users'] }), ['14K', '10K', '6K', '2K', '0'], ['Apr 21', 'Apr 28', 'May 5', 'May 12', 'May 19'], null, 172),
+      R('div', { style: { marginTop: '10px', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px', color: '#16a34a', fontWeight: 600 } }, upEl('18%', '#16a34a'), R('span', { style: { color: '#8b8fa3', fontWeight: 500 } }, 'growth compared to last month')),
+    ]);
+    const assess = this.card([
+      this.cardHead('Assessments Overview', this.pill('This Month')),
+      R('div', { style: { display: 'flex', flexWrap: 'nowrap', gap: '20px', alignItems: 'center' } },
+        this.donutBlock([{ pct: 75.4, color: PUR }, { pct: 16.2, color: BLU }, { pct: 8.3, color: ORA }], '8,932', 'Total', 168),
+        this.legend([['Completed', '6,742 (75.4%)', PUR], ['In Progress', '1,452 (16.2%)', BLU], ['Pending', '738 (8.3%)', ORA]])),
+      R('div', { style: { marginTop: '18px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: '#f6f7fb', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View All Assessments →'),
+    ]);
+    const concerns = this.card([
+      this.cardHead('Top Skin Concerns', this.pill('This Month')),
+      this.bars([['Acne & Post Acne Marks', 90, '3,245 (36%)'], ['Hyperpigmentation', 62, '2,145 (24%)'], ['Dryness', 42, '1,456 (16%)'], ['Sensitive Skin', 32, '1,102 (12%)'], ['Uneven Skin Tone', 28, '984 (11%)']]),
+      R('div', { style: { marginTop: '18px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: '#f6f7fb', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View Full Report →'),
+    ]);
+    const revenue = this.card([
+      this.cardHead('Revenue Overview', this.pill('This Month')),
+      R('div', { style: { fontSize: '0.78rem', color: '#8b8fa3', marginTop: '-6px' } }, 'Total Revenue'),
+      R('div', { style: { display: 'flex', alignItems: 'baseline', gap: '10px', marginTop: '6px' } }, R('span', { style: { fontSize: '1.5rem', fontWeight: 800, color: '#171433' } }, '₹24,80,500'), R('span', { style: { fontSize: '0.78rem', fontWeight: 600, color: '#16a34a', display: 'inline-flex', alignItems: 'center' } }, upEl('20% vs last month', '#16a34a'))),
+      R('div', { style: { marginTop: '10px' } }, this.chartFrame(lineChart([7, 9, 11, 13, 12, 15, 18, 21, 19, 22, 24.8], { min: 0, max: 35 }), ['₹35L', '₹28L', '₹21L', '₹14L', '₹7L', '₹0'], ['Apr 21', 'Apr 28', 'May 5', 'May 12', 'May 19'], null, 150)),
+      R('div', { style: { marginTop: '14px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: '#f6f7fb', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View Financial Report →'),
+    ]);
+    const activity = this.card([
+      this.cardHead('Recent Activity'),
+      R('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } }, [
+        ['users', 'pur', 'New user registered', 'Ananya Verma (User)', '2 min ago'],
+        ['clip', 'grn', 'Skin assessment completed', 'By Neha Gupta (Consultant)', '15 min ago'],
+        ['box', 'blu', 'New product added', 'Vitamin C Brightening Serum', '1 hour ago'],
+        ['cal', 'pur', 'Routine plan created', 'For Riya Singh (User)', '2 hours ago'],
+        ['db', 'tea', 'System backup completed', 'Daily backup completed successfully', '3 hours ago'],
+      ].map((a, i) => { const tints = { pur: ['rgba(47,107,76,0.12)', PUR], grn: ['rgba(34,197,94,0.14)', '#16a34a'], blu: ['rgba(59,157,248,0.14)', '#2f8fe0'], tea: ['rgba(34,201,184,0.16)', '#12a99a'] }; const [ib, icl] = tints[a[1]];
+        return R('div', { key: i, style: { display: 'flex', gap: '12px', alignItems: 'flex-start' } },
+          R('span', { style: { display: 'grid', placeItems: 'center', width: '38px', height: '38px', flexShrink: 0, borderRadius: '11px', background: ib, color: icl } }, icon(P[a[0]], { s: 17, stroke: icl })),
+          R('div', { style: { flex: 1, minWidth: 0 } }, R('div', { style: { fontSize: '0.85rem', fontWeight: 600, color: '#171433' } }, a[2]), R('div', { style: { fontSize: '0.76rem', color: '#8b8fa3' } }, a[3])),
+          R('div', { style: { fontSize: '0.72rem', color: '#a3a7bd', whiteSpace: 'nowrap' } }, a[4])); })),
+      R('div', { style: { marginTop: '18px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: '#f6f7fb', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View All Activity →'),
+    ]);
+    const health = this.card([
+      R('h3', { style: { margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' } }, 'System Health'),      this.grid('repeat(4,1fr)', 10, [['Database', '<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>'], ['API Services', '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 6l-4 12"/>'], ['Storage', '<path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/>'], ['Email Service', '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>']].map((h, i) =>
+        R('div', { key: i, style: { borderRadius: '14px', border: '1px solid #edeef4', background: '#fafbfe', padding: '14px 10px', minWidth: 0 } },
+          R('span', { style: { display: 'grid', placeItems: 'center', width: '36px', height: '36px', borderRadius: '11px', background: 'rgba(34,197,94,0.14)', color: '#16a34a', marginBottom: '10px' } }, icon(h[1], { s: 17, stroke: '#16a34a' })),
+          R('div', { style: { fontSize: '0.8rem', fontWeight: 600, color: '#171433', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } }, h[0]),
+          R('div', { style: { fontSize: '0.74rem', color: '#16a34a', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' } }, icon('<path d="M20 6 9 17l-5-5"/>', { s: 12, stroke: '#16a34a', sw: 2.6 }), 'Healthy')))),
+    ], { height: '100%', minWidth: 0 });
+    const actions = this.card([
+      R('h3', { style: { margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' } }, 'Quick Actions'),
+      this.grid('repeat(4,1fr)', 12, [['users', 'Add New User'], ['box', 'Add Product'], ['cal', 'Create Routine'], ['doc', 'Generate Report']].map((a, i) =>
+        R('div', { key: i, style: { textAlign: 'center', borderRadius: '14px', border: '1px solid #edeef4', background: '#fafbfe', padding: '18px 8px', cursor: 'pointer' } },
+          R('span', { style: { display: 'grid', placeItems: 'center', width: '46px', height: '46px', margin: '0 auto 12px', borderRadius: '13px', background: 'rgba(47,107,76,0.12)', color: PUR } }, icon(P[a[0]], { s: 20, stroke: PUR })),
+          R('div', { style: { fontSize: '0.78rem', fontWeight: 600, color: '#3f4a5a' } }, a[1])))),
+    ], { height: '100%', minWidth: 0 });
+    const analytics = this.card([
+      R('h3', { style: { margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' } }, 'Platform Analytics'),
+      this.grid('repeat(4,1fr)', 12, [['eye', 'Page Views', '125,430', '14%', 1, '#3b9df8', 'rgba(59,157,248,0.14)'], ['users', 'Active Sessions', '8,245', '17%', 1, '#16a34a', 'rgba(34,197,94,0.14)'], ['trend', 'Bounce Rate', '32.6%', '5%', 0, '#e08a1e', 'rgba(245,166,35,0.16)'], ['clock', 'Avg. Session', '04:32', '8%', 1, PUR, 'rgba(47,107,76,0.12)']].map((a, i) =>
+        R('div', { key: i, style: { display: 'flex', flexDirection: 'column', justifyContent: 'center', borderRadius: '14px', border: '1px solid #edeef4', background: '#fafbfe', padding: '16px 14px', minWidth: 0 } }, R('span', { style: { display: 'grid', placeItems: 'center', width: '36px', height: '36px', borderRadius: '11px', background: a[6], color: a[5], marginBottom: '12px' } }, icon(P[a[0]] || P.grid, { s: 18, stroke: a[5] })), R('div', { style: { fontSize: '0.8rem', color: '#8b8fa3', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginBottom: '5px' } }, a[1]), R('div', { style: { fontSize: '1.3rem', fontWeight: 800, color: '#171433', letterSpacing: '-0.01em', whiteSpace: 'nowrap' } }, a[2]), R('div', { style: { fontSize: '0.76rem', fontWeight: 600, marginTop: '5px' } }, upEl(a[3], a[4] ? '#16a34a' : '#ef4444'))))),
+    ], { height: '100%', minWidth: 0, display: 'flex', flexDirection: 'column' });
+    return R('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
+      this.grid('repeat(3,1fr)', 12, [userOverview, growth, assess]),
+      this.grid('repeat(3,1fr)', 12, [concerns, revenue, activity]),
+      this.grid('repeat(3,1fr)', 12, [health, actions, analytics]));
+  }
+
+  clinicalContent(R, mode) {
+    const isC = mode === 'consultant';
+    const tableTitle = isC ? 'Client Overview' : 'Patients Overview';
+    const tableRight = isC ? R('span', { style: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View All Clients', icon('<path d="m6 9 6 6 6-6"/>', { s: 12, sw: 2, stroke: PUR })) : R('span', { style: { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View All Patients', icon('<path d="M5 12h14M13 6l6 6-6 6"/>', { s: 13, sw: 2, stroke: PUR }));
+    const skinTypeColors = { Combination: PUR, Oily: BLU, Dry: ORA, Sensitive: PNK, Normal: GRN };
+    const rows = isC ? [
+      [FACE.ananya, 'Ananya Verma', '24, Female', 'Combination', 'Acne & Post Acne Marks', 78, 'May 18, 2025', 'active', 'May 28, 2025'],
+      [FACE.neha, 'Neha Gupta', '28, Female', 'Oily', 'Acne', 65, 'May 15, 2025', 'active', 'May 25, 2025'],
+      [FACE.riya, 'Riya Singh', '30, Female', 'Dry', 'Dryness & Uneven Tone', 82, 'May 16, 2025', 'active', 'May 30, 2025'],
+      [FACE.meera, 'Meera Iyer', '26, Female', 'Sensitive', 'Redness & Sensitivity', 70, 'May 10, 2025', 'due', 'May 22, 2025'],
+      [FACE.kavya, 'Kavya Nair', '32, Female', 'Combination', 'Hyperpigmentation', 76, 'May 12, 2025', 'active', 'May 24, 2025'],
+    ] : [
+      [FACE.ananya, 'Ananya Verma', '24, Female', null, 'Acne & Post Acne Marks', 78, 'May 18, 2025', 'active', 'May 28, 2025'],
+      [FACE.neha, 'Neha Gupta', '28, Female', null, 'Acne', 65, 'May 15, 2025', 'active', 'May 25, 2025'],
+      [FACE.rohit, 'Rohit Sharma', '32, Male', null, 'Hair Fall & Dandruff', 82, 'May 16, 2025', 'active', 'May 30, 2025'],
+      [FACE.meera, 'Meera Nair', '26, Female', null, 'Sensitive Skin & Redness', 70, 'May 10, 2025', 'due', 'May 22, 2025'],
+      [FACE.kavya, 'Kavya Nair', '32, Female', null, 'Hyperpigmentation', 76, 'May 12, 2025', 'active', 'May 24, 2025'],
+    ];
+    const cols = isC ? ['Client Name', 'Skin Type', 'Top Concern', 'Skin Health Score', 'Last Assessment', 'Status', 'Next Follow-up', ''] : ['Patient', 'Age / Gender', 'Primary Concern', 'Skin Health Score', 'Last Assessment', 'Status', 'Next Follow-up', ''];
+    const table = this.card([
+      this.cardHead(tableTitle, tableRight),
+      R('div', { style: { overflowX: 'auto', overflowY: 'hidden', paddingTop: '4px' } }, R('table', { style: { borderCollapse: 'collapse', minWidth: '860px', width: '100%' } },
+        R('thead', null, R('tr', null, cols.map((c, i) => R('th', { key: i, style: { textAlign: (i === 3 || i === 5) ? 'center' : 'left', padding: '0 18px 16px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' } }, c)))),
+        R('tbody', null, rows.map((r, i) => R('tr', { key: i, style: { borderTop: '1px solid #f1f2f7' } },
+          R('td', { style: { padding: '14px 18px' } }, this.avatarRow(r[0], r[1], r[2])),
+          isC ? R('td', { style: { padding: '14px 18px', fontSize: '0.82rem', fontWeight: 600, color: skinTypeColors[r[3]] } }, r[3]) : R('td', { style: { padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a' } }, r[2]),
+          R('td', { style: { padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a' } }, r[4]),
+          R('td', { style: { padding: '14px 18px', textAlign: 'center' } }, R('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '5px' } }, this.scoreRing(r[5]), R('span', { style: { fontSize: '0.7rem', color: '#8b8fa3' } }, '/100'))),
+          R('td', { style: { padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a', whiteSpace: 'nowrap' } }, r[6]),
+          R('td', { style: { padding: '14px 18px', textAlign: 'center' } }, this.statusChip(r[7] === 'due' ? 'Follow-up Due' : 'Active', r[7])),
+          R('td', { style: { padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a', whiteSpace: 'nowrap' } }, r[8]),
+          R('td', { style: { padding: '14px 12px', textAlign: 'center' } }, icon('<circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/>', { s: 16, stroke: '#b8bccc', fill: '#b8bccc' }))))))),
+    ]);
+    const dist = this.card([
+      R('h3', { style: { margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' } }, isC ? 'Clients by Skin Type' : 'Skin Concerns Distribution'),
+      R('div', { style: { display: 'flex', flexWrap: 'nowrap', gap: '18px', alignItems: 'center' } },
+        isC ? this.donutBlock([{ pct: 35, color: PUR }, { pct: 25, color: BLU }, { pct: 20, color: ORA }, { pct: 12, color: PNK }, { pct: 8, color: GRN }], '128', 'Total Clients', 140)
+            : this.donutBlock([{ pct: 24, color: PUR }, { pct: 18, color: BLU }, { pct: 14, color: ORA }, { pct: 13, color: PNK }, { pct: 12, color: TEA }, { pct: 19, color: GRY }], '156', 'Total Patients', 140),
+        isC ? this.legend([['Combination', '45 (35%)', PUR], ['Oily', '32 (25%)', BLU], ['Dry', '26 (20%)', ORA], ['Sensitive', '15 (12%)', PNK], ['Normal', '10 (8%)', GRN]])
+            : this.legend([['Acne & Post Acne Marks', '38 (24%)', PUR], ['Hyperpigmentation', '28 (18%)', BLU], ['Dryness', '22 (14%)', ORA], ['Sensitive Skin', '20 (13%)', PNK], ['Oily Skin', '18 (12%)', TEA], ['Others', '30 (19%)', GRY]])),
+    ]);
+    const topConcerns = this.card([
+      R('h3', { style: { margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' } }, 'Top Skin Concerns'),
+      this.bars(isC ? [['Acne & Post Acne Marks', 42], ['Hyperpigmentation', 24], ['Dryness', 18], ['Uneven Skin Tone', 9], ['Sensitivity & Redness', 7]] : [['Acne & Post Acne Marks', 42], ['Hyperpigmentation', 24], ['Dryness', 18], ['Sensitive Skin & Redness', 12], ['Uneven Skin Tone', 9]]),
+    ], { width: '100%' });
+    const progress = this.card([
+      this.cardHead(isC ? 'Client Progress Overview' : 'Patient Progress Overview', this.pill('This Month')),
+      this.chartFrame(lineChart(isC ? [16, 20, 18, 26, 30, 24, 33, 38, 30, 28, 22, 24] : [30, 38, 34, 45, 52, 48, 60, 68, 58, 66, 62, 70, 64, 68], { min: 0, max: 100 }), ['100%', '75%', '50%', '25%', '0%'], ['May 1', 'May 7', 'May 14', 'May 21', 'May 28'], isC ? ['May 21', 'Avg. 24%'] : ['May 21', 'Avg. Improvement 68%'], 150),
+      R('div', { style: { marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f2f7', display: 'grid', gridTemplateColumns: isC ? 'repeat(3,1fr)' : 'repeat(4,1fr)' } },
+        (isC ? [['24%', 'Avg. Improvement', '6%', 1], ['18', 'Clients Improved', '8%', 1], ['7', 'Need Attention', '2%', 0]] : [['68%', 'Avg. Improvement', '8%', 1], ['106', 'Patients Improved', '12%', 1], ['28', 'Stable', '', 2], ['22', 'Need Attention', '6%', 0]]).map((s, i, arr) =>
+          R('div', { key: i, style: { padding: i === 0 ? '0 10px 0 0' : '0 10px', borderLeft: i === 0 ? 'none' : '1px solid #f1f2f7', minWidth: 0 } }, R('div', { style: { fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.02em', color: s[3] === 1 ? '#16a34a' : s[3] === 0 ? '#ef4444' : '#171433', lineHeight: 1.1 } }, s[0]), R('div', { style: { fontSize: '0.66rem', color: '#8b8fa3', margin: '4px 0 5px', lineHeight: 1.25 } }, s[1]), R('div', { style: { fontSize: '0.68rem', fontWeight: 600 } }, s[2] ? upEl(s[2], s[3] ? '#16a34a' : '#ef4444') : R('span', { style: { color: '#8b8fa3' } }, '—'))))),
+    ], { height: '100%' });
+    const recent = this.card([
+      this.cardHead('Recent Assessments', this.linkR('View All')),
+      R('div', { style: { display: 'flex', flexDirection: 'column', gap: isC ? '13px' : '15px', paddingTop: '4px', paddingBottom: '2px' } }, (isC ? [
+        [FACE.ananya, 'Ananya Verma', 'May 18, 2025 · 10:30 AM', '78/100', 'Good', 'good'], [FACE.neha, 'Neha Gupta', 'May 15, 2025 · 02:15 PM', '65/100', 'Fair', 'fair'], [FACE.riya, 'Riya Singh', 'May 16, 2025 · 11:45 AM', '82/100', 'Good', 'good'], [FACE.meera, 'Meera Iyer', 'May 10, 2025 · 04:20 PM', '70/100', 'Fair', 'fair'], [FACE.kavya, 'Kavya Nair', 'May 12, 2025 · 09:10 AM', '76/100', 'Good', 'good'],
+      ] : [
+        [FACE.ananya, 'Ananya Verma', 'May 21, 2025 · 10:30 AM', '78/100', 'Good', 'good'], [FACE.neha, 'Neha Gupta', 'May 21, 2025 · 09:15 AM', '65/100', 'Fair', 'fair'], [FACE.riya, 'Riya Singh', 'May 20, 2025 · 04:45 PM', '82/100', 'Good', 'good'], [FACE.meera, 'Meera Nair', 'May 20, 2025 · 03:20 PM', '70/100', 'Fair', 'fair'], [FACE.rohit, 'Rohit Sharma', 'May 20, 2025 · 11:30 AM', '76/100', 'Good', 'good'],
+      ]).map((a, i) => R('div', { key: i, style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' } },
+        this.avatarRow(a[0], a[1], a[2]),
+        R('span', { style: { display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 } }, this.scoreChip(a[3], a[4], a[5]), icon('<path d="m9 6 6 6-6 6"/>', { s: 15, stroke: '#c4c9da', sw: 2 }))))),
+    ], { paddingBottom: '10px', display: 'flex', flexDirection: 'column' });
+    const followups = this.card([
+      this.cardHead('Upcoming Follow-ups', this.linkR('View Calendar')),
+      R('div', { style: { display: 'flex', flexDirection: 'column', gap: isC ? '13px' : '15px', paddingTop: '4px', paddingBottom: '2px' } }, (isC ? [
+        ['Ananya Verma', 'May 18, 2025 · 10:00 AM', '7 days left'], ['Neha Gupta', 'May 25, 2025 · 11:00 AM', '4 days left'], ['Meera Iyer', 'May 22, 2025 · 03:30 PM', 'Tomorrow'], ['Kavya Nair', 'May 24, 2025 · 09:30 AM', '3 days left'], ['Riya Singh', 'May 30, 2025 · 12:00 PM', '9 days left'],
+      ] : [
+        ['Ananya Verma', 'May 28, 2025 · 10:00 AM', '7 days left'], ['Neha Gupta', 'May 25, 2025 · 11:00 AM', '4 days left'], ['Meera Nair', 'May 22, 2025 · 03:30 PM', 'Tomorrow'], ['Kavya Nair', 'May 24, 2025 · 09:30 AM', '3 days left'], ['Riya Singh', 'May 30, 2025 · 12:00 PM', '9 days left'],
+      ]).map((a, i) => R('div', { key: i, style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' } },
+        R('span', { style: { display: 'flex', alignItems: 'center', gap: '11px' } }, R('span', { style: { display: 'grid', placeItems: 'center', width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(47,107,76,0.1)', color: PUR, flexShrink: 0 } }, icon(P.cal, { s: 17, stroke: PUR })), R('span', null, R('span', { style: { display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#171433' } }, a[0]), R('span', { style: { display: 'block', fontSize: '0.74rem', color: '#8b8fa3' } }, a[1]))),
+        R('span', { style: { borderRadius: '999px', background: 'rgba(47,107,76,0.1)', color: PUR, padding: '4px 11px', fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' } }, a[2])))),
+    ], { paddingBottom: '10px', display: 'flex', flexDirection: 'column' });
+    const banner = R('div', { style: { borderRadius: '18px', border: '1px solid #cfe0d4', background: 'linear-gradient(120deg,#e8f0ea,#f1f6f2)', padding: '20px 22px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' } },
+      R('span', { style: { display: 'grid', placeItems: 'center', width: '44px', height: '44px', flexShrink: 0, borderRadius: '13px', background: '#fff', color: PUR } }, icon(P.spark, { s: 20, stroke: PUR })),
+      R('div', { style: { flex: 1, minWidth: '240px' } }, R('div', { style: { fontSize: '0.9rem', fontWeight: 700, color: PUR, marginBottom: '4px' } }, isC ? 'Consultant Tip' : 'AI Clinical Insights'),
+        R('div', { style: { fontSize: '0.84rem', color: '#4b4b63', lineHeight: 1.5 } }, isC ? 'Clients who follow routines consistently show 2x better improvement. Encourage hydration and sunscreen daily!' : '3 patients are at high risk of acne flare-up due to inconsistent routine. 2 patients showing excellent improvement. Consider maintenance routine.')),
+      R('button', { style: { display: 'inline-flex', alignItems: 'center', gap: '7px', border: 'none', cursor: 'pointer', borderRadius: '11px', background: '#fff', color: PUR, padding: '11px 18px', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700, boxShadow: '0 6px 18px -8px rgba(47,107,76,0.5)' } }, 'View AI Insights', icon(P.spark, { s: 14, stroke: PUR })));
+    return R('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
+      this.grid('minmax(0,2.1fr) minmax(260px,1fr)', 12, [table, R('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } }, dist, R('div', { style: { flex: 1, display: 'flex' } }, topConcerns))]),
+      this.grid('minmax(0,2.1fr) minmax(260px,1fr)', 12, [this.grid('repeat(2,minmax(0,1fr))', 12, [progress, recent]), followups]),
+      banner);
+  }
+
+  userContent(R) {
+    const uStat = (children, extra) => R('div', { style: Object.assign({ borderRadius: '18px', background: '#fff', border: '1px solid #edeef4', padding: '20px', boxShadow: '0 4px 16px -10px rgba(23,20,51,0.28)', minWidth: 0, display: 'flex', flexDirection: 'column' }, extra || {}) }, children);
+    const uLabel = (t) => R('div', { style: { fontSize: '0.82rem', fontWeight: 600, color: '#7c8199', marginBottom: '12px' } }, t);
+    const uLink = (t) => R('div', { style: { marginTop: 'auto', paddingTop: '14px' } }, R('span', { style: { display: 'inline-block', borderRadius: '9px', background: '#f4f5fa', padding: '7px 14px', fontSize: '0.76rem', fontWeight: 600, color: PUR } }, t));
+    const scoreRing78 = R('span', { style: { position: 'relative', display: 'grid', placeItems: 'center', width: '74px', height: '74px', flexShrink: 0, borderRadius: '50%', background: 'conic-gradient(' + PUR + ' 78%, #f4efe4 0)' } }, R('span', { style: { position: 'absolute', inset: '9px', borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center' } }, R('span', { style: { display: 'grid', placeItems: 'center', width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(245,166,35,0.16)', color: '#e08a1e' } }, icon('<circle cx="12" cy="12" r="9"/><path d="M9 10h.01M15 10h.01M9 15c1 1 5 1 6 0"/>', { s: 20, stroke: '#e08a1e' }))));
+    const cardScore = uStat([
+      R('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } }, R('div', null, uLabel('Skin Health Score'),
+        R('div', { style: { display: 'flex', alignItems: 'baseline', gap: '4px' } }, R('span', { style: { fontSize: '2.2rem', fontWeight: 800, color: PUR, lineHeight: 1 } }, '78'), R('span', { style: { fontSize: '0.95rem', color: '#8b8fa3', fontWeight: 600 } }, '/100')),
+        R('div', { style: { marginTop: '10px', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600, color: '#16a34a' } }, R('span', { style: { width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e' } }), 'Good')), scoreRing78),
+      R('div', { style: { marginTop: '14px', fontSize: '0.76rem', fontWeight: 600 } }, upEl('8% improvement this week', '#16a34a')),
+    ]);
+    const cardType = uStat([
+      uLabel('Skin Type'),
+      R('div', { style: { fontSize: '1.3rem', fontWeight: 800, color: PUR, letterSpacing: '-0.01em' } }, 'Combination'),
+      R('div', { style: { marginTop: '10px', display: 'flex', alignItems: 'center', gap: '12px' } },
+        R('span', { style: { position: 'relative', width: '48px', height: '48px', flexShrink: 0, borderRadius: '12px', overflow: 'hidden', background: '#fff' } }, R('img', { src: 'assets/skin-type-face.png', alt: 'Skin type', style: { width: '100%', height: '100%', objectFit: 'cover', display: 'block' } })),
+        R('div', { style: { fontSize: '0.8rem', color: '#3f4a5a', lineHeight: 1.5 } }, R('div', null, 'T-Zone: Oily'), R('div', null, 'Cheeks: Normal'))),
+      uLink('View Details'),
+    ]);
+    const cardConcern = uStat([
+      uLabel('Top Concerns'),
+      R('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px' } },
+        R('div', { style: { fontSize: '1.12rem', fontWeight: 800, color: PUR, lineHeight: 1.25 } }, 'Acne & Post Acne Marks'),
+        R('span', { style: { position: 'relative', display: 'grid', placeItems: 'center', width: '44px', height: '44px', flexShrink: 0, borderRadius: '12px', background: 'rgba(244,86,143,0.12)', fontSize: '1.4rem' } }, '\ud83e\uddd1', R('span', { style: { position: 'absolute', top: '11px', left: '13px', width: '4px', height: '4px', borderRadius: '50%', background: '#e23b57' } }), R('span', { style: { position: 'absolute', top: '15px', left: '27px', width: '4px', height: '4px', borderRadius: '50%', background: '#e23b57' } }), R('span', { style: { position: 'absolute', top: '25px', left: '18px', width: '4px', height: '4px', borderRadius: '50%', background: '#e23b57' } }))),
+      uLink('View Analysis'),
+    ]);
+    const cardAge = uStat([
+      uLabel('Skin Age'),
+      R('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
+        R('div', { style: { fontSize: '2.2rem', fontWeight: 800, color: '#171433', lineHeight: 1 } }, '24'),
+        R('span', { style: { display: 'grid', placeItems: 'center', width: '42px', height: '42px', flexShrink: 0, borderRadius: '12px', background: 'rgba(59,157,248,0.12)', color: BLU } }, icon('<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><circle cx="12" cy="12" r="3"/>', { s: 20, stroke: BLU }))),
+      R('div', { style: { marginTop: '10px', fontSize: '0.8rem', color: '#8b8fa3' } }, 'Your actual age ', R('b', { style: { color: '#171433' } }, '21')),
+      uLink('View Details'),
+    ]);
+    const cardHydration = uStat([
+      uLabel('Hydration Level'),
+      R('div', { style: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' } },
+        R('div', { style: { fontSize: '1.5rem', fontWeight: 800, color: '#16a34a' } }, 'Good'),
+        R('span', { style: { display: 'grid', placeItems: 'center', width: '42px', height: '42px', flexShrink: 0, borderRadius: '12px', background: 'rgba(34,201,184,0.14)', color: TEA } }, icon('<path d="M12 3s6 6 6 11a6 6 0 0 1-12 0c0-5 6-11 6-11z"/>', { s: 20, stroke: TEA }))),
+      R('div', { style: { marginTop: '10px', fontSize: '0.8rem', color: '#3f4a5a' } }, 'Water Intake: ', R('b', { style: { color: '#171433' } }, '1.8 L'), ' / 2.5 L'),
+      R('div', { style: { marginTop: 'auto', paddingTop: '12px', display: 'flex', alignItems: 'center', gap: '8px' } }, R('span', { style: { flex: 1, height: '7px', borderRadius: '999px', background: '#f4efe4', overflow: 'hidden' } }, R('span', { style: { display: 'block', height: '100%', width: '72%', borderRadius: '999px', background: 'linear-gradient(90deg,#22c9b8,#16a34a)' } })), R('span', { style: { fontSize: '0.76rem', fontWeight: 700, color: '#171433' } }, '72%')),
+    ]);
+    const uStatRow = this.grid('repeat(5,minmax(0,1fr))', 14, [cardScore, cardType, cardConcern, cardAge, cardHydration]);
+
+    const routineStep = (label, emoji, done, fil) => R('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', minWidth: '58px' } },
+      R('span', { style: { position: 'relative', display: 'grid', placeItems: 'center', width: '46px', height: '46px', borderRadius: '50%', background: done ? 'rgba(47,107,76,0.1)' : '#f4f5fa', fontSize: '1.3rem' } }, R('span', { style: { opacity: done ? 1 : 0.4, filter: fil || 'none' } }, emoji),
+        R('span', { style: { position: 'absolute', bottom: '-2px', right: '-2px', display: 'grid', placeItems: 'center', width: '17px', height: '17px', borderRadius: '50%', background: done ? '#22c55e' : '#e2e5ee', color: '#fff', border: '2px solid #fff' } }, done ? icon('<path d="M20 6 9 17l-5-5"/>', { s: 9, stroke: '#fff', sw: 3 }) : null)),
+      R('span', { style: { fontSize: '0.74rem', color: '#3f4a5a', fontWeight: 500 } }, label));
+    const arrow = R('span', { style: { color: '#d2d6e2', alignSelf: 'flex-start', marginTop: '18px', flex: 1, display: 'flex', justifyContent: 'center' } }, icon('<path d="M2 12h20M17 8l4 4-4 4"/>', { s: 26, stroke: '#d2d6e2', sw: 1.5 }));
+    const routine = this.card([
+      R('h3', { style: { margin: '0 0 4px', fontSize: '1.02rem', fontWeight: 700, color: '#171433', display: 'flex', alignItems: 'center', gap: '8px' } }, icon(P.spark, { s: 18, stroke: ORA }), "Today's Routine"),
+      R('div', { style: { marginTop: '14px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 600, color: ORA } }, R('span', { style: { fontSize: '1rem' } }, '☀️'), 'Morning Routine'),
+      R('div', { style: { marginTop: '8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '2px' } }, [routineStep('Cleanser', '🧴', 1), arrow, routineStep('Serum', '💧', 1, 'sepia(1) saturate(6) hue-rotate(5deg) brightness(1.05)'), arrow, routineStep('Moisturizer', '🫙', 1, 'sepia(1) saturate(3.5) hue-rotate(-15deg) brightness(1.08)'), arrow, routineStep('Sunscreen', '☀️', 1)]),
+      R('div', { style: { marginTop: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 600, color: PUR, borderTop: '1px solid #edeef4', paddingTop: '11px' } }, R('span', { style: { fontSize: '1rem' } }, '🏮'), 'Evening Routine'),
+      R('div', { style: { marginTop: '8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '2px' } }, [routineStep('Cleanser', '🧴', 1), arrow, routineStep('Treatment', '💊', 1), arrow, routineStep('Moisturizer', '🫙', 1, 'sepia(1) saturate(3.5) hue-rotate(-15deg) brightness(1.08)'), arrow, routineStep('Eye Cream', '👁️', 0)]),
+      R('div', { style: { marginTop: '18px', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', fontWeight: 600, color: '#3b9df8', borderTop: '1px solid #edeef4', paddingTop: '11px' } }, R('span', { style: { fontSize: '1rem' } }, '🌙'), 'Night Routine'),
+      R('div', { style: { marginTop: '8px', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '2px' } }, [routineStep('Retinol', '🧪', 1, 'sepia(1) saturate(5) hue-rotate(300deg) brightness(1.02)'), arrow, routineStep('Night Cream', '🫙', 0), arrow, routineStep('Lip Mask', '💄', 0), arrow, routineStep('Sleep', '😴', 0)]),
+      R('div', { style: { marginTop: 'auto', paddingTop: '18px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: '#f6f7fb', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View Full Routine →'),
+    ], { minHeight: '486px', display: 'flex', flexDirection: 'column' });
+    const progress = this.card([
+      this.cardHead('Skin Health Progress', this.pill('This Month')),
+      this.chartFrame(lineChart([50, 52, 55, 53, 58, 62, 60, 65, 63, 68, 70, 66, 72, 75, 78], { min: 0, max: 100 }), ['100', '75', '50', '25', '0'], ['May 1', 'May 7', 'May 14', 'May 21'], ['May 21', '78/100'], 320),
+      R('div', { style: { marginTop: 'auto', paddingTop: '16px', fontSize: '0.8rem', color: '#8b8fa3' } }, 'Your skin health has improved by 12% this month.'),
+    ], { minHeight: '486px', display: 'flex', flexDirection: 'column' });
+    const insights = this.card([
+      R('h3', { style: { margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433', display: 'flex', alignItems: 'center', gap: '8px' } }, icon(P.spark, { s: 18, stroke: PUR }), 'AI Skin Insights'),
+      R('div', { style: { borderRadius: '14px', background: 'linear-gradient(120deg,#e8f0ea,#f1f6f2)', border: '1px solid #cfe0d4', padding: '14px', display: 'flex', gap: '11px' } }, R('span', { style: { display: 'grid', placeItems: 'center', width: '34px', height: '34px', flexShrink: 0, borderRadius: '10px', background: '#fff', fontSize: '1.05rem' } }, '💧'), R('div', { style: { fontSize: '0.82rem', color: '#4b4b63', lineHeight: 1.5 } }, 'Your skin shows signs of dehydration. Increase water intake and use a hydrating serum with ', R('b', { style: { color: '#171433' } }, 'Hyaluronic Acid'), '.')),
+      R('div', { style: { marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1 } }, [
+        ['☀️', 'Use sunscreen daily to prevent pigmentation.'],
+        ['✅', 'Consistency in routine is improving your skin!'],
+        ['🧪', 'Consider Niacinamide for better results on post acne marks.'],
+        ['💧', 'Stay hydrated — aim for 2.5 L of water each day.'],
+        ['🌙', 'Prioritise 7–8 hours of sleep for skin repair.'],
+      ].map((r, i) => R('div', { key: i, style: { display: 'flex', gap: '10px', alignItems: 'flex-start' } }, R('span', { style: { flexShrink: 0, marginTop: '0px', fontSize: '1rem', lineHeight: 1.3 } }, r[0]), R('span', { style: { fontSize: '0.82rem', color: '#4b4b63', lineHeight: 1.4 } }, r[1])))),
+      R('div', { style: { marginTop: 'auto', display: 'flex', alignItems: 'center', gap: '10px', borderRadius: '14px', background: 'linear-gradient(120deg,#16a34a,#22c9b8)', padding: '14px 16px' } }, R('span', { style: { fontSize: '1.25rem', flexShrink: 0 } }, '🌟'), R('span', { style: { fontSize: '0.86rem', fontWeight: 700, color: '#fff', lineHeight: 1.35 } }, 'Your skin is on track — keep your routine consistent for the next 2 weeks to reach a 85+ score.')),
+      R('div', { style: { marginTop: '14px', textAlign: 'center', padding: '12px', borderRadius: '12px', background: '#f6f7fb', fontSize: '0.82rem', fontWeight: 600, color: PUR } }, 'View All Insights →'),
+    ], { minHeight: '486px', display: 'flex', flexDirection: 'column' });
+    const products = this.card([
+      this.cardHead('Recommended Products for You', this.linkR('View All')),
+      R('div', { style: { position: 'relative', display: 'flex', alignItems: 'stretch' } },
+        R('button', { style: { position: 'absolute', left: '-6px', top: '50%', transform: 'translateY(-50%)', zIndex: 5, display: 'grid', placeItems: 'center', width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #edeef4', background: '#fff', cursor: 'pointer', color: '#3f4a5a', boxShadow: '0 4px 12px -6px rgba(23,20,51,0.3)' } }, icon('<path d="m15 6-6 6 6 6"/>', { s: 16, stroke: '#3f4a5a', sw: 2 })),
+      R('div', { style: { display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(5,minmax(0,1fr))', flex: 1, padding: '0 8px' } }, [
+        ['Minimalist 2% Salicylic Acid Face Wash', '₹349', '4.6', 1], ['The Ordinary Niacinamide 10% + Zinc 1%', '₹550', '4.7', 0], ['La Roche-Posay Effaclar Duo+ Moisturizer', '₹1,250', '4.5', 0], ['Fixderma Shadow SPF 50+ Gel Sunscreen', '₹599', '4.5', 0], ['Minimalist Hyaluronic Acid 2% Serum', '₹599', '4.6', 0],
+      ].map((p, i) => R('div', { key: i, style: { borderRadius: '16px', border: '1px solid #edeef4', overflow: 'hidden', background: '#fff', minWidth: 0 } },
+        R('div', { style: { position: 'relative', height: '150px', background: '#f6f7fb' } }, R('span', { style: bg(PRODIMG[i]) }), p[3] ? R('span', { style: { position: 'absolute', top: '8px', left: '8px', borderRadius: '999px', background: '#22c55e', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '3px 9px' } }, 'Best Match') : null),
+        R('div', { style: { padding: '11px' } }, R('div', { style: { fontSize: '0.74rem', fontWeight: 600, color: '#171433', lineHeight: 1.3, minHeight: '48px' } }, p[0]),
+          R('div', { style: { marginTop: '6px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' } }, R('span', { style: { fontSize: '0.88rem', fontWeight: 800, color: '#171433' } }, p[1]), R('span', { style: { display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.72rem', fontWeight: 600, color: '#e08a1e' } }, icon('<path d="M12 3l2.6 5.6L21 9.3l-4.5 4.3 1.1 6.2L12 17l-5.6 2.8 1.1-6.2L3 9.3l6.4-.7z"/>', { s: 11, stroke: '#f5a623', fill: '#f5a623', sw: 1 }), p[2])))))),
+        R('button', { style: { position: 'absolute', right: '-6px', top: '50%', transform: 'translateY(-50%)', zIndex: 5, display: 'grid', placeItems: 'center', width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #edeef4', background: '#fff', cursor: 'pointer', color: '#3f4a5a', boxShadow: '0 4px 12px -6px rgba(23,20,51,0.3)' } }, icon('<path d="m9 6 6 6-6 6"/>', { s: 16, stroke: '#3f4a5a', sw: 2 }))),
+    ]);
+    const concerns = this.card([
+      this.cardHead('Skin Concerns Overview', this.linkR('View Details')),
+      R('div', { style: { display: 'flex', flexWrap: 'nowrap', gap: '28px', alignItems: 'center', justifyContent: 'space-between', paddingLeft: '4px', paddingRight: '12px' } },
+        this.donutBlock([{ pct: 40, color: PUR }, { pct: 25, color: PNK }, { pct: 15, color: ORA }, { pct: 10, color: GRN }, { pct: 10, color: TEA }], 'Primary', 'Concerns', 230),
+        this.legend([['Acne', '40%', PUR], ['Post Acne Marks', '25%', PNK], ['Uneven Tone', '15%', ORA], ['Oiliness', '10%', GRN], ['Redness', '10%', TEA]])),
+    ]);
+    const checklist = R('div', { style: { borderRadius: '18px', background: '#fff', border: '1px solid #edeef4', boxShadow: '0 4px 16px -10px rgba(23,20,51,0.28)', padding: '20px 22px', display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' } },
+      R('div', { style: { display: 'flex', alignItems: 'center', gap: '12px', minWidth: '220px' } }, R('span', { style: { display: 'grid', placeItems: 'center', width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(47,107,76,0.12)', color: PUR } }, icon(P.clip, { s: 18, stroke: PUR })), R('div', null, R('div', { style: { fontSize: '0.92rem', fontWeight: 700, color: '#171433' } }, 'Daily Checklist'), R('div', { style: { fontSize: '0.76rem', color: '#8b8fa3' } }, '3 / 5 tasks completed'))),
+      R('div', { style: { flex: 1, minWidth: '160px', height: '8px', borderRadius: '999px', background: '#f4efe4', overflow: 'hidden' } }, R('span', { style: { display: 'block', height: '100%', width: '60%', borderRadius: '999px', background: 'linear-gradient(90deg,#3f8a63,#2f6b4c)' } })),
+      R('div', { style: { display: 'flex', gap: '18px', flexWrap: 'wrap' } }, [['Morning Routine', 1], ['Drink Water (8 glasses)', 1], ['Sunscreen Applied', 1], ['Night Routine', 0], ['8 hrs Sleep', 0]].map((c, i) =>
+        R('span', { key: i, style: { display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.8rem', color: c[1] ? '#171433' : '#a3a7bd' } }, R('span', { style: { display: 'grid', placeItems: 'center', width: '18px', height: '18px', borderRadius: '50%', background: c[1] ? '#22c55e' : 'transparent', border: c[1] ? 'none' : '1.6px solid #d2d6e2', color: '#fff' } }, c[1] ? icon('<path d="M20 6 9 17l-5-5"/>', { s: 10, stroke: '#fff', sw: 3 }) : null), c[0]))));
+    return R('div', { style: { display: 'flex', flexDirection: 'column', gap: '12px' } },
+      uStatRow,
+      this.grid('repeat(3,1fr)', 12, [routine, progress, insights]),
+      this.grid('minmax(0,1.4fr) minmax(300px,1fr)', 12, [products, concerns]),
+      checklist);
+  }
+}
+</script>
+</body>
+</html>

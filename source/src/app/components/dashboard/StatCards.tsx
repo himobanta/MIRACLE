@@ -1,0 +1,107 @@
+import React from 'react';
+import { DashIcon, PATHS, PUR, UpEl } from './dashboardUtils';
+import type { RoleType } from './Sidebar';
+
+interface StatCardsProps {
+  role: RoleType;
+}
+
+interface StatItem {
+  label: string;
+  value: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  deltaColor: string;
+  deltaEl: React.ReactNode;
+}
+
+function makeStat(label: string, value: string, iconKey: string, tint: string, delta: React.ReactNode, deltaColor?: string): StatItem {
+  const tints: Record<string, [string, string]> = {
+    pur: ['rgba(47,107,76,0.12)', PUR],
+    grn: ['rgba(34,197,94,0.14)', '#16a34a'],
+    blu: ['rgba(59,157,248,0.14)', '#2f8fe0'],
+    ora: ['rgba(245,166,35,0.16)', '#e08a1e'],
+    red: ['rgba(244,63,94,0.13)', '#e23b57'],
+    tea: ['rgba(34,201,184,0.16)', '#12a99a'],
+  };
+  const [ib, icl] = tints[tint] || tints.pur;
+  return {
+    label,
+    value,
+    icon: <DashIcon d={PATHS[iconKey] || PATHS.grid} s={22} stroke={icl} />,
+    iconBg: ib,
+    iconColor: icl,
+    deltaColor: deltaColor || '#16a34a',
+    deltaEl: delta,
+  };
+}
+
+export function StatCards({ role }: StatCardsProps) {
+  if (role === 'user') return null;
+
+  let stats: StatItem[] = [];
+
+  if (role === 'admin') {
+    stats = [
+      makeStat('Total Users', '12,845', 'users', 'pur', <UpEl text="18% this month" color="#16a34a" />),
+      makeStat('Assessments Completed', '8,932', 'clip', 'grn', <UpEl text="22% this month" color="#16a34a" />),
+      makeStat('Active Routines', '6,742', 'cal', 'blu', <UpEl text="16% this month" color="#16a34a" />),
+      makeStat('Total Products', '1,248', 'box', 'ora', <UpEl text="12% this month" color="#16a34a" />),
+      makeStat('Platform Revenue', '₹24.8L', 'trend', 'red', <UpEl text="20% this month" color="#16a34a" />),
+      makeStat('System Uptime', '99.9%', 'db', 'tea', <span style={{ color: '#8b8fa3' }}>All systems healthy</span>),
+    ];
+  } else if (role === 'derma') {
+    stats = [
+      makeStat('Total Patients', '156', 'users', 'pur', <UpEl text="14% this month" color="#16a34a" />),
+      makeStat('Assessments Done', '203', 'clip', 'grn', <UpEl text="18% this month" color="#16a34a" />),
+      makeStat('Active Treatment Plans', '128', 'trend', 'blu', <UpEl text="16% this month" color="#16a34a" />),
+      makeStat('Patients Improving', '68%', 'star', 'ora', <UpEl text="8% this month" color="#16a34a" />),
+      makeStat('Follow-ups Due', '23', 'cal', 'red', <span style={{ color: PUR, fontWeight: 600 }}>View all follow-ups →</span>),
+    ];
+  } else if (role === 'consultant') {
+    stats = [
+      makeStat('Total Clients', '128', 'users', 'pur', <UpEl text="12% this month" color="#16a34a" />),
+      makeStat('Assessments Done', '86', 'clip', 'grn', <UpEl text="18% this month" color="#16a34a" />),
+      makeStat('Active Routines', '92', 'trend', 'blu', <UpEl text="15% this month" color="#16a34a" />),
+      makeStat('Avg. Improvement', '24%', 'star', 'ora', <UpEl text="6% this month" color="#16a34a" />),
+      makeStat('Upcoming Follow-ups', '14', 'cal', 'red', <span style={{ color: PUR, fontWeight: 600 }}>View Calendar →</span>),
+    ];
+  }
+
+  const statCols = role === 'admin' ? 'repeat(6,1fr)' : 'repeat(5,1fr)';
+
+  return (
+    <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: statCols }}>
+      {stats.map((s) => (
+        <div
+          key={s.label}
+          style={{
+            borderRadius: '18px',
+            background: '#fff',
+            border: '1px solid #edeef4',
+            padding: '18px',
+            boxShadow: '0 4px 16px -10px rgba(23,20,51,0.28)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
+            <span style={{ display: 'grid', placeItems: 'center', width: '46px', height: '46px', flexShrink: 0, borderRadius: '13px', background: s.iconBg, color: s.iconColor }}>
+              {s.icon}
+            </span>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 600, color: '#7c8199', lineHeight: 1.25, whiteSpace: 'nowrap', marginBottom: '5px' }}>
+                {s.label}
+              </div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#171433', lineHeight: 1.15 }}>
+                {s.value}
+              </div>
+            </div>
+          </div>
+          <div style={{ marginTop: '11px', fontSize: '0.76rem', fontWeight: 600, color: s.deltaColor, display: 'flex', alignItems: 'center', gap: '5px' }}>
+            {s.deltaEl}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}

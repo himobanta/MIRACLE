@@ -1,0 +1,12 @@
+[
+  {
+    "user_id": "cd48e973-2dcd-4bcd-83b7-63a451419dc6",
+    "log_date": "2026-08-08",
+    "completed_steps": [
+      "Morning Routine",
+      "Sunscreen Applied"
+    ],
+    "water_intake_ml": 3000,
+    "sleep_hours": 8.0
+  }
+]

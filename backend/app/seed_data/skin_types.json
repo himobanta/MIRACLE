@@ -1,0 +1,37 @@
+[
+  {
+    "id": "SKIN_TYPE_NORMAL",
+    "title": "Normal Skin",
+    "description": "Well-balanced moisture and sebum, smooth texture, minimal imperfections.",
+    "image_url": "/assets/skin_types/normal.svg",
+    "backend_enum": "Normal"
+  },
+  {
+    "id": "SKIN_TYPE_DRY",
+    "title": "Dry Skin",
+    "description": "Feels tight, flaky patches, rough texture, less natural oil.",
+    "image_url": "/assets/skin_types/dry.svg",
+    "backend_enum": "Dry"
+  },
+  {
+    "id": "SKIN_TYPE_OILY",
+    "title": "Oily Skin",
+    "description": "Excess shine across the entire face, enlarged pores, prone to breakouts.",
+    "image_url": "/assets/skin_types/oily.svg",
+    "backend_enum": "Oily"
+  },
+  {
+    "id": "SKIN_TYPE_COMBINATION",
+    "title": "Combination Skin",
+    "description": "Shiny T-Zone (forehead, nose, chin), dry or normal cheeks.",
+    "image_url": "/assets/skin_types/combination.svg",
+    "backend_enum": "Combination"
+  },
+  {
+    "id": "SKIN_TYPE_SENSITIVE",
+    "title": "Sensitive Skin",
+    "description": "Easily turns red, stings, or reacts poorly to new products.",
+    "image_url": "/assets/skin_types/sensitive.svg",
+    "backend_enum": "Sensitive"
+  }
+]

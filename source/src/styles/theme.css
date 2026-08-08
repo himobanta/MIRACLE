@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #f6f1e6;
+  --fg: #16261b;
+  --card: #fffdf8;
+  --muted: #5c6a57;
+  --border: rgba(22, 48, 31, 0.12);
+  --sec-forest: #16301f;
+  --forest-fg: #f6f1e6;
+  --hero-bg: radial-gradient(120% 90% at 82% 8%, #eef4e5 0%, #f6f1e6 40%, #efe6d3 100%);
+  --soft-bg: linear-gradient(180deg, #f6f1e6, #f0e8d6);
+  --nav-bg: rgba(246, 241, 230, 0.72);
+  --nav-border: rgba(22, 48, 31, 0.1);
+  --nav-link: rgba(22, 38, 27, 0.75);
+  --cta-overlay: radial-gradient(90% 90% at 50% 20%, rgba(22, 48, 31, 0.82), rgba(8, 20, 12, 0.96));
+
+  /* Brand color tokens from Guidelines.md */
+  --forest: #16301f;
+  --emerald: #2f6b4c;
+  --olive: #4a5d3f;
+  --sage: #9caf92;
+  --cream: #f6f1e6;
+  --champagne: #ece1c9;
+  --beige: #efe6d3;
+  --gold: #c3a468;
+  --sky: #7ba8b8;
+  --orange: #e07a48;
+  --vitc: #e89838;
+  --leaf: #5b8e66;
+  --niacinamide: #4a8b71;
+
+  /* Tailwind compatibility aliases */
+  --background: var(--bg);
+  --foreground: var(--fg);
+}
+
+.dark {
+  --bg: #0c1610;
+  --fg: #eef1e7;
+  --card: #14211a;
+  --muted: #9fb09b;
+  --border: rgba(238, 241, 231, 0.12);
+  --sec-forest: #0a130d;
+  --forest-fg: #eef1e7;
+  --hero-bg: radial-gradient(120% 90% at 82% 8%, #14241a 0%, #0c1610 55%);
+  --soft-bg: linear-gradient(180deg, #0c1610, #0e1913);
+  --nav-bg: rgba(20, 33, 26, 0.72);
+  --nav-border: rgba(238, 241, 231, 0.12);
+  --nav-link: rgba(238, 241, 231, 0.78);
+  --cta-overlay: radial-gradient(90% 90% at 50% 20%, rgba(8, 16, 11, 0.9), rgba(3, 8, 5, 0.985));
+  --background: var(--bg);
+  --foreground: var(--fg);
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: #d6d9e6; border-radius: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+.dash-scroll { scrollbar-width: thin; scrollbar-color: #d6d9e6 transparent; }
