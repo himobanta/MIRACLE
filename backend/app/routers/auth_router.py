@@ -1,5 +1,6 @@
+from typing import Optional
 from fastapi.security import OAuth2PasswordRequestForm
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Form
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -74,20 +75,45 @@ def register_user(
     response_model=Token,
     dependencies=[Depends(limiter_login)],
 )
-def login_user(
-    form_data: OAuth2PasswordRequestForm = Depends(),
+async def login_user(
+    request: Request,
     db: Session = Depends(get_db),
+    username: Optional[str] = Form(None),
+    password: Optional[str] = Form(None),
 ):
-    # OAuth2 uses "username" for the login identifier.
-    # In Miracle, that identifier is the user's email.
-    user = db.query(User).filter(
-        User.email == form_data.username
-    ).first()
+    email_val = None
+    password_val = None
 
-    if not user or not verify_password(
-        form_data.password,
-        user.hashed_password,
-    ):
+    content_type = request.headers.get("content-type", "")
+
+    if "application/json" in content_type:
+        try:
+            body = await request.json()
+            email_val = body.get("email") or body.get("username")
+            password_val = body.get("password")
+        except Exception:
+            pass
+    elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        email_val = username
+        password_val = password
+    else:
+        try:
+            body = await request.json()
+            email_val = body.get("email") or body.get("username")
+            password_val = body.get("password")
+        except Exception:
+            email_val = username
+            password_val = password
+
+    if not email_val or not password_val:
+        raise HTTPException(
+            status_code=422,
+            detail="Email and password are required",
+        )
+
+    user = db.query(User).filter(User.email == email_val).first()
+
+    if not user or not verify_password(password_val, user.hashed_password):
         raise HTTPException(
             status_code=401,
             detail="Invalid email or password",
@@ -95,7 +121,7 @@ def login_user(
 
     # Upgrade legacy SHA-256 hashes to Argon2id after successful login.
     if is_legacy_sha256(user.hashed_password):
-        user.hashed_password = hash_password(form_data.password)
+        user.hashed_password = hash_password(password_val)
         db.commit()
 
     token = create_access_token(

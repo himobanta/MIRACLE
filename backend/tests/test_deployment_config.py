@@ -168,3 +168,35 @@ def test_check_db_connection_returns_bool():
     result = check_db_connection()
     assert isinstance(result, bool)
     assert result is True  # SQLite should be reachable locally
+
+
+# ── CORS Preflight & Origin Tests ──────────────────────────────────────────────
+
+def test_cors_preflight_options_login(client):
+    """OPTIONS request to /api/v1/auth/login with Origin: http://localhost:5173 must return CORS headers."""
+    resp = client.options(
+        "/api/v1/auth/login",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        }
+    )
+    assert resp.status_code == 200
+    assert resp.headers.get("access-control-allow-origin") == "http://localhost:5173"
+    assert "POST" in resp.headers.get("access-control-allow-methods", "")
+
+
+def test_cors_preflight_options_register(client):
+    """OPTIONS request to /api/v1/auth/register with Origin: http://127.0.0.1:5173 must return CORS headers."""
+    resp = client.options(
+        "/api/v1/auth/register",
+        headers={
+            "Origin": "http://127.0.0.1:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        }
+    )
+    assert resp.status_code == 200
+    assert resp.headers.get("access-control-allow-origin") == "http://127.0.0.1:5173"
+
