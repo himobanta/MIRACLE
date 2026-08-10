@@ -78,32 +78,26 @@ def register_user(
 async def login_user(
     request: Request,
     db: Session = Depends(get_db),
-    username: Optional[str] = Form(None),
-    password: Optional[str] = Form(None),
 ):
     email_val = None
     password_val = None
 
     content_type = request.headers.get("content-type", "")
 
-    if "application/json" in content_type:
+    if "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
         try:
-            body = await request.json()
-            email_val = body.get("email") or body.get("username")
-            password_val = body.get("password")
+            form = await request.form()
+            email_val = form.get("email") or form.get("username")
+            password_val = form.get("password")
         except Exception:
             pass
-    elif "application/x-www-form-urlencoded" in content_type or "multipart/form-data" in content_type:
-        email_val = username
-        password_val = password
     else:
         try:
             body = await request.json()
             email_val = body.get("email") or body.get("username")
             password_val = body.get("password")
         except Exception:
-            email_val = username
-            password_val = password
+            pass
 
     if not email_val or not password_val:
         raise HTTPException(
