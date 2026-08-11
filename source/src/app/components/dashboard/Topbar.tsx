@@ -18,6 +18,27 @@ export function Topbar({ role }: TopbarProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [liveScore, setLiveScore] = useState<number | null>(null);
 
+  // Read user from localStorage with reactive updates
+  const [storedUser, setStoredUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('miracle_user') || '{}'); } catch { return {}; }
+  });
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      try {
+        setStoredUser(JSON.parse(localStorage.getItem('miracle_user') || '{}'));
+      } catch {
+        setStoredUser({});
+      }
+    };
+    window.addEventListener('miracle_user_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    return () => {
+      window.removeEventListener('miracle_user_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+    };
+  }, []);
+
   // Load score for user profile modal
   useEffect(() => {
     if (role === 'user' && showProfile) {
@@ -27,10 +48,12 @@ export function Topbar({ role }: TopbarProps) {
 
   const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Read user from localStorage
-  const storedUser = (() => { try { return JSON.parse(localStorage.getItem('miracle_user') || '{}'); } catch { return {}; } })();
   const displayName = storedUser.name || topbar.name;
   const displayEmail = storedUser.email || '';
+  const firstName = displayName ? displayName.split(' ')[0] : 'there';
+  const welcomeTitle = role === 'user'
+    ? `Welcome back, ${firstName} 👋`
+    : (storedUser.name ? `Welcome back, ${storedUser.name} 👋` : topbar.welcome);
 
   const handleLogout = () => {
     localStorage.removeItem('miracle_token');
@@ -109,7 +132,7 @@ export function Topbar({ role }: TopbarProps) {
       {profileModal}
       <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', padding: '30px 24px 6px', background: '#f4efe4' }}>
         <div style={{ minWidth: '220px' }}>
-          <h1 style={{ margin: 0, fontSize: '1.72rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#171433' }}>{topbar.welcome}</h1>
+          <h1 style={{ margin: 0, fontSize: '1.72rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#171433' }}>{welcomeTitle}</h1>
           <p style={{ margin: '6px 0 0', fontSize: '0.92rem', color: '#7c8199' }}>{topbar.subtitle}</p>
         </div>
 

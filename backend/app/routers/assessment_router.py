@@ -164,8 +164,14 @@ def get_assessment_history(db: Session = Depends(get_db), current_user: User = D
 def get_profile(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
     if not profile:
-        return {"skin_type": None, "concerns": [], "allergies": [], "sleep_hours": None, "water_intake_l": None, "stress_level": None, "sun_exposure": None, "age": None, "gender": None}
+        profile = UserProfile(user_id=current_user.id)
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
     return {
+        "name": current_user.name,
+        "email": current_user.email,
+        "role": current_user.role,
         "skin_type": profile.skin_type,
         "concerns": profile.concerns or [],
         "allergies": profile.allergies or [],
@@ -186,6 +192,10 @@ def update_profile(data: dict, db: Session = Depends(get_db), current_user: User
         db.add(profile)
 
     try:
+        if "name" in data and data["name"]:
+            new_name = str(data["name"]).strip()
+            if new_name:
+                current_user.name = new_name
         if "skin_type" in data:
             st = (data["skin_type"] or "").strip()
             if st and st not in VALID_SKIN_TYPES:
@@ -219,7 +229,7 @@ def update_profile(data: dict, db: Session = Depends(get_db), current_user: User
         raise HTTPException(status_code=400, detail=f"Invalid numeric data format: {str(e)}")
 
     db.commit()
-    return {"status": "updated", "skin_type": profile.skin_type, "concerns": profile.concerns}
+    return {"status": "updated", "name": current_user.name, "skin_type": profile.skin_type, "concerns": profile.concerns}
 
 @router.get("/skin-types")
 def get_skin_types_dataset():

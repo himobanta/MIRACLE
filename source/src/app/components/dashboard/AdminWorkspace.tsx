@@ -111,7 +111,7 @@ export function AdminWorkspace() {
       .finally(() => setUsersLoading(false));
   }, []);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => { fetchAll(); }, []);
 
   // ── Derived stats
   const totalUsers      = adminStats?.total_users ?? 0;

@@ -56,6 +56,9 @@ export function UserWorkspace() {
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>(['Acne & Breakouts']);
   const [profileAge, setProfileAge] = useState<number | ''>('');
   const [profileGender, setProfileGender] = useState<string>('Female');
+  const [profileName, setProfileName] = useState<string>(() => {
+    try { const u = JSON.parse(localStorage.getItem('miracle_user') || '{}'); return u.name || ''; } catch { return ''; }
+  });
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileSaveSuccess, setProfileSaveSuccess] = useState(false);
 
@@ -142,6 +145,7 @@ export function UserWorkspace() {
     api.getProfile().then(p => {
       if (p) {
         setUserProfile(p);
+        if (p.name) setProfileName(p.name);
         if (p.skin_type) setSelectedSkinType(p.skin_type);
         if (p.concerns && Array.isArray(p.concerns)) setSelectedConcerns(p.concerns);
         if (p.age != null) setProfileAge(p.age);
@@ -166,7 +170,7 @@ export function UserWorkspace() {
       {children}
     </div>
   );
-  const uLabel = (t: string) => <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#7c8199', marginBottom: '12px' }}>{t}</div>;
+  const uLabel = (t: string) => <div key={t} style={{ fontSize: '0.82rem', fontWeight: 600, color: '#7c8199', marginBottom: '12px' }}>{t}</div>;
   const uLink = (t: string) => (
     <div style={{ marginTop: 'auto', paddingTop: '14px' }}>
       <span style={{ display: 'inline-block', borderRadius: '99px', background: '#f4f5fa', padding: '7px 14px', fontSize: '0.76rem', fontWeight: 600, color: PUR }}>{t}</span>
@@ -818,7 +822,9 @@ export function UserWorkspace() {
     setProfileSaving(true);
     try {
       const ageVal = profileAge === '' ? null : Number(profileAge);
+      const trimmedName = profileName.trim();
       await api.updateProfile({
+        name: trimmedName || undefined,
         skin_type: selectedSkinType,
         concerns: selectedConcerns,
         age: ageVal,
@@ -826,11 +832,21 @@ export function UserWorkspace() {
       });
       setUserProfile((prev: any) => ({
         ...prev,
+        name: trimmedName || prev?.name,
         skin_type: selectedSkinType,
         concerns: selectedConcerns,
         age: ageVal,
         gender: profileGender
       }));
+      // Persist updated name to localStorage so all components sync immediately
+      if (trimmedName) {
+        try {
+          const stored = JSON.parse(localStorage.getItem('miracle_user') || '{}');
+          stored.name = trimmedName;
+          localStorage.setItem('miracle_user', JSON.stringify(stored));
+          window.dispatchEvent(new Event('miracle_user_updated'));
+        } catch {}
+      }
       setProfileSaveSuccess(true);
       // Reload recommendations and routine live
       api.getRecommendations({ skin_type: selectedSkinType }).then(d => {
@@ -950,9 +966,19 @@ export function UserWorkspace() {
               </div>
             </div>
 
-            {/* Section 3: Personal Details (Age & Gender) */}
+            {/* Section 3: Personal Details (Full Name, Age & Gender) */}
             <div>
               <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#171433', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '10px' }}>3. Personal Details</span>
+              <div style={{ marginBottom: '12px' }}>
+                <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#7c8199', display: 'block', marginBottom: '4px' }}>FULL NAME</label>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={e => setProfileName(e.target.value)}
+                  placeholder="Your full name"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.86rem', boxSizing: 'border-box' }}
+                />
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div>
                   <label style={{ fontSize: '0.74rem', fontWeight: 600, color: '#7c8199', display: 'block', marginBottom: '4px' }}>AGE</label>
