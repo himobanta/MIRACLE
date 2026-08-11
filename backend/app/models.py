@@ -84,7 +84,7 @@ class ProgressPhoto(Base):
     image_url = Column(String, nullable=False)
     skin_health_score = Column(Float, nullable=True)
     tag = Column(String, default="Baseline")  # Baseline, Week 2, Week 4, Week 8
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="photos")
 
