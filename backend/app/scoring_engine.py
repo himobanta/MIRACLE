@@ -33,7 +33,8 @@ def calculate_skin_health_score(
     # Start at 100. Deduct based on stress level and UV exposure.
     l_score = 100.0
     stress = lifestyle.get("stress_level", 4)
-    sun = lifestyle.get("sun_exposure", "Moderate")
+    raw_sun = lifestyle.get("sun_exposure", "Moderate")
+    sun = str(raw_sun).strip().title() if raw_sun else "Moderate"
     if stress >= 7:
         l_score -= 20.0
     elif stress >= 5:

@@ -28,6 +28,20 @@ def register_user(
     req: UserRegister,
     db: Session = Depends(get_db),
 ):
+    # Security: Prevent privilege escalation via self-registration.
+    # Public registration is restricted to the "User" role only.
+    # Privileged roles (Skincare Consultant, Dermatologist, Administrator)
+    # must be assigned by an Administrator through the admin management interface.
+    SELF_REGISTERABLE_ROLES = {"User"}
+    requested_role = (req.role or "User").strip()
+
+    if requested_role not in SELF_REGISTERABLE_ROLES:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Role '{requested_role}' cannot be self-assigned during registration. "
+                   f"Contact an administrator to request elevated access."
+        )
+
     existing = db.query(User).filter(User.email == req.email).first()
 
     if existing:
@@ -42,17 +56,17 @@ def register_user(
         name=req.name,
         email=req.email,
         hashed_password=hashed,
-        role=req.role or "User",
+        role="User",  # Always assign "User" regardless of request
     )
 
     db.add(user)
-    db.commit()
-    db.refresh(user)
+    db.flush()  # flush to get user.id before committing
 
-    # Initialize empty profile
+    # Initialize empty profile atomically with the user
     profile = UserProfile(user_id=user.id)
     db.add(profile)
-    db.commit()
+    db.commit()  # single atomic commit: user + profile
+    db.refresh(user)
 
     token = create_access_token(
         {
@@ -68,6 +82,7 @@ def register_user(
         role=user.role,
         name=user.name,
     )
+
 
 
 @router.post(
@@ -143,6 +158,6 @@ def get_me(
         "name": user.name,
         "email": user.email,
         "role": user.role,
-        "created_at": user.created_at.isoformat(),
+        "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 

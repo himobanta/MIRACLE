@@ -127,10 +127,10 @@ def main():
     os.environ["CORS_ORIGINS"] = "https://staging.miracleskincare.com"
     importlib.reload(cfg)
 
-    from backend.app.main import seed_default_users
+    from backend.app.main import _seed_demo_users
     try:
-        seed_default_users()
-        pass_msg("seed_default_users() executed safely and suppressed demo seeding in staging mode")
+        _seed_demo_users()
+        pass_msg("_seed_demo_users() executed safely and suppressed demo seeding in staging mode")
     except Exception as e:
         fail_msg(f"seed_default_users() raised exception in staging mode: {e}")
         failures += 1

@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import Column, String, Float, Integer, Boolean, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.orm import relationship
 from .database import Base
@@ -15,7 +15,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     name = Column(String, nullable=False)
     role = Column(String, default="User")  # User, Skincare Consultant, Dermatologist, Administrator
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     profile = relationship("UserProfile", back_populates="user", uselist=False)
     assessments = relationship("SkinAssessment", back_populates="user")
@@ -35,8 +35,8 @@ class UserProfile(Base):
     sensitivities = Column(String, nullable=True)
 
     # Lifestyle Metrics
-    sleep_hours = Column(Float, default=7.5)
-    water_intake_l = Column(Float, default=2.5)
+    sleep_hours = Column(Float, nullable=True)
+    water_intake_l = Column(Float, nullable=True)
     stress_level = Column(Integer, default=4)
     sun_exposure = Column(String, default="Moderate")
 
@@ -54,7 +54,7 @@ class SkinAssessment(Base):
     consistency_subscore = Column(Float, nullable=False)
     hydration_subscore = Column(Float, nullable=False)
     detected_concerns = Column(JSON, default=list)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="assessments")
 
@@ -72,7 +72,7 @@ class SkincareRoutine(Base):
     is_active = Column(Boolean, default=True)
     prescribed_by_doctor = Column(Boolean, default=False)
     doctor_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="routines")
 
@@ -102,7 +102,7 @@ class Appointment(Base):
     user_notes = Column(Text, nullable=True)
     consultant_summary = Column(Text, nullable=True)
     doctor_notes = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class Product(Base):
     __tablename__ = "products"

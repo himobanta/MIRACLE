@@ -1,6 +1,7 @@
 const rawBaseUrl =
   (import.meta.env.VITE_API_URL as string) ||
-  "https://miracle-production-e7d3.up.railway.app/api/v1";
+  "http://127.0.0.1:8000/api/v1";
+
 
 export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, "");
 
@@ -261,6 +262,8 @@ export const api = {
   // Consultant & Dermatologist Portal
   getRoster: () => request("/consultant/roster"),
 
+  getStats: () => request("/consultant/stats"),
+
   getPatientDetails: (patientId: string) =>
     request(`/consultant/patient/${patientId}`),
 
@@ -309,4 +312,27 @@ export const api = {
 
   getSkinConcerns: () =>
     request<any[]>("/assessment/skin-concerns"),
+
+  getAssessmentHistory: () =>
+    request<any[]>("/assessment/history"),
+
+  getAssessmentById: (id: string) =>
+    request(`/assessment/${id}`),
+
+  deletePhoto: (id: string) =>
+    request(`/analytics/photos/${id}`, { method: "DELETE" }),
+
+  // Administrator Portal
+  getAdminStats: () => request("/admin/stats"),
+
+  getAdminUsers: (role?: string, search?: string) => {
+    const params = new URLSearchParams();
+    if (role) params.append("role", role);
+    if (search) params.append("search", search);
+    const qs = params.toString();
+    return request(`/admin/users${qs ? `?${qs}` : ""}`);
+  },
+
+  getAdminActivity: (limit = 10) =>
+    request(`/admin/activity?limit=${limit}`),
 };

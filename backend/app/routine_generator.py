@@ -76,10 +76,11 @@ DEFAULT_TEMPLATES = {
 }
 
 def generate_customized_routine(skin_type: str, concerns_severity: Dict[str, int]) -> List[Dict[str, Any]]:
-    base_type = skin_type if skin_type in DEFAULT_TEMPLATES else "Combination"
+    clean_skin_type = (skin_type or "").strip().title()
+    base_type = clean_skin_type if clean_skin_type in DEFAULT_TEMPLATES else "Combination"
     template = DEFAULT_TEMPLATES[base_type]
     
-    is_sensitive = skin_type == "Sensitive" or concerns_severity.get("redness_severity", 0) >= 7
+    is_sensitive = clean_skin_type == "Sensitive" or concerns_severity.get("redness_severity", 0) >= 7
     
     routine_steps = []
     
@@ -92,7 +93,13 @@ def generate_customized_routine(skin_type: str, concerns_severity: Dict[str, int
             # Apply Safety Guardrail: Drop harsh exfoliants / strong retinoids for sensitive skin
             if is_sensitive:
                 actives = step_copy.get("active_ingredients", [])
-                harsh = any(a in ["Retinol", "Salicylic Acid (BHA)", "Glycolic Acid"] for a in actives)
+                harsh_set = {
+                    "Retinol", "Retinoids", "Tretinoin",
+                    "Salicylic Acid (BHA)", "Salicylic Acid",
+                    "Glycolic Acid", "Lactic Acid (AHA)", "Lactic Acid", "Mandelic Acid", "AHAs/BHA",
+                    "Benzoyl Peroxide"
+                }
+                harsh = any(a in harsh_set for a in actives)
                 if harsh:
                     step_copy["product_name"] = "Soothing Centella Barrier Recovery Gel"
                     step_copy["active_ingredients"] = ["Centella Asiatica", "Azelaic Acid"]

@@ -19,65 +19,165 @@ import {
 } from './dashboardUtils';
 import { api } from '../../services/api';
 
-interface RosterPatient { patient_id: string; name: string; email: string; skin_type: string; primary_concern: string; health_score: number; compliance_rate: number; last_assessment_date: string; }
+interface RosterPatient {
+  patient_id: string;
+  name: string;
+  email: string;
+  skin_type: string;
+  primary_concern: string;
+  health_score: number | null;
+  compliance_rate: number;
+  last_assessment_date: string | null;
+}
 interface PatientDetail { patient: any; assessments: any[]; active_routine: any[]; progress_photos: any[]; }
+
+// ── Derived analytics helpers ─────────────────────────────────────────────
+function computeSkinTypeDist(patients: RosterPatient[]) {
+  const counts: Record<string, number> = {};
+  patients.forEach(p => { const st = p.skin_type || 'Unassessed'; counts[st] = (counts[st] || 0) + 1; });
+  const total = patients.length || 1;
+  return Object.entries(counts).map(([type, n]) => ({ type, count: n, pct: Math.round((n / total) * 100) })).sort((a, b) => b.count - a.count);
+}
+
+function computeConcernDist(patients: RosterPatient[]) {
+  const counts: Record<string, number> = {};
+  patients.forEach(p => { if (p.primary_concern && p.primary_concern !== 'General Maintenance') counts[p.primary_concern] = (counts[p.primary_concern] || 0) + 1; });
+  const total = patients.length || 1;
+  return Object.entries(counts).map(([label, n]) => [label, Math.round((n / total) * 100)] as [string, number]).sort((a, b) => (b[1] as number) - (a[1] as number)).slice(0, 5);
+}
+
+// ── Reusable empty state ──────────────────────────────────────────────────
+const EmptyState = ({ icon, message }: { icon: string; message: string }) => (
+  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '32px 16px', gap: '10px' }}>
+    <span style={{ fontSize: '2rem' }}>{icon}</span>
+    <span style={{ fontSize: '0.82rem', color: '#a3a7bd', textAlign: 'center', lineHeight: 1.5 }}>{message}</span>
+  </div>
+);
 
 export function ConsultantWorkspace() {
   const [roster, setRoster] = useState<RosterPatient[]>([]);
+  const [rosterLoading, setRosterLoading] = useState(true);
+  const [rosterError, setRosterError] = useState<string | null>(null);
+
+  // Search & Filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [skinTypeFilter, setSkinTypeFilter] = useState('All');
+
+  // Patient detail modal
   const [selectedPatient, setSelectedPatient] = useState<PatientDetail | null>(null);
+
+  // Referral modal state
   const [showReferModal, setShowReferModal] = useState<string | null>(null);
   const [referSummary, setReferSummary] = useState('');
   const [referDate, setReferDate] = useState('');
   const [referTime, setReferTime] = useState('');
   const [referSuccess, setReferSuccess] = useState(false);
+  const [referError, setReferError] = useState<string | null>(null);
+  const [referLoading, setReferLoading] = useState(false);
+
+  // Prescription modal state
+  const [showPrescribeModal, setShowPrescribeModal] = useState<string | null>(null);
+  const [doctorNotes, setDoctorNotes] = useState('');
+  const [prescribeSteps, setPrescribeSteps] = useState<any[]>([
+    { time_of_day: 'AM', step_number: 1, step_category: 'Cleansing', product_name: 'Gentle Cleanser', active_ingredients: ['Glycerin'] },
+    { time_of_day: 'AM', step_number: 2, step_category: 'Sun Protection', product_name: 'SPF 50 Sunscreen', active_ingredients: ['Zinc Oxide'] },
+    { time_of_day: 'PM', step_number: 1, step_category: 'Treatment', product_name: 'Barrier Repair Serum', active_ingredients: ['Niacinamide', 'Ceramides'] },
+  ]);
+  const [prescribeLoading, setPrescribeLoading] = useState(false);
+  const [prescribeSuccess, setPrescribeSuccess] = useState(false);
+  const [prescribeError, setPrescribeError] = useState<string | null>(null);
+
+  // Appointments queue state
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [apptLoading, setApptLoading] = useState(true);
+
+  const fetchRoster = () => {
+    setRosterLoading(true);
+    api.getRoster()
+      .then(d => { setRoster(d.patients || []); setRosterError(null); })
+      .catch(() => setRosterError('Failed to load patient roster. Please refresh.'))
+      .finally(() => setRosterLoading(false));
+  };
+
+  const fetchAppointments = () => {
+    setApptLoading(true);
+    api.getMyAppointments()
+      .then(d => setAppointments(Array.isArray(d) ? d : []))
+      .catch(() => setAppointments([]))
+      .finally(() => setApptLoading(false));
+  };
 
   useEffect(() => {
-    api.getRoster().then(d => setRoster(d.patients || [])).catch(() => {});
+    fetchRoster();
+    fetchAppointments();
   }, []);
 
   const openPatient = async (id: string) => {
     try { const d = await api.getPatientDetails(id); setSelectedPatient(d); } catch {}
   };
 
-  const submitRefer = async (patientId: string) => {
+  const submitRefer = async (apptId: string) => {
+    setReferError(null);
+    setReferLoading(true);
     try {
-      // Request a new appointment then mark as referred
-      const appt = await api.requestAppointment({ target_role: 'Dermatologist', preferred_date: referDate, preferred_time: referTime, user_notes: referSummary });
-      await api.referToDermatologist(appt.id, { consultant_summary: referSummary, preferred_date: referDate, preferred_time: referTime });
+      await api.referToDermatologist(apptId, { consultant_summary: referSummary, preferred_date: referDate, preferred_time: referTime });
       setReferSuccess(true);
-      setTimeout(() => { setShowReferModal(null); setReferSuccess(false); setReferSummary(''); setReferDate(''); setReferTime(''); }, 2000);
+      fetchAppointments();
+      fetchRoster();
+      setTimeout(() => { setShowReferModal(null); setReferSuccess(false); setReferSummary(''); setReferDate(''); setReferTime(''); }, 1800);
+    } catch (e: any) {
+      setReferError(e?.detail || 'Failed to submit referral. Please try again.');
+    } finally {
+      setReferLoading(false);
+    }
+  };
+
+  const submitPrescription = async (patientId: string) => {
+    setPrescribeError(null);
+    setPrescribeLoading(true);
+    try {
+      await api.prescribeRoutine({
+        patient_id: patientId,
+        doctor_notes: doctorNotes || 'Prescribed by Skincare Consultant',
+        routine_steps: prescribeSteps
+      });
+      setPrescribeSuccess(true);
+      fetchRoster();
+      if (selectedPatient && selectedPatient.patient.id === patientId) {
+        openPatient(patientId);
+      }
+      setTimeout(() => { setShowPrescribeModal(null); setPrescribeSuccess(false); setDoctorNotes(''); }, 1800);
+    } catch (e: any) {
+      setPrescribeError(e?.detail || 'Failed to submit prescription. Please try again.');
+    } finally {
+      setPrescribeLoading(false);
+    }
+  };
+
+  const updateApptStatusHandler = async (id: string, status: string) => {
+    try {
+      await api.updateAppointmentStatus(id, { status, notes: `Status updated to ${status} by consultant` });
+      fetchAppointments();
     } catch {}
   };
 
-  const tableTitle = 'Client Overview';
-  const tableRight = (
-    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', fontWeight: 600, color: PUR }}>
-      View All Clients <DashIcon d="<path d='m6 9 6 6 6-6'/>" s={12} sw={2} stroke={PUR} />
-    </span>
-  );
+  const skinTypeColors: Record<string, string> = { Combination: PUR, Oily: BLU, Dry: ORA, Sensitive: PNK, Normal: GRN, Unassessed: '#8b8fa3' };
+  const cols = ['Client Name', 'Skin Type', 'Top Concern', 'Skin Health Score', 'Last Assessment', 'Compliance', 'Actions'];
 
-  const skinTypeColors: Record<string, string> = { Combination: PUR, Oily: BLU, Dry: ORA, Sensitive: PNK, Normal: GRN };
-
-  const STATIC_ROWS = [
-    [FACE.ananya, 'Ananya Verma', '24, Female', 'Combination', 'Acne & Post Acne Marks', 78, 'May 18, 2025', 'active', 'May 28, 2025', ''],
-    [FACE.neha, 'Neha Gupta', '28, Female', 'Oily', 'Acne', 65, 'May 15, 2025', 'active', 'May 25, 2025', ''],
-    [FACE.riya, 'Riya Singh', '30, Female', 'Dry', 'Dryness & Uneven Tone', 82, 'May 16, 2025', 'active', 'May 30, 2025', ''],
-    [FACE.meera, 'Meera Iyer', '26, Female', 'Sensitive', 'Redness & Sensitivity', 70, 'May 10, 2025', 'due', 'May 22, 2025', ''],
-    [FACE.kavya, 'Kavya Nair', '32, Female', 'Combination', 'Hyperpigmentation', 76, 'May 12, 2025', 'active', 'May 24, 2025', ''],
-  ];
-
-  const rows = roster.length
-    ? roster.map(p => [FACE.ananya, p.name, p.email, p.skin_type, p.primary_concern, Math.round(p.health_score), p.last_assessment_date, p.compliance_rate >= 70 ? 'active' : 'due', '—', p.patient_id])
-    : STATIC_ROWS;
-
-  const cols = ['Client Name', 'Skin Type', 'Top Concern', 'Skin Health Score', 'Last Assessment', 'Status', 'Next Follow-up', ''];
-
-  const scoreRing = (v: number) => {
-    const color = v >= 75 ? GRN : ORA;
+  const scoreRing = (v: number | null) => {
+    if (v === null) {
+      return (
+        <span style={{ display: 'grid', placeItems: 'center', width: '44px', height: '44px', flexShrink: 0, borderRadius: '50%', background: '#f4f5fa', border: '1px solid #edeef4', fontSize: '0.74rem', fontWeight: 700, color: '#8b8fa3' }}>
+          —
+        </span>
+      );
+    }
+    const scoreVal = Math.round(v);
+    const color = scoreVal >= 75 ? GRN : ORA;
     return (
-      <span style={{ position: 'relative', display: 'grid', placeItems: 'center', width: '44px', height: '44px', flexShrink: 0, borderRadius: '50%', background: `conic-gradient(${color} ${v}%, #f4efe4 0)` }}>
+      <span style={{ position: 'relative', display: 'grid', placeItems: 'center', width: '44px', height: '44px', flexShrink: 0, borderRadius: '50%', background: `conic-gradient(${color} ${scoreVal}%, #f4efe4 0)` }}>
         <span style={{ position: 'absolute', inset: '4px', borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center', fontSize: '0.74rem', fontWeight: 700, color: '#171433' }}>
-          {v}
+          {scoreVal}
         </span>
       </span>
     );
@@ -106,21 +206,84 @@ export function ConsultantWorkspace() {
     );
   };
 
-  const scoreChip = (score: string, label: string, kind: string) => {
-    const isFair = kind === 'fair';
-    const bg = isFair ? '#fdf3e0' : '#e7f7ee';
-    const color = isFair ? '#d99a0b' : '#16a34a';
-    return (
-      <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', minWidth: '58px', borderRadius: '10px', background: bg, color, padding: '6px 10px', lineHeight: 1.2 }}>
-        <span style={{ fontSize: '0.78rem', fontWeight: 700 }}>{score}</span>
-        <span style={{ fontSize: '0.68rem', fontWeight: 600 }}>{label}</span>
-      </span>
+  // ── Filter roster ────────────────────────────────────────────────────────
+  const filteredRoster = roster.filter(p => {
+    const matchesSearch = !searchTerm || (
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.primary_concern.toLowerCase().includes(searchTerm.toLowerCase())
     );
-  };
+    const matchesSkin = skinTypeFilter === 'All' || p.skin_type === skinTypeFilter;
+    return matchesSearch && matchesSkin;
+  });
+
+  // ── Client table ─────────────────────────────────────────────────────────
+  const tableBody = rosterLoading ? (
+    <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>Loading patients…</td></tr>
+  ) : rosterError ? (
+    <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#ef4444', fontSize: '0.82rem' }}>{rosterError}</td></tr>
+  ) : filteredRoster.length === 0 ? (
+    <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>
+      {searchTerm || skinTypeFilter !== 'All' ? 'No patients match your search/filter.' : 'No patients assigned yet.'}<br />
+      <span style={{ fontSize: '0.76rem' }}>Patients will appear here once they register.</span>
+    </td></tr>
+  ) : (
+    <>
+      {filteredRoster.map((p, i) => (
+        <tr key={p.patient_id} style={{ borderTop: '1px solid #f1f2f7' }}>
+          <td style={{ padding: '14px 18px' }}>{avatarRow(FACE.ananya, p.name, p.email)}</td>
+          <td style={{ padding: '14px 18px', fontSize: '0.82rem', fontWeight: 600, color: skinTypeColors[p.skin_type] || PUR }}>{p.skin_type}</td>
+          <td style={{ padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a' }}>{p.primary_concern || '—'}</td>
+          <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              {scoreRing(p.health_score)}
+              {p.health_score !== null && <span style={{ fontSize: '0.7rem', color: '#8b8fa3' }}>/100</span>}
+            </span>
+          </td>
+          <td style={{ padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a', whiteSpace: 'nowrap' }}>{p.last_assessment_date || 'No assessment'}</td>
+          <td style={{ padding: '14px 18px', textAlign: 'center' }}>
+            {p.compliance_rate > 0 ? statusChip(`${p.compliance_rate}%`, p.compliance_rate >= 70 ? 'active' : 'due') : statusChip('No logs', 'due')}
+          </td>
+          <td style={{ padding: '10px 12px', textAlign: 'center' }}>
+            <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+              <button onClick={() => openPatient(p.patient_id)} style={{ padding: '5px 10px', borderRadius: '8px', border: `1px solid ${PUR}`, background: 'transparent', color: PUR, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>View</button>
+              <button onClick={() => setShowPrescribeModal(p.patient_id)} style={{ padding: '5px 10px', borderRadius: '8px', border: '1px solid #edeef4', background: 'rgba(47,107,76,0.08)', color: PUR, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Prescribe</button>
+            </div>
+          </td>
+        </tr>
+      ))}
+    </>
+  );
 
   const table = (
     <Card>
-      <CardHead title={tableTitle} right={tableRight} />
+      <CardHead
+        title={`Client Roster (${filteredRoster.length})`}
+        right={
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <input
+              type="text"
+              placeholder="Search patients..."
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.78rem', fontFamily: 'inherit', outline: 'none', width: '150px' }}
+            />
+            <select
+              value={skinTypeFilter}
+              onChange={e => setSkinTypeFilter(e.target.value)}
+              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.78rem', fontFamily: 'inherit', background: '#fff', cursor: 'pointer' }}
+            >
+              <option value="All">All Skin Types</option>
+              <option value="Combination">Combination</option>
+              <option value="Oily">Oily</option>
+              <option value="Dry">Dry</option>
+              <option value="Sensitive">Sensitive</option>
+              <option value="Normal">Normal</option>
+              <option value="Unassessed">Unassessed</option>
+            </select>
+          </div>
+        }
+      />
       <div className="dash-scroll" style={{ overflowX: 'auto', overflowY: 'hidden', paddingTop: '4px', paddingBottom: '6px', marginBottom: '-4px' }}>
         <table style={{ borderCollapse: 'collapse', minWidth: '860px', width: '100%' }}>
           <thead>
@@ -132,176 +295,123 @@ export function ConsultantWorkspace() {
               ))}
             </tr>
           </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={i} style={{ borderTop: '1px solid #f1f2f7' }}>
-                <td style={{ padding: '14px 18px' }}>{avatarRow(String(r[0]), String(r[1]), String(r[2]))}</td>
-                <td style={{ padding: '14px 18px', fontSize: '0.82rem', fontWeight: 600, color: skinTypeColors[String(r[3])] || PUR }}>{String(r[3])}</td>
-                <td style={{ padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a' }}>{String(r[4])}</td>
-                <td style={{ padding: '14px 18px', textAlign: 'center' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-                    {scoreRing(Number(r[5]))}
-                    <span style={{ fontSize: '0.7rem', color: '#8b8fa3' }}>/100</span>
-                  </span>
-                </td>
-                <td style={{ padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a', whiteSpace: 'nowrap' }}>{String(r[6])}</td>
-                <td style={{ padding: '14px 18px', textAlign: 'center' }}>{statusChip(r[7] === 'due' ? 'Follow-up Due' : 'Active', String(r[7]))}</td>
-                <td style={{ padding: '14px 18px', fontSize: '0.82rem', color: '#3f4a5a', whiteSpace: 'nowrap' }}>{String(r[8])}</td>
-                <td style={{ padding: '10px 12px', textAlign: 'center', display: 'flex', gap: '6px' }}>
-                  {r[9] ? (
-                    <>
-                      <button onClick={() => openPatient(String(r[9]))} style={{ padding: '5px 10px', borderRadius: '8px', border: `1px solid ${PUR}`, background: 'transparent', color: PUR, fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>View</button>
-                      <button onClick={() => setShowReferModal(String(r[9]))} style={{ padding: '5px 10px', borderRadius: '8px', border: '1px solid #edeef4', background: '#f6f7fb', color: '#3f4a5a', fontSize: '0.72rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Refer</button>
-                    </>
-                  ) : (
-                    <DashIcon d="<circle cx='12' cy='5' r='1.6'/><circle cx='12' cy='12' r='1.6'/><circle cx='12' cy='19' r='1.6'/>" s={16} stroke="#b8bccc" fill="#b8bccc" />
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
+          <tbody>{tableBody}</tbody>
         </table>
       </div>
     </Card>
   );
 
+  // ── Live-derived analytics (only from real roster) ─────────────────────
+  const skinTypePalette: Record<string, string> = { Combination: PUR, Oily: BLU, Dry: ORA, Sensitive: PNK, Normal: GRN, Unassessed: '#8b8fa3' };
+
+  const skinTypeDist = roster.length ? computeSkinTypeDist(roster) : [];
+  const skinTypeSegs = skinTypeDist.map(d => ({ pct: d.pct, color: skinTypePalette[d.type] || GRN }));
+  const skinTypeLegend: [string, string, string][] = skinTypeDist.map(d => [d.type, `${d.count} (${d.pct}%)`, skinTypePalette[d.type] || GRN]);
+
   const dist = (
     <Card>
       <h3 style={{ margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' }}>Clients by Skin Type</h3>
-      <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '18px', alignItems: 'center' }}>
-        <DonutChart
-          segs={[
-            { pct: 35, color: PUR },
-            { pct: 25, color: BLU },
-            { pct: 20, color: ORA },
-            { pct: 12, color: PNK },
-            { pct: 8, color: GRN },
-          ]}
-          center="128"
-          sub="Total Clients"
-          size={140}
-        />
-        <Legend
-          rows={[
-            ['Combination', '45 (35%)', PUR],
-            ['Oily', '32 (25%)', BLU],
-            ['Dry', '26 (20%)', ORA],
-            ['Sensitive', '15 (12%)', PNK],
-            ['Normal', '10 (8%)', GRN],
-          ]}
-        />
-      </div>
+      {rosterLoading ? (
+        <EmptyState icon="⏳" message="Loading…" />
+      ) : roster.length === 0 ? (
+        <EmptyState icon="👥" message="No patient data available yet." />
+      ) : (
+        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '18px', alignItems: 'center' }}>
+          <DonutChart segs={skinTypeSegs} center={String(roster.length)} sub="Total Clients" size={140} />
+          <Legend rows={skinTypeLegend} />
+        </div>
+      )}
     </Card>
   );
+
+  const concernRows = roster.length ? computeConcernDist(roster) : [];
 
   const topConcerns = (
     <Card style={{ width: '100%' }}>
       <h3 style={{ margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' }}>Top Skin Concerns</h3>
-      <Bars
-        rows={[
-          ['Acne & Post Acne Marks', 42],
-          ['Hyperpigmentation', 24],
-          ['Dryness', 18],
-          ['Uneven Skin Tone', 9],
-          ['Sensitivity & Redness', 7],
-        ]}
-      />
+      {rosterLoading ? (
+        <EmptyState icon="⏳" message="Loading…" />
+      ) : roster.length === 0 || concernRows.length === 0 ? (
+        <EmptyState icon="🔍" message="No concern data available yet." />
+      ) : (
+        <Bars rows={concernRows as [string, number][]} />
+      )}
     </Card>
   );
+
+  // ── Progress stats: only from real roster ─────────────────────────────
+  const liveScores = roster.map(p => p.health_score).filter((s): s is number => s !== null);
+  const avgScore = liveScores.length ? Math.round(liveScores.reduce((a, b) => a + b, 0) / liveScores.length) : null;
+  const improved = liveScores.filter(s => s >= 75).length;
+  const needAttn = liveScores.filter(s => s < 60).length;
+  const chartScores = liveScores.length ? liveScores : [0];
 
   const progress = (
     <Card style={{ height: '100%' }}>
-      <CardHead title="Client Progress Overview" right={<span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#6b7189' }}>This Month</span>} />
-      <ChartFrame
-        chart={{ el: <LineChart vals={[16, 20, 18, 26, 30, 24, 33, 38, 30, 28, 22, 24]} min={0} max={100} /> }}
-        yLabels={['100%', '75%', '50%', '25%', '0%']}
-        xLabels={['May 1', 'May 7', 'May 14', 'May 21', 'May 28']}
-        h={150}
-      />
-      <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f2f7', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)' }}>
-        {[
-          ['24%', 'Avg. Improvement', '6%', 1],
-          ['18', 'Clients Improved', '8%', 1],
-          ['7', 'Need Attention', '2%', 0],
-        ].map((s, i) => (
-          <div key={i} style={{ padding: i === 0 ? '0 10px 0 0' : '0 10px', borderLeft: i === 0 ? 'none' : '1px solid #f1f2f7', minWidth: 0 }}>
-            <div style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.02em', color: s[3] === 1 ? '#16a34a' : '#ef4444', lineHeight: 1.1 }}>{s[0]}</div>
-            <div style={{ fontSize: '0.66rem', color: '#8b8fa3', margin: '4px 0 5px', lineHeight: 1.25 }}>{s[1]}</div>
-            <div style={{ fontSize: '0.68rem', fontWeight: 600 }}>{s[2] ? <UpEl text={String(s[2])} color={s[3] ? '#16a34a' : '#ef4444'} /> : '—'}</div>
+      <CardHead title="Client Progress Overview" right={<span style={{ fontSize: '0.72rem', fontWeight: 600, color: '#6b7189' }}>Active Roster</span>} />
+      {rosterLoading ? (
+        <EmptyState icon="⏳" message="Loading…" />
+      ) : roster.length === 0 || liveScores.length === 0 ? (
+        <EmptyState icon="📈" message="No patient assessment scores recorded yet." />
+      ) : (
+        <>
+          <ChartFrame
+            chart={{ el: <LineChart vals={chartScores} min={0} max={100} /> }}
+            yLabels={['100%', '75%', '50%', '25%', '0%']}
+            xLabels={roster.slice(0, 4).map(p => p.name.split(' ')[0])}
+            h={150}
+          />
+          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f2f7', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)' }}>
+            {[
+              [avgScore !== null ? String(avgScore) : '—', 'Avg. Health Score', '', 1],
+              [String(improved), 'Clients ≥75 Score', '', 1],
+              [String(needAttn), 'Need Attention', '', 0],
+            ].map((s, i) => (
+              <div key={i} style={{ padding: i === 0 ? '0 10px 0 0' : '0 10px', borderLeft: i === 0 ? 'none' : '1px solid #f1f2f7', minWidth: 0 }}>
+                <div style={{ fontSize: '1.15rem', fontWeight: 800, letterSpacing: '-0.02em', color: s[3] === 1 ? '#16a34a' : '#ef4444', lineHeight: 1.1 }}>{s[0]}</div>
+                <div style={{ fontSize: '0.66rem', color: '#8b8fa3', margin: '4px 0 5px', lineHeight: 1.25 }}>{s[1]}</div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </Card>
   );
 
-  const recent = (
-    <Card style={{ paddingBottom: '10px', display: 'flex', flexDirection: 'column' }}>
-      <CardHead title="Recent Assessments" right={<span style={{ fontSize: '0.82rem', fontWeight: 600, color: PUR }}>View All</span>} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '13px', paddingTop: '4px', paddingBottom: '2px' }}>
-        {[
-          [FACE.ananya, 'Ananya Verma', 'May 18, 2025 · 10:30 AM', '78/100', 'Good', 'good'],
-          [FACE.neha, 'Neha Gupta', 'May 15, 2025 · 02:15 PM', '65/100', 'Fair', 'fair'],
-          [FACE.riya, 'Riya Singh', 'May 16, 2025 · 11:45 AM', '82/100', 'Good', 'good'],
-          [FACE.meera, 'Meera Iyer', 'May 10, 2025 · 04:20 PM', '70/100', 'Fair', 'fair'],
-          [FACE.kavya, 'Kavya Nair', 'May 12, 2025 · 09:10 AM', '76/100', 'Good', 'good'],
-        ].map((a, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            {avatarRow(String(a[0]), String(a[1]), String(a[2]))}
-            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              {scoreChip(String(a[3]), String(a[4]), String(a[5]))}
-              <DashIcon d="<path d='m9 6 6 6-6 6'/>" s={15} stroke="#c4c9da" sw={2} />
-            </span>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-
-  const followups = (
-    <Card style={{ paddingBottom: '10px', display: 'flex', flexDirection: 'column' }}>
-      <CardHead title="Upcoming Follow-ups" right={<span style={{ fontSize: '0.82rem', fontWeight: 600, color: PUR }}>View Calendar</span>} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '13px', paddingTop: '4px', paddingBottom: '2px' }}>
-        {[
-          ['Ananya Verma', 'May 18, 2025 · 10:00 AM', '7 days left'],
-          ['Neha Gupta', 'May 25, 2025 · 11:00 AM', '4 days left'],
-          ['Meera Iyer', 'May 22, 2025 · 03:30 PM', 'Tomorrow'],
-          ['Kavya Nair', 'May 24, 2025 · 09:30 AM', '3 days left'],
-          ['Riya Singh', 'May 30, 2025 · 12:00 PM', '9 days left'],
-        ].map((a, i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
-            <span style={{ display: 'flex', alignItems: 'center', gap: '11px' }}>
-              <span style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', borderRadius: '11px', background: 'rgba(47,107,76,0.1)', color: PUR, flexShrink: 0 }}>
-                <DashIcon d={PATHS.cal} s={17} stroke={PUR} />
-              </span>
-              <span>
-                <span style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#171433' }}>{a[0]}</span>
-                <span style={{ display: 'block', fontSize: '0.74rem', color: '#8b8fa3' }}>{a[1]}</span>
-              </span>
-            </span>
-            <span style={{ borderRadius: '999px', background: 'rgba(47,107,76,0.1)', color: PUR, padding: '4px 11px', fontSize: '0.72rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
-              {a[2]}
-            </span>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-
-  const banner = (
-    <div style={{ borderRadius: '18px', border: '1px solid #cfe0d4', background: 'linear-gradient(120deg,#e8f0ea,#f1f6f2)', padding: '20px 22px', display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-      <span style={{ display: 'grid', placeItems: 'center', width: '44px', height: '44px', flexShrink: 0, borderRadius: '13px', background: '#fff', color: PUR }}>
-        <DashIcon d={PATHS.spark} s={20} stroke={PUR} />
-      </span>
-      <div style={{ flex: 1, minWidth: '240px' }}>
-        <div style={{ fontSize: '0.9rem', fontWeight: 700, color: PUR, marginBottom: '4px' }}>Consultant Tip</div>
-        <div style={{ fontSize: '0.84rem', color: '#4b4b63', lineHeight: 1.5 }}>
-          Clients who follow routines consistently show 2x better improvement. Encourage hydration and sunscreen daily!
+  // ── Appointment Queue ──────────────────────────────────────────────────
+  const apptQueue = (
+    <Card style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <CardHead title={`Consultation Queue (${appointments.length})`} right={<span style={{ fontSize: '0.72rem', fontWeight: 600, color: PUR }}>Live Requests</span>} />
+      {apptLoading ? (
+        <EmptyState icon="⏳" message="Loading appointments…" />
+      ) : appointments.length === 0 ? (
+        <EmptyState icon="📅" message="No pending consultation requests." />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', overflowY: 'auto', maxHeight: '280px' }}>
+          {appointments.map(a => (
+            <div key={a.id} style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#171433' }}>{a.patient_name || 'Patient'}</span>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '3px 8px', borderRadius: '999px', background: a.status === 'Accepted' ? 'rgba(34,197,94,0.12)' : a.status === 'Referred_To_Dermatologist' ? 'rgba(47,107,76,0.12)' : 'rgba(224,138,30,0.12)', color: a.status === 'Accepted' ? '#16a34a' : a.status === 'Referred_To_Dermatologist' ? PUR : '#e08a1e' }}>
+                  {a.status}
+                </span>
+              </div>
+              <div style={{ fontSize: '0.76rem', color: '#7c8199' }}>📅 {a.preferred_date} at {a.preferred_time} ({a.target_role})</div>
+              {a.user_notes && <div style={{ fontSize: '0.74rem', color: '#3f4a5a', fontStyle: 'italic' }}>"{a.user_notes}"</div>}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                {a.status === 'Requested' && (
+                  <>
+                    <button onClick={() => updateApptStatusHandler(a.id, 'Accepted')} style={{ padding: '4px 10px', borderRadius: '6px', background: '#16a34a', color: '#fff', border: 'none', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}>Accept</button>
+                    <button onClick={() => updateApptStatusHandler(a.id, 'Rejected')} style={{ padding: '4px 10px', borderRadius: '6px', background: '#ef4444', color: '#fff', border: 'none', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}>Reject</button>
+                  </>
+                )}
+                <button onClick={() => setShowReferModal(a.id)} style={{ padding: '4px 10px', borderRadius: '6px', background: PUR, color: '#fff', border: 'none', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}>Refer Derma</button>
+              </div>
+            </div>
+          ))}
         </div>
-      </div>
-      <button type="button" style={{ display: 'inline-flex', alignItems: 'center', gap: '7px', border: 'none', cursor: 'pointer', borderRadius: '11px', background: '#fff', color: PUR, padding: '11px 18px', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700, boxShadow: '0 6px 18px -8px rgba(47,107,76,0.5)' }}>
-        View AI Insights <DashIcon d={PATHS.spark} s={14} stroke={PUR} />
-      </button>
-    </div>
+      )}
+    </Card>
   );
 
   const patientModal = selectedPatient && (
@@ -310,23 +420,65 @@ export function ConsultantWorkspace() {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div>
             <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#171433' }}>{selectedPatient.patient.name}</div>
-            <div style={{ fontSize: '0.82rem', color: '#8b8fa3' }}>{selectedPatient.patient.email} · Skin Type: <b>{selectedPatient.patient.profile?.skin_type || 'Combination'}</b></div>
+            <div style={{ fontSize: '0.82rem', color: '#8b8fa3' }}>{selectedPatient.patient.email} · Skin Type: <b>{selectedPatient.patient.profile?.skin_type || 'Unassessed'}</b></div>
           </div>
           <button onClick={() => setSelectedPatient(null)} style={{ display: 'grid', placeItems: 'center', width: '34px', height: '34px', borderRadius: '50%', border: '1px solid #edeef4', background: '#f6f7fb', cursor: 'pointer', fontSize: '1rem', color: '#8b8fa3' }}>×</button>
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-          <div style={{ padding: '16px', borderRadius: '16px', background: '#f6f7fb' }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: PUR, marginBottom: '8px' }}>Active Routine ({selectedPatient.active_routine.length} Steps)</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {selectedPatient.active_routine.map((r: any) => (
-                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#3f4a5a' }}>
-                  <span><b>{r.time_of_day}</b> Step {r.step_number}: {r.step_category} ({r.product_name})</span>
-                  {r.prescribed_by_doctor && <span style={{ color: PUR, fontWeight: 700 }}>Rx Doctor</span>}
-                </div>
-              ))}
+          {/* Clinical Profile Summary */}
+          <div style={{ padding: '14px 16px', borderRadius: '16px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
+            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: PUR, marginBottom: '10px' }}>Patient Clinical Profile</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', fontSize: '0.78rem' }}>
+              <div><span style={{ color: '#8b8fa3', display: 'block', fontSize: '0.7rem' }}>AGE</span><b>{selectedPatient.patient.profile?.age ?? '—'}</b></div>
+              <div><span style={{ color: '#8b8fa3', display: 'block', fontSize: '0.7rem' }}>GENDER</span><b>{selectedPatient.patient.profile?.gender ?? '—'}</b></div>
+              <div><span style={{ color: '#8b8fa3', display: 'block', fontSize: '0.7rem' }}>WATER</span><b>{selectedPatient.patient.profile?.water_intake_l != null ? `${selectedPatient.patient.profile.water_intake_l} L` : '—'}</b></div>
+              <div><span style={{ color: '#8b8fa3', display: 'block', fontSize: '0.7rem' }}>SLEEP</span><b>{selectedPatient.patient.profile?.sleep_hours != null ? `${selectedPatient.patient.profile.sleep_hours} hrs` : '—'}</b></div>
             </div>
+            {selectedPatient.patient.profile?.allergies?.length > 0 && (
+              <div style={{ marginTop: '10px', paddingTop: '8px', borderTop: '1px solid #edeef4', fontSize: '0.76rem', color: '#e11d48' }}>
+                <b>Allergies:</b> {selectedPatient.patient.profile.allergies.join(', ')}
+              </div>
+            )}
           </div>
+
+          {/* Assessment History */}
+          {selectedPatient.assessments?.length > 0 && (
+            <div style={{ padding: '14px 16px', borderRadius: '16px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
+              <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#171433', marginBottom: '8px' }}>Skin Assessment History ({selectedPatient.assessments.length})</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '120px', overflowY: 'auto' }}>
+                {selectedPatient.assessments.map((a: any) => (
+                  <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.78rem', background: '#fff', padding: '8px 12px', borderRadius: '10px', border: '1px solid #edeef4' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, color: PUR }}>{Math.round(a.overall_score)}/100</span>
+                      <span style={{ color: '#8b8fa3', marginLeft: '8px' }}>{a.date}</span>
+                    </div>
+                    <span style={{ fontSize: '0.74rem', color: '#3f4a5a' }}>{a.concerns?.join(', ') || 'No concerns'}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div style={{ padding: '16px', borderRadius: '16px', background: '#f6f7fb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.82rem', fontWeight: 700, color: PUR }}>Active Routine ({selectedPatient.active_routine.length} Steps)</span>
+              <button onClick={() => setShowPrescribeModal(selectedPatient.patient.id)} style={{ padding: '5px 12px', borderRadius: '8px', background: PUR, color: '#fff', border: 'none', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}>+ Prescribe New Routine</button>
+            </div>
+            {selectedPatient.active_routine.length === 0 ? (
+              <div style={{ fontSize: '0.8rem', color: '#8b8fa3' }}>No active routine prescribed yet.</div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {selectedPatient.active_routine.map((r: any) => (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#3f4a5a' }}>
+                    <span><b>{r.time_of_day}</b> Step {r.step_number}: {r.step_category} ({r.product_name})</span>
+                    {r.prescribed_by_doctor && <span style={{ color: PUR, fontWeight: 700 }}>Rx Clinical</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
 
           <div>
             <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#171433', marginBottom: '8px' }}>Progress Photos ({selectedPatient.progress_photos.length})</div>
@@ -335,7 +487,7 @@ export function ConsultantWorkspace() {
                 {selectedPatient.progress_photos.map((p: any) => (
                   <div key={p.id} style={{ minWidth: '120px', borderRadius: '12px', overflow: 'hidden', border: '1px solid #edeef4' }}>
                     <img src={p.url} alt={p.tag} style={{ width: '100%', height: '100px', objectFit: 'cover' }} />
-                    <div style={{ padding: '6px', fontSize: '0.72rem', textAlign: 'center', background: '#fff' }}>{p.tag} ({p.score} pts)</div>
+                    <div style={{ padding: '6px', fontSize: '0.72rem', textAlign: 'center', background: '#fff' }}>{p.tag} ({p.score || '—'} pts)</div>
                   </div>
                 ))}
               </div>
@@ -360,6 +512,9 @@ export function ConsultantWorkspace() {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {referError && (
+              <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626', fontSize: '0.82rem' }}>{referError}</div>
+            )}
             <div>
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#7c8199', display: 'block', marginBottom: '6px' }}>PREFERRED CONSULTATION DATE</label>
               <input type="date" value={referDate} onChange={e => setReferDate(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.88rem', outline: 'none', boxSizing: 'border-box' }} />
@@ -372,8 +527,84 @@ export function ConsultantWorkspace() {
               <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#7c8199', display: 'block', marginBottom: '6px' }}>CLINICAL SUMMARY / REASON FOR REFERRAL</label>
               <textarea placeholder="Specify clinical reasons for dermatologist review..." value={referSummary} onChange={e => setReferSummary(e.target.value)} rows={3} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.88rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
             </div>
-            <button onClick={() => submitRefer(showReferModal)} disabled={!referDate || !referTime} style={{ padding: '12px 20px', borderRadius: '12px', background: PUR, border: 'none', color: '#fff', fontFamily: 'inherit', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer' }}>
-              Send Referral to Dr. Meera Iyer
+            <button onClick={() => submitRefer(showReferModal!)} disabled={referLoading || !referDate || !referTime} style={{ padding: '12px 20px', borderRadius: '12px', background: (referLoading || !referDate || !referTime) ? '#a3a7bd' : PUR, border: 'none', color: '#fff', fontFamily: 'inherit', fontSize: '0.88rem', fontWeight: 700, cursor: (referLoading || !referDate || !referTime) ? 'not-allowed' : 'pointer' }}>
+              {referLoading ? 'Submitting Referral…' : 'Send Referral to Dermatologist'}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  const prescribeModal = showPrescribeModal && (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(23,20,51,0.28)', backdropFilter: 'blur(4px)' }} onClick={e => { if (e.target === e.currentTarget) setShowPrescribeModal(null); }}>
+      <div style={{ width: '560px', maxWidth: '96vw', borderRadius: '24px', background: '#fff', border: '1px solid #edeef4', boxShadow: '0 32px 80px -20px rgba(23,20,51,0.35)', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '18px' }}>
+          <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#171433' }}>Prescribe Custom Skincare Routine</div>
+          <button onClick={() => setShowPrescribeModal(null)} style={{ display: 'grid', placeItems: 'center', width: '30px', height: '30px', borderRadius: '50%', border: '1px solid #edeef4', background: '#f6f7fb', cursor: 'pointer', fontSize: '0.95rem', color: '#8b8fa3' }}>×</button>
+        </div>
+
+        {prescribeSuccess ? (
+          <div style={{ padding: '16px', borderRadius: '14px', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', textAlign: 'center', color: '#16a34a', fontWeight: 700 }}>
+            ✅ Custom routine successfully prescribed and saved!
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {prescribeError && (
+              <div style={{ padding: '10px 14px', borderRadius: '10px', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#dc2626', fontSize: '0.82rem' }}>{prescribeError}</div>
+            )}
+            <div>
+              <label style={{ fontSize: '0.78rem', fontWeight: 600, color: '#7c8199', display: 'block', marginBottom: '6px' }}>CLINICAL NOTES / ADVICE</label>
+              <textarea placeholder="Add clinical guidance for patient..." value={doctorNotes} onChange={e => setDoctorNotes(e.target.value)} rows={2} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.88rem', outline: 'none', resize: 'vertical', boxSizing: 'border-box' }} />
+            </div>
+
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#171433' }}>Routine Steps ({prescribeSteps.length})</span>
+                <button
+                  type="button"
+                  onClick={() => setPrescribeSteps(prev => [...prev, { time_of_day: 'AM', step_number: prev.length + 1, step_category: 'Moisturizing', product_name: 'Custom Product', active_ingredients: [] }])}
+                  style={{ padding: '4px 10px', borderRadius: '6px', background: 'rgba(47,107,76,0.1)', color: PUR, border: 'none', fontSize: '0.74rem', fontWeight: 700, cursor: 'pointer' }}
+                >
+                  + Add Step
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '260px', overflowY: 'auto' }}>
+                {prescribeSteps.map((step, idx) => (
+                  <div key={idx} style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr', gap: '8px' }}>
+                      <select
+                        value={step.time_of_day}
+                        onChange={e => { const val = e.target.value; setPrescribeSteps(prev => prev.map((s, i) => i === idx ? { ...s, time_of_day: val } : s)); }}
+                        style={{ padding: '6px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.78rem' }}
+                      >
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                        <option value="Weekly">Weekly</option>
+                      </select>
+                      <input
+                        type="text"
+                        placeholder="Product Name"
+                        value={step.product_name}
+                        onChange={e => { const val = e.target.value; setPrescribeSteps(prev => prev.map((s, i) => i === idx ? { ...s, product_name: val } : s)); }}
+                        style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.78rem' }}
+                      />
+                      <input
+                        type="text"
+                        placeholder="Category"
+                        value={step.step_category}
+                        onChange={e => { const val = e.target.value; setPrescribeSteps(prev => prev.map((s, i) => i === idx ? { ...s, step_category: val } : s)); }}
+                        style={{ padding: '6px 8px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.78rem' }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button onClick={() => submitPrescription(showPrescribeModal!)} disabled={prescribeLoading || prescribeSteps.length === 0} style={{ padding: '12px 20px', borderRadius: '12px', background: (prescribeLoading || prescribeSteps.length === 0) ? '#a3a7bd' : PUR, border: 'none', color: '#fff', fontFamily: 'inherit', fontSize: '0.88rem', fontWeight: 700, cursor: (prescribeLoading || prescribeSteps.length === 0) ? 'not-allowed' : 'pointer' }}>
+              {prescribeLoading ? 'Saving Prescription…' : 'Submit Prescription'}
             </button>
           </div>
         )}
@@ -385,6 +616,7 @@ export function ConsultantWorkspace() {
     <>
       {patientModal}
       {referModal}
+      {prescribeModal}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
           {table}
@@ -397,12 +629,26 @@ export function ConsultantWorkspace() {
         <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
           <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}>
             {progress}
-            {recent}
+            {apptQueue}
           </div>
-          {followups}
+          <Card style={{ paddingBottom: '10px', display: 'flex', flexDirection: 'column' }}>
+            <CardHead title="Clinical Actions & Stats" right={<span style={{ fontSize: '0.72rem', fontWeight: 600, color: PUR }}>Overview</span>} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 0' }}>
+              <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Total Patients Assigned</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: PUR }}>{roster.length}</span>
+              </div>
+              <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Consultation Requests</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: BLU }}>{appointments.length}</span>
+              </div>
+              <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Patients Requiring Attention</span>
+                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: ORA }}>{needAttn}</span>
+              </div>
+            </div>
+          </Card>
         </div>
-
-        {banner}
       </div>
     </>
   );

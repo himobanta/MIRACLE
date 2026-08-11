@@ -1,5 +1,6 @@
 import os
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -17,6 +18,7 @@ from .routers import (
     consultant_router,
     appointment_router
 )
+from .routers import admin_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -27,10 +29,57 @@ logger = logging.getLogger("miracle.app")
 # Create database tables (idempotent — safe for both SQLite and PostgreSQL)
 Base.metadata.create_all(bind=engine)
 
+
+def _seed_demo_users():
+    """Seed development-only demo accounts if they don't already exist.
+    NEVER runs in production or staging environments.
+    """
+    log_startup_summary()
+    if ENVIRONMENT in ["production", "prod", "staging", "stage"]:
+        logger.info("Production/Staging mode: skipping demo user seeding.")
+        return
+    db = SessionLocal()
+    try:
+        if not db.query(User).filter(User.email == "user@miracle.com").first():
+            user = User(
+                name="Ananya Sharma",
+                email="user@miracle.com",
+                hashed_password=hash_password("password123"),
+                role="User"
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+            profile = UserProfile(user_id=user.id, skin_type="Oily", concerns=["Acne", "Pigmentation"])
+            db.add(profile)
+            db.commit()
+
+        if not db.query(User).filter(User.email == "derma@miracle.com").first():
+            doctor = User(
+                name="Dr. Meera Vasudevan",
+                email="derma@miracle.com",
+                hashed_password=hash_password("doctor123"),
+                role="Dermatologist"
+            )
+            db.add(doctor)
+            db.commit()
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app_: FastAPI):
+    """FastAPI lifespan handler: runs startup logic before the app accepts requests."""
+    _seed_demo_users()
+    yield
+    # Shutdown: no cleanup required for SQLAlchemy connection pool disposal
+
+
 app = FastAPI(
     title="Miracle AI Skincare Intelligence & Planner API",
     description="Full-Stack Backend Engine for Skin Assessment, Scoring, Routine Generation, Product Recommendation, and Doctor Portals",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
@@ -84,41 +133,7 @@ app.include_router(recommendation_router.router)
 app.include_router(analytics_router.router)
 app.include_router(consultant_router.router)
 app.include_router(appointment_router.router)
-
-# ── Startup: seed demo accounts if absent ─────────────────────────────────────
-@app.on_event("startup")
-def seed_default_users():
-    log_startup_summary()
-    if ENVIRONMENT in ["production", "prod", "staging", "stage"]:
-        logger.info("Production/Staging mode: skipping demo user seeding.")
-        return
-    db = SessionLocal()
-    try:
-        if not db.query(User).filter(User.email == "user@miracle.com").first():
-            user = User(
-                name="Ananya Sharma",
-                email="user@miracle.com",
-                hashed_password=hash_password("password123"),
-                role="User"
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            profile = UserProfile(user_id=user.id, skin_type="Oily", concerns=["Acne", "Pigmentation"])
-            db.add(profile)
-            db.commit()
-
-        if not db.query(User).filter(User.email == "derma@miracle.com").first():
-            doctor = User(
-                name="Dr. Meera Vasudevan",
-                email="derma@miracle.com",
-                hashed_password=hash_password("doctor123"),
-                role="Dermatologist"
-            )
-            db.add(doctor)
-            db.commit()
-    finally:
-        db.close()
+app.include_router(admin_router.router)
 
 # ── Health & Readiness Endpoints ──────────────────────────────────────────────
 @app.get("/health", tags=["Health"])

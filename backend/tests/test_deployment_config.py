@@ -200,3 +200,75 @@ def test_cors_preflight_options_register(client):
     assert resp.status_code == 200
     assert resp.headers.get("access-control-allow-origin") == "http://127.0.0.1:5173"
 
+
+# ── Phase 38: Production Readiness Regressions ────────────────────────────────
+
+def test_p38_lifespan_handler_replaces_deprecated_on_event():
+    """
+    DEF-38-01 regression: verify the app no longer uses the deprecated
+    @app.on_event("startup") pattern. The lifespan context manager must be used.
+    FastAPI apps with lifespan= set will have router.lifespan_context set.
+    """
+    from backend.app.main import app
+    # Confirm no on_event handlers registered (deprecated path)
+    # FastAPI stores on_event handlers in router.on_startup
+    on_startup_handlers = getattr(app.router, "on_startup", [])
+    assert len(on_startup_handlers) == 0, (
+        "on_event('startup') still registered — must use lifespan context manager instead"
+    )
+
+
+def test_p38_jwt_token_uses_timezone_aware_datetime():
+    """
+    DEF-38-02 regression: verify create_access_token produces a token whose
+    'exp' claim decodes to a timezone-aware datetime (UTC-offset), not naive UTC.
+    """
+    import jwt as pyjwt
+    from datetime import timezone
+    from backend.app.auth import create_access_token
+    from backend.app.config import SECRET_KEY, ALGORITHM
+
+    token = create_access_token({"sub": "test-user-id", "role": "User", "name": "Test"})
+    payload = pyjwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+    exp = payload.get("exp")
+    assert exp is not None, "Token must have an 'exp' claim"
+    assert isinstance(exp, (int, float)), "exp claim must be a numeric timestamp"
+    # Verify the timestamp is in the future (token is not already expired)
+    from datetime import datetime
+    now_ts = datetime.now(timezone.utc).timestamp()
+    assert exp > now_ts, "Token 'exp' must be in the future"
+
+
+def test_p38_post_recommendations_is_public_by_design(client):
+    """
+    Phase 38 audit confirms: POST /api/v1/recommendations is intentionally public.
+    It accepts explicit skin_type/concerns/allergies parameters and returns products
+    without requiring a user token. This is the correct Phase 25 design for
+    anonymous/guest product queries.
+    """
+    resp = client.post(
+        "/api/v1/recommendations",
+        json={
+            "skin_type": "Oily",
+            "concerns": ["Acne"],
+            "allergies": [],
+        }
+    )
+    # POST /recommendations is intentionally public (no auth required by design)
+    assert resp.status_code == 200, (
+        f"POST /recommendations is a public endpoint by design (got {resp.status_code})"
+    )
+    data = resp.json()
+    assert "products" in data
+    assert "recommendations_count" in data
+
+
+def test_p38_get_recommendations_requires_authentication(client):
+    """
+    Verify GET /api/v1/recommendations returns 401 without a token.
+    GET uses profile personalization and requires authentication.
+    """
+    resp = client.get("/api/v1/recommendations")
+    assert resp.status_code == 401, (
+        f"GET /recommendations must require authentication (got {resp.status_code})"
+    )

@@ -8,40 +8,33 @@ from ..auth import get_current_user
 
 router = APIRouter(prefix="/api/v1/appointments", tags=["Appointments & Consultations"])
 
-PRO_PROFILES = [
-    {
-        "id": "cons_1",
-        "name": "Dr. Priya Sharma",
-        "role": "Skincare Consultant",
-        "title": "Senior Clinical Skincare Specialist",
-        "specialty": "Acne Barrier Repair & Botanical Science",
-        "experience": "8+ Years Experience",
-        "rating": 4.9,
-        "reviews": 320,
-        "bio": "Specializes in holistic skin health analysis, barrier repair protocols, and AI-guided custom routine composition.",
-        "avatar": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=140&h=140&fit=crop&crop=faces&auto=format&q=80",
-        "availability": ["Monday", "Wednesday", "Friday"],
-        "location": "Mumbai Dermatology Centre & Online"
-    },
-    {
-        "id": "derma_1",
-        "name": "Dr. Meera Iyer",
-        "role": "Dermatologist",
-        "title": "MD Dermatology, Board Certified Specialist",
-        "specialty": "Severe Acne, Hyperpigmentation & Clinical Actives",
-        "experience": "14+ Years Experience",
-        "rating": 5.0,
-        "reviews": 580,
-        "bio": "Board-certified dermatologist focusing on prescription active management, complex skin conditions, and clinical ingredient safety.",
-        "avatar": "https://images.unsplash.com/photo-1594824476967-48c8b964273f?w=140&h=140&fit=crop&crop=faces&auto=format&q=80",
-        "availability": ["Tuesday", "Thursday", "Saturday"],
-        "location": "Miracle Medical Skin Institute"
-    }
-]
 
 @router.get("/professionals")
-def list_professionals():
-    return {"professionals": PRO_PROFILES}
+def list_professionals(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Returns all registered professionals (Skincare Consultants and Dermatologists)
+    from the database. Sourced from real DB records — no hardcoded data.
+    Only safe profile fields are returned (no password hashes or sensitive internals).
+    """
+    professionals = db.query(User).filter(
+        User.role.in_(["Skincare Consultant", "Dermatologist"])
+    ).order_by(User.role, User.name).all()
+
+    return {
+        "professionals": [
+            {
+                "id": p.id,
+                "name": p.name,
+                "role": p.role,
+                "email": p.email,
+                "registered_since": p.created_at.strftime("%Y-%m-%d") if p.created_at else None,
+            }
+            for p in professionals
+        ]
+    }
 
 @router.post("/request")
 def request_appointment(
@@ -80,10 +73,19 @@ def get_my_appointments(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    appts = db.query(Appointment).filter(Appointment.user_id == current_user.id).order_by(Appointment.created_at.desc()).all()
-    return [
-        {
+    if current_user.role in ["Skincare Consultant", "Dermatologist", "Administrator"]:
+        appts = db.query(Appointment).order_by(Appointment.created_at.desc()).all()
+    else:
+        appts = db.query(Appointment).filter(Appointment.user_id == current_user.id).order_by(Appointment.created_at.desc()).all()
+
+    result = []
+    for a in appts:
+        user = db.query(User).filter(User.id == a.user_id).first()
+        result.append({
             "id": a.id,
+            "patient_id": a.user_id,
+            "patient_name": user.name if user else "Patient",
+            "patient_email": user.email if user else "",
             "target_role": a.target_role,
             "preferred_date": a.preferred_date,
             "preferred_time": a.preferred_time,
@@ -91,9 +93,9 @@ def get_my_appointments(
             "user_notes": a.user_notes,
             "consultant_summary": a.consultant_summary,
             "doctor_notes": a.doctor_notes,
-            "created_at": a.created_at.strftime("%Y-%m-%d %H:%M")
-        } for a in appts
-    ]
+            "created_at": a.created_at.strftime("%Y-%m-%d %H:%M") if a.created_at else None
+        })
+    return result
 
 VALID_STATUSES = {"Requested", "Accepted", "Rejected", "Referred_To_Dermatologist", "Completed"}
 

@@ -79,11 +79,12 @@ def get_personalized_recommendations(
     skin_type = (skin_type or "Normal").strip() or "Normal"
     concerns = concerns or []
     user_allergies = user_allergies or []
-    clean_allergies = [a.lower() for a in user_allergies]
+    # Strip whitespace and drop empty/whitespace-only allergy terms
+    clean_allergies = [a.strip().lower() for a in user_allergies if a and a.strip()]
 
     db: Session = SessionLocal()
     try:
-        # Fetch a personalized, broad sample from the full 50,969-product database
+        # Fetch a personalized, broad sample from the full database
         db_products = _build_product_query(db, skin_type, concerns)
 
         if not db_products:
@@ -99,7 +100,7 @@ def get_personalized_recommendations(
             name_text = (prod.product_name or "").lower()
 
             # 1. Hard-Filter Safety Gate: Exclude allergens
-            has_allergen = any(alg in ing_text for alg in clean_allergies if alg)
+            has_allergen = any(alg in ing_text for alg in clean_allergies)
             if has_allergen:
                 continue
 
@@ -128,9 +129,19 @@ def get_personalized_recommendations(
             ) else 70.0
 
             # 15% Rating
-            rating_score = ((prod.rating or 4.6) / 5.0) * 100.0
+            effective_rating = prod.rating if prod.rating is not None else 4.6
+            effective_safety = prod.safety_score if prod.safety_score is not None else 90.0
+            rating_score = (effective_rating / 5.0) * 100.0
 
             final_match_pct = round((0.50 * concern_score) + (0.35 * type_fit) + (0.15 * rating_score), 1)
+
+            # Check image URL validity (HTTP/HTTPS or relative path starting with /)
+            raw_img = prod.image_url or ""
+            valid_img = bool(raw_img and (raw_img.startswith("http://") or raw_img.startswith("https://") or raw_img.startswith("/")))
+            img_url = raw_img if valid_img else "/assets/default_product.png"
+
+            # Truthful budget calculation
+            exceeds_budget = bool(max_budget is not None and max_budget > 0 and prod.price is not None and prod.price > max_budget)
 
             scored_products.append({
                 "id": prod.id,
@@ -139,15 +150,15 @@ def get_personalized_recommendations(
                 "category": prod.category,
                 "usage_type": prod.usage_type,
                 "price": prod.price,
-                "rating": prod.rating or 4.6,
-                "safety_score": prod.safety_score or 90.0,
-                "image_url": prod.image_url if (prod.image_url and prod.image_url.startswith("http")) else "/assets/default_product.png",
+                "rating": effective_rating,
+                "safety_score": effective_safety,
+                "image_url": img_url,
                 "product_url": prod.product_url or "",
                 "active_ingredients": [i.strip() for i in (prod.ingredients or "").split(",")[:4] if i.strip()],
                 "match_percentage": final_match_pct,
                 "match_label": f"{int(final_match_pct)}% Match",
                 "is_best_match": final_match_pct >= 80.0,
-                "exceeds_budget": False
+                "exceeds_budget": exceeds_budget
             })
 
         scored_products.sort(key=lambda x: x["match_percentage"], reverse=True)

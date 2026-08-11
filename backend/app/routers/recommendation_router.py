@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
@@ -16,6 +16,9 @@ def get_recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    if max_budget is not None and max_budget < 0:
+        raise HTTPException(status_code=400, detail="max_budget must be a positive number")
+
     profile = db.query(UserProfile).filter(UserProfile.user_id == current_user.id).first()
 
     # Resolve skin type: query param > profile > safe "Normal" fallback (never None)
@@ -48,6 +51,9 @@ def get_recommendations(
 
 @router.post("")
 def query_recommendations(req: RecommendationQuery):
+    if req.max_budget is not None and req.max_budget < 0:
+        raise HTTPException(status_code=400, detail="max_budget must be a positive number")
+
     recommendations = get_personalized_recommendations(
         skin_type=req.skin_type or "Normal",
         concerns=req.concerns or [],
@@ -55,4 +61,5 @@ def query_recommendations(req: RecommendationQuery):
         max_budget=req.max_budget
     )
     return {"recommendations_count": len(recommendations), "products": recommendations}
+
 

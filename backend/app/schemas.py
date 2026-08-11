@@ -50,7 +50,7 @@ class AssessmentResponse(BaseModel):
     consistency_subscore: float
     hydration_subscore: float
     detected_concerns: List[str]
-    created_at: str
+    created_at: Optional[str] = None
 
 class RoutineStepSchema(BaseModel):
     id: Optional[str] = None
