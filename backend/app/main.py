@@ -206,13 +206,41 @@ if DIST_DIR:
 # Debug endpoint — always registered regardless of dist/ presence
 @app.get("/debug-paths", tags=["Debug"], include_in_schema=False)
 def debug_paths():
-    """Diagnose static file path resolution on Railway."""
+    """Diagnose static file path resolution on Railway dynamically."""
+    live_this_file = os.path.abspath(__file__)
+    live_app_root = os.path.dirname(os.path.dirname(os.path.dirname(live_this_file)))
+    
+    live_candidates = [
+        os.path.join(live_app_root, "dist"),
+        os.path.join(os.path.dirname(live_this_file), "..", "..", "dist"),
+        os.path.join(os.getcwd(), "dist"),
+        os.path.join(os.path.dirname(os.getcwd()), "dist"),
+        "/app/dist",
+        "/dist",
+        "/app/backend/dist",
+    ]
+    
+    app_dir_contents = []
+    try:
+        if os.path.isdir("/app"):
+            app_dir_contents = os.listdir("/app")
+    except Exception as e:
+        app_dir_contents = [str(e)]
+        
+    cwd_contents = []
+    try:
+        cwd_contents = os.listdir(os.getcwd())
+    except Exception as e:
+        cwd_contents = [str(e)]
+
     return {
         "cwd": os.getcwd(),
-        "this_file": _this_file,
-        "app_root": _app_root,
+        "cwd_contents": cwd_contents[:20],
+        "app_dir_contents": app_dir_contents[:20],
+        "this_file": live_this_file,
+        "app_root": live_app_root,
         "dist_dir_used": DIST_DIR,
-        "candidates_checked": {os.path.normpath(c): os.path.isdir(os.path.normpath(c)) for c in _candidate_dirs},
+        "live_candidates_checked": {os.path.normpath(c): os.path.isdir(os.path.normpath(c)) for c in live_candidates},
         "dist_index_exists": DIST_DIR is not None and os.path.isfile(os.path.join(DIST_DIR, "index.html")),
     }
 
