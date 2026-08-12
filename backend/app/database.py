@@ -57,8 +57,12 @@ def _ensure_log_file():
 
 def save_routine_log(log_entry: Dict[str, Any]):
     _ensure_log_file()
-    with open(ROUTINE_LOGS_FILE, "r") as f:
-        logs = json.load(f)
+    logs = []
+    try:
+        with open(ROUTINE_LOGS_FILE, "r") as f:
+            logs = json.load(f)
+    except (json.JSONDecodeError, ValueError):
+        logs = []
     
     updated = False
     for i, log in enumerate(logs):
@@ -74,6 +78,11 @@ def save_routine_log(log_entry: Dict[str, Any]):
 
 def get_routine_logs(user_id: str) -> List[Dict[str, Any]]:
     _ensure_log_file()
-    with open(ROUTINE_LOGS_FILE, "r") as f:
-        logs = json.load(f)
-    return [l for l in logs if l.get("user_id") == user_id]
+    try:
+        with open(ROUTINE_LOGS_FILE, "r") as f:
+            logs = json.load(f)
+        return [l for l in logs if isinstance(l, dict) and l.get("user_id") == user_id]
+    except (json.JSONDecodeError, ValueError):
+        with open(ROUTINE_LOGS_FILE, "w") as f:
+            json.dump([], f)
+        return []
