@@ -7,7 +7,6 @@ import { UserWorkspace } from '../components/dashboard/UserWorkspace';
 import { ConsultantWorkspace } from '../components/dashboard/ConsultantWorkspace';
 import { DermaWorkspace } from '../components/dashboard/DermaWorkspace';
 import { AdminWorkspace } from '../components/dashboard/AdminWorkspace';
-import { RoleSwitcher } from '../components/dashboard/RoleSwitcher';
 
 export function Dashboard() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -80,13 +79,6 @@ export function Dashboard() {
     };
   }, [role]);
 
-  const handleSelectRole = (newRole: RoleType) => {
-    setRole(newRole);
-    setActiveSection('dashboard');
-    setSearchParams({ role: newRole });
-    navigate(`/dashboard/${newRole}`, { replace: true });
-  };
-
   const contentMt = role === 'user' ? '0px' : '16px';
 
   return (
@@ -133,9 +125,6 @@ export function Dashboard() {
           </div>
         </div>
       </div>
-
-      {/* Floating Role Switcher Capsule */}
-      <RoleSwitcher currentRole={role} onSelectRole={handleSelectRole} />
     </div>
   );
 }
