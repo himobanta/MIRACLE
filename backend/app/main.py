@@ -124,6 +124,9 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={"detail": "An internal server error occurred. Please try again later."}
     )
 
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router.router)
 app.include_router(assessment_router.router)
@@ -156,12 +159,36 @@ def readiness_check():
         content={"status": "not ready", "database": "unreachable"}
     )
 
-# ── Root ──────────────────────────────────────────────────────────────────────
-@app.get("/")
-def root():
-    return {
-        "status": "online",
-        "service": "Miracle AI Skincare Intelligence Platform API",
-        "version": "1.0.0",
-        "documentation": "/docs"
-    }
+# ── Static SPA Mount & Fallback Routing ────────────────────────────────────────
+DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "dist")
+
+if os.path.exists(DIST_DIR):
+    assets_dir = os.path.join(DIST_DIR, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="static_assets")
+
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_spa_or_fallback(full_path: str):
+        # Don't intercept API routes or docs
+        if full_path.startswith("api/") or full_path in ["docs", "openapi.json", "redoc"]:
+            return JSONResponse(status_code=404, content={"detail": "Not Found"})
+        
+        file_path = os.path.join(DIST_DIR, full_path)
+        if full_path and os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        
+        index_file = os.path.join(DIST_DIR, "index.html")
+        if os.path.exists(index_file):
+            return FileResponse(index_file)
+        
+        return JSONResponse(status_code=404, content={"detail": "SPA index.html not found"})
+else:
+    @app.get("/")
+    def root():
+        return {
+            "status": "online",
+            "service": "Miracle AI Skincare Intelligence Platform API",
+            "version": "1.0.0",
+            "documentation": "/docs"
+        }
+

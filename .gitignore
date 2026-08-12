@@ -18,8 +18,8 @@ venv/
 # Node
 node_modules/
 
-# Build output
-dist/
+# Build output (tracked dist/ for Railway deployment)
+# dist/
 
 # Local uploads / generated files
 uploads/
@@ -31,3 +31,9 @@ Thumbs.db
 
 # Local project metadata
 .thumbnail
+
+# Temporary investigation dumps
+*-code.txt
+*-router.txt
+*-current.txt
+schemas.txt
