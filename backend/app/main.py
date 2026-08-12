@@ -165,9 +165,12 @@ _app_root = os.path.dirname(os.path.dirname(os.path.dirname(_this_file)))  # /ap
 _candidate_dirs = [
     os.path.join(_app_root, "dist"),                                   # /app/dist (from 3 dirs up __file__)
     os.path.join(os.path.dirname(_this_file), "..", "..", "dist"),     # relative from backend/app
+    os.path.join(os.path.dirname(_this_file), "..", "dist"),           # /app/app/dist
     os.path.join(os.getcwd(), "dist"),                                  # cwd/dist
+    os.path.join(os.getcwd(), "app", "dist"),                          # /app/app/dist
     os.path.join(os.path.dirname(os.getcwd()), "dist"),                # parent of cwd / dist
     "/app/dist",                                                        # Railway absolute
+    "/app/app/dist",                                                    # Railway nested app/dist
     "/dist",                                                            # fallback root
 ]
 
