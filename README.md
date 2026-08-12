@@ -1,123 +1,134 @@
-# MIRACLE — AI Skincare Intelligence & Planner Platform
+# MIRACLE — AI Skincare Intelligence & Personalized Skincare Planner
 
-[![Python](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg)](https://fastapi.tiangolo.com)
-[![React](https://img.shields.io/badge/React-18.3-61DAFB.svg)](https://react.dev)
-[![Vite](https://img.shields.io/badge/Vite-6.1-646CFF.svg)](https://vitejs.dev)
+> **Enterprise AI Skincare Intelligence, Chemical Ingredient Analysis & Clinical Tele-Dermatology Platform**
 
-MIRACLE is a full-stack, AI-powered skincare intelligence platform that delivers personalized skin assessment, multi-subscore health evaluation, customized skincare routine generation, ingredient safety scoring, product recommendations, progress tracking, and multi-role clinical doctor/consultant portals.
-
----
-
-## 🌟 Live Production Deployment
-
-- **Live Backend API**: [https://miracle-production-e7d3.up.railway.app](https://miracle-production-e7d3.up.railway.app)
-- **API Base URL**: `https://miracle-production-e7d3.up.railway.app/api/v1`
-- **Interactive Swagger Docs**: [https://miracle-production-e7d3.up.railway.app/docs](https://miracle-production-e7d3.up.railway.app/docs)
-- **Production Status**:
-  - `GET /health` → `{"status":"ok","service":"miracle-api"}` (HTTP 200)
-  - `GET /ready` → `{"status":"ready","database":"connected"}` (HTTP 200)
+[![Build & Verification Status](https://img.shields.io/badge/Release_Status-READY-brightgreen.svg)](https://miracle-production-e7d3.up.railway.app)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18.0+-61DAFB.svg?logo=react&logoColor=black)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6.svg?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15+-4169E1.svg?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Railway](https://img.shields.io/badge/Deployment-Railway-0B0D0E.svg?logo=railway&logoColor=white)](https://miracle-production-e7d3.up.railway.app)
 
 ---
 
-## 🏗️ System Architecture
+## 🌟 Overview
 
-```
-   ┌─────────────────────────────────────────────────────────────────┐
-   │                    React 18 SPA (Vite 6)                        │
-   │  Landing • Auth • User Workspace • Consultant • Derma • Admin   │
-   └────────────────────────────────┬────────────────────────────────┘
-                                    │ HTTP / JSON (Bearer JWT)
-                                    ▼
-   ┌─────────────────────────────────────────────────────────────────┐
-   │                       FastAPI Backend Engine                    │
-   │    Auth • Assessment • Routine • Ingredients • Recommendations   │
-   │    Analytics • Appointments • Consultant Portal • Admin Portal   │
-   └───────┬────────────────────────┬────────────────────────┬───────┘
-           │                        │                        │
-           ▼                        ▼                        ▼
-  ┌──────────────────┐    ┌──────────────────┐    ┌──────────────────┐
-  │ PostgreSQL (Prod)│    │ Algorithm Engine │    │  SkinSAFE Dataset│
-  │ SQLite (Local)   │    │ Scoring/Routine  │    │  50,000+ Products│
-  └──────────────────┘    └──────────────────┘    └──────────────────┘
-```
+**MIRACLE** is an enterprise-ready, multi-role AI skincare intelligence platform. It bridges the gap between everyday consumer skincare routines, chemical active safety analysis, and certified clinical dermatology care.
+
+Deployed live on Railway: **[https://miracle-production-e7d3.up.railway.app](https://miracle-production-e7d3.up.railway.app)**
 
 ---
 
-## 🔐 Role-Based Access Control (RBAC)
+## 🎯 Key Features Across Four Milestones
 
-MIRACLE enforces strict role isolation across 4 distinct roles:
+### 🧠 Milestone 1: AI Skin Health Assessment & Scoring
+- Questionnaire-driven deterministic skin scoring engine (0–100) evaluating acne, hyperpigmentation, redness, and wrinkles.
+- Subscore breakdown across **Hydration**, **Consistency**, **Sleep**, and **Barrier Repair**.
+- Trajectory tracking across past assessments stored in PostgreSQL.
 
-1. **User**: Public self-registration allowed. Access to personal profile, assessment, routine, progress logging, product recommendations, ingredient analysis, progress photo gallery, and appointment requests.
-2. **Skincare Consultant**: Medical role. Access to patient roster, detailed patient inspection, dermatologist referrals, and appointment management.
-3. **Dermatologist**: Medical role. Access to referred patients, full clinical history, appointment management, and doctor-prescribed routine overwrites with clinical notes.
-4. **Administrator**: Platform management role. Access to real-time database statistics, user management, and platform activity feeds. Never exposes password hashes or internal secrets.
+### 📋 Milestone 2: Dynamic Routine Generator & Daily Checklist
+- Auto-generates personalized Morning (AM), Evening (PM), and Weekly Night routine steps.
+- Interactive daily checklist habit tracker logging water intake (L) and sleep hours.
+- Live 7-day adherence metric calculated from routine completion history.
+
+### 🧪 Milestone 3: Recommendations & INCI Chemical Ingredient Analyzer
+- Dataset-verified skincare product recommendations matched by user skin type.
+- INCI chemical safety analyzer checking active cross-reactivity, allergen risks, and AM/PM routine suitability.
+
+### 🩺 Milestone 4: Tele-Dermatology & Clinical Referral Lifecycle
+- **User**: Requests consultation date & time.
+- **Consultant**: Reviews client assessment trajectory, accepts consultation, prescribes custom routine, and refers complex cases.
+- **Dermatologist**: Receives referral in clinical queue, reviews medical history, and prescribes high-potency clinical active (**Adapalene 0.1% Gel**).
+- **User Routine Sync**: Prescribed clinical treatments update reactively in the User's active routine upon login.
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## 👥 Four Role-Specific Workspaces
+
+1. **User Dashboard**: Skin health scoring, personalized routine tracking, daily checklist, product safety lookup, photo progress gallery, consultation booking.
+2. **Skincare Consultant Dashboard**: Assigned client roster, patient search/filter, clinical profile inspection, routine prescription engine, dermatologist referral.
+3. **Dermatologist Dashboard**: Clinical referral queue, medical profile review, clinical active prescription engine (**Adapalene 0.1% Gel**).
+4. **Administrator Dashboard**: Real-time DB platform metrics, user roster management, role filtering, live system audit feed, API/DB readiness health checks.
+
+---
+
+## 🛠️ Technology Stack
+
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 18 SPA, TypeScript, Vite, Vanilla CSS Design System, React Router DOM |
+| **Backend** | Python FastAPI, SQLAlchemy ORM, Pydantic, Uvicorn |
+| **Database & Logs** | PostgreSQL, Structured JSON Routine Log Engine (`routine_logs.json`) |
+| **Auth & Security** | OAuth2 JWT Bearer Tokens, Bcrypt password hashing (`passlib`), Server-side RBAC |
+| **Deployment** | Railway PaaS (`miracle-production-e7d3.up.railway.app`), GitHub (`main` branch) |
+
+---
+
+## 🚀 Local Quickstart Guide
 
 ### Prerequisites
+- **Node.js** v18+ and **npm**
+- **Python** v3.11+
+- **PostgreSQL** database instance (or SQLite fallback)
 
-- **Python**: 3.10+
-- **Node.js**: 18+ & `npm` 9+
-
-### 1. Backend Setup
-
+### 1. Repository Setup
 ```bash
-# Install backend dependencies
+git clone https://github.com/himobanta/MIRACLE.git
+cd MIRACLE
+```
+
+### 2. Backend Setup
+```bash
+# Create and activate virtual environment
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+
+# Install dependencies
 pip install -r backend/requirements.txt
 
-# Start local FastAPI backend (runs on http://127.0.0.1:8000)
-python -m uvicorn backend.app.main:app --reload
+# Start FastAPI Server
+uvicorn backend.app.main:app --reload --port 8000
 ```
+Backend API will be running at `http://localhost:8000` (Docs: `http://localhost:8000/docs`).
 
-### 2. Frontend Setup
-
+### 3. Frontend Setup
 ```bash
-# Install frontend dependencies
+# Install Node modules
 npm install
 
-# Start Vite development server (runs on http://localhost:5173)
+# Run Vite dev server
 npm run dev
 ```
+Frontend React SPA will be running at `http://localhost:5173`.
 
 ---
 
 ## 🧪 Testing & Quality Assurance
 
-### Run Backend Pytest Suite (208 / 208 Passed)
-
+### Run Backend Pytest Suite (208 Tests)
 ```bash
-python -m pytest backend/tests/ -v --tb=short
+python -m pytest backend/tests/ -q --tb=short
 ```
 
-### Run Staging Readiness Suite (7 / 7 Passed)
-
-```bash
-python verify_staging_readiness.py
-```
-
-### Run TypeScript Validation (0 Errors)
-
+### Run TypeScript Type Check
 ```bash
 npx tsc --noEmit
 ```
 
-### Production Build Verification
-
+### Run Production Build
 ```bash
 npm run build
 ```
 
 ---
 
-## 📖 Deployment Guide
-
-For complete staging and production deployment runbooks, see [`DEPLOYMENT.md`](file:///C:/Users/Himobanta%20dutta/Downloads/Miracle%20project/DEPLOYMENT.md).
+## 🔒 Security & Data Isolation
+- **Role-Based Access Control**: Route guards enforce JWT token role authorization (`User`, `Skincare Consultant`, `Dermatologist`, `Administrator`). Non-admin attempts to access `/api/v1/admin/*` return `403 Forbidden`.
+- **Multi-User Isolation**: Database queries for profiles, assessments, routines, appointments, and progress photos filter strictly by authenticated `user_id`.
 
 ---
 
-## 📄 License
-
-Proprietary — All rights reserved.
+## 📄 License & Attribution
+Developed for educational and clinical tele-dermatology demonstration purposes. All rights reserved.
