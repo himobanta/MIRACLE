@@ -203,6 +203,7 @@ export function Sidebar({ role, activeSection = 'dashboard', onSectionChange }: 
         {role === 'consultant' && (
           <button
             type="button"
+            onClick={() => onSectionChange && onSectionChange('clients')}
             className="mb-3 flex w-full items-center justify-center gap-2 rounded-xl border-none bg-[#2f6b4c] p-3 text-[0.86rem] font-semibold text-white shadow-[0_12px_24px_-12px_rgba(47,107,76,0.7)] cursor-pointer"
           >
             <DashIcon d="<path d='M12 5v14M5 12h14'/>" s={16} sw={2} stroke="#fff" /> Add New Client
@@ -221,7 +222,10 @@ export function Sidebar({ role, activeSection = 'dashboard', onSectionChange }: 
         )}
 
         {(role === 'derma' || role === 'consultant') && (
-          <div style={{ borderRadius: '16px', padding: '16px', background: 'linear-gradient(135deg,#e8f0ea,#f1f6f2)', border: '1px solid #cfe0d4' }}>
+          <div
+            onClick={() => onSectionChange && onSectionChange('assessments')}
+            style={{ borderRadius: '16px', padding: '16px', background: 'linear-gradient(135deg,#e8f0ea,#f1f6f2)', border: '1px solid #cfe0d4', cursor: 'pointer' }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <span style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', flexShrink: 0, borderRadius: '11px', background: 'rgba(47,107,76,0.14)', color: '#2f6b4c' }}>
                 <DashIcon d={PATHS.spark} s={18} stroke={PUR} />
@@ -247,6 +251,7 @@ export function Sidebar({ role, activeSection = 'dashboard', onSectionChange }: 
             </div>
             <button
               type="button"
+              onClick={() => onSectionChange && onSectionChange('settings')}
               style={{ marginTop: '12px', width: '100%', border: 'none', cursor: 'pointer', borderRadius: '10px', background: '#fff', color: '#2f6b4c', padding: '10px', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700 }}
             >
               Upgrade Now
