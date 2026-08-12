@@ -2,8 +2,9 @@ import os
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from .database import engine, Base, SessionLocal, check_db_connection
 from .models import User, UserProfile
 from .auth import hash_password
@@ -123,9 +124,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         status_code=500,
         content={"detail": "An internal server error occurred. Please try again later."}
     )
-
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(auth_router.router)
