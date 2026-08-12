@@ -557,7 +557,7 @@ export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: 
 
   const productsCard = (
     <Card>
-      <CardHead title="Recommended Products for You" right={<span style={{ fontSize: '0.82rem', fontWeight: 600, color: PUR, cursor: 'pointer' }}>View All</span>} />
+      <CardHead title="Recommended Products for You" right={<span onClick={() => onSectionChange && onSectionChange('product-recommendations')} style={{ fontSize: '0.82rem', fontWeight: 600, color: PUR, cursor: 'pointer' }}>View All</span>} />
       {displayProducts.length === 0 ? (
         <div style={{ padding: '36px 16px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.84rem' }}>
           No specific product recommendations for your current profile. Take an assessment to unlock personalized recommendations.
@@ -608,7 +608,7 @@ export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: 
 
   const concernsCard = (
     <Card>
-      <CardHead title="Skin Concerns Overview" right={<span style={{ fontSize: '0.82rem', fontWeight: 600, color: PUR }}>View Details</span>} />
+      <CardHead title="Skin Concerns Overview" right={<span onClick={() => onSectionChange && onSectionChange('my-skin-profile')} style={{ fontSize: '0.82rem', fontWeight: 600, color: PUR, cursor: 'pointer' }}>View Details</span>} />
       {selectedConcerns.length === 0 ? (
         <div style={{ padding: '36px 16px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.84rem' }}>No skin concerns selected.</div>
       ) : (
@@ -1026,12 +1026,13 @@ export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: 
   const handlePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setAssessmentError(null);
       if (!file.type.startsWith('image/')) {
-        alert('Please select a valid image file (JPG, PNG, WebP).');
+        setAssessmentError('Please select a valid image file (JPG, PNG, WebP).');
         return;
       }
       if (file.size > 5 * 1024 * 1024) {
-        alert('Image size exceeds 5MB limit. Please choose a smaller image.');
+        setAssessmentError('Image size exceeds 5MB limit. Please choose a smaller image.');
         return;
       }
       const reader = new FileReader();
@@ -1041,7 +1042,7 @@ export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: 
         setUploadedPhotoUrl(res);
       };
       reader.onerror = () => {
-        alert('Failed to read image file.');
+        setAssessmentError('Failed to read image file.');
       };
       reader.readAsDataURL(file);
     }

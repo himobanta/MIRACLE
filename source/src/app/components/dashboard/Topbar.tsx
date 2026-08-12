@@ -154,8 +154,25 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
           {topbar.showSearch && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '340px', maxWidth: '44vw', borderRadius: '14px', background: '#fff', border: '1px solid #edeef4', padding: '11px 16px', boxShadow: '0 2px 10px -6px rgba(23,20,51,0.2)' }}>
               <DashIcon d={PATHS.search} s={17} stroke="#9aa0b4" />
-              <input placeholder={topbar.searchPlaceholder} style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '0.86rem', color: '#1e1b39', minWidth: 0 }} />
-              <span style={{ display: 'grid', placeItems: 'center', width: '26px', height: '26px', borderRadius: '8px', background: PUR, color: '#fff' }}>
+              <input
+                placeholder={topbar.searchPlaceholder}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && onSectionChange) {
+                    const targetSection = role === 'admin' ? 'user-management' : role === 'derma' ? 'patients' : 'clients';
+                    onSectionChange(targetSection);
+                  }
+                }}
+                style={{ flex: 1, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '0.86rem', color: '#1e1b39', minWidth: 0 }}
+              />
+              <span
+                onClick={() => {
+                  if (onSectionChange) {
+                    const targetSection = role === 'admin' ? 'user-management' : role === 'derma' ? 'patients' : 'clients';
+                    onSectionChange(targetSection);
+                  }
+                }}
+                style={{ display: 'grid', placeItems: 'center', width: '26px', height: '26px', borderRadius: '8px', background: PUR, color: '#fff', cursor: 'pointer' }}
+              >
                 <DashIcon d={PATHS.search} s={13} stroke="#fff" />
               </span>
             </div>
