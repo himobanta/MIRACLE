@@ -36,13 +36,18 @@ const STEP_EMOJI: Record<string, string> = {
   Exfoliation: '🧪', Serum: '💧', 'Eye Cream': '👁️', 'Lip Mask': '💄', Sleep: '😴',
 };
 
-export function UserWorkspace() {
+interface UserWorkspaceProps {
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+}
+
+export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: UserWorkspaceProps) {
   // ── API State ───────────────────────────────────────────────────────────────
   const [score, setScore] = useState<AssessmentScore | null>(null);
   const [scoreLoading, setScoreLoading] = useState(true);
   const [routine, setRoutineData] = useState<RoutineStep[]>([]);
   const [routineLoading, setRoutineLoading] = useState(true);
-  const [analytics, setAnalytics] = useState<{ score_history: {date:string;score:number}[] } | null>(null);
+  const [analytics, setAnalytics] = useState<{ score_history: {date:string;score:number}[]; progress_photos?: {id:string;url:string;tag:string;score:number|null;date:string}[] } | null>(null);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [apptListLoading, setApptListLoading] = useState(true);
   const [completedSteps, setCompletedSteps] = useState<string[]>([]);
@@ -1291,32 +1296,341 @@ export function UserWorkspace() {
     </Card>
   );
 
+  // Render helper for specific active section
+  const renderSection = () => {
+    switch (activeSection) {
+      case 'my-skin-profile':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(5,minmax(0,1fr))' }}>
+              {cardScore}{cardType}{cardConcern}{cardAge}{cardHydration}
+            </div>
+            <Card>
+              <CardHead title="Edit & Synchronize Skin Profile" right={<span style={{ fontSize: '0.78rem', color: PUR, fontWeight: 700 }}>Persists to DB</span>} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+                <div>
+                  <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'block', marginBottom: '6px' }}>FULL NAME</label>
+                  <input
+                    type="text"
+                    value={profileName}
+                    onChange={e => setProfileName(e.target.value)}
+                    placeholder="Enter your full name"
+                    style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.88rem' }}
+                  />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'block', marginBottom: '6px' }}>AGE</label>
+                    <input
+                      type="number"
+                      value={profileAge}
+                      onChange={e => setProfileAge(e.target.value === '' ? '' : Number(e.target.value))}
+                      placeholder="e.g. 28"
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.88rem' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'block', marginBottom: '6px' }}>GENDER</label>
+                    <select
+                      value={profileGender}
+                      onChange={e => setProfileGender(e.target.value)}
+                      style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.88rem', background: '#fff' }}
+                    >
+                      <option value="Female">Female</option>
+                      <option value="Male">Male</option>
+                      <option value="Non-binary">Non-binary</option>
+                      <option value="Prefer not to say">Prefer not to say</option>
+                    </select>
+                  </div>
+                </div>
+                <button
+                  onClick={saveProfileHandler}
+                  disabled={profileSaving}
+                  style={{ padding: '12px 24px', borderRadius: '12px', background: PUR, color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: '0.88rem', fontWeight: 700, cursor: profileSaving ? 'not-allowed' : 'pointer', alignSelf: 'flex-start' }}
+                >
+                  {profileSaving ? 'Saving…' : profileSaveSuccess ? '✓ Profile Persisted & Synced!' : 'Save Skin Profile'}
+                </button>
+              </div>
+            </Card>
+            {concernsCard}
+          </div>
+        );
+
+      case 'skin-assessment':
+      case 'skin-scan':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <Card>
+              <CardHead title="AI Photo Assessment & Skin Analysis" right={<span style={{ fontSize: '0.78rem', color: PUR, fontWeight: 700 }}>Dataset Verified</span>} />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+                <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+                  <div style={{ width: '180px', height: '180px', borderRadius: '16px', background: '#f6f7fb', border: '2px dashed #c8cbd9', display: 'grid', placeItems: 'center', overflow: 'hidden' }}>
+                    {photoPreview ? (
+                      <img src={photoPreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ textAlign: 'center', color: '#8b8fa3', padding: '10px' }}>
+                        <div style={{ fontSize: '2rem' }}>📷</div>
+                        <div style={{ fontSize: '0.76rem', marginTop: '4px' }}>Upload or Paste Photo URL</div>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433' }}>PHOTO IMAGE URL</label>
+                    <input
+                      type="text"
+                      placeholder="https://images.unsplash.com/photo-1544005313-94ddf0286df2"
+                      value={uploadedPhotoUrl}
+                      onChange={e => { setUploadedPhotoUrl(e.target.value); setPhotoPreview(e.target.value); }}
+                      style={{ padding: '10px 14px', borderRadius: '10px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.86rem' }}
+                    />
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      {['https://images.unsplash.com/photo-1544005313-94ddf0286df2', 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d'].map((sample, idx) => (
+                        <button key={idx} onClick={() => { setUploadedPhotoUrl(sample); setPhotoPreview(sample); }} style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#f6f7fb', fontSize: '0.74rem', cursor: 'pointer' }}>Sample Photo {idx + 1}</button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', borderTop: '1px solid #edeef4', paddingTop: '16px' }}>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Acne Severity</span> <span>{acneSeverity}/10</span>
+                    </label>
+                    <input type="range" min="0" max="10" value={acneSeverity} onChange={e => setAcneSeverity(Number(e.target.value))} style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Pigmentation Severity</span> <span>{pigmentationSeverity}/10</span>
+                    </label>
+                    <input type="range" min="0" max="10" value={pigmentationSeverity} onChange={e => setPigmentationSeverity(Number(e.target.value))} style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Redness Severity</span> <span>{rednessSeverity}/10</span>
+                    </label>
+                    <input type="range" min="0" max="10" value={rednessSeverity} onChange={e => setRednessSeverity(Number(e.target.value))} style={{ width: '100%' }} />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Wrinkles Severity</span> <span>{wrinklesSeverity}/10</span>
+                    </label>
+                    <input type="range" min="0" max="10" value={wrinklesSeverity} onChange={e => setWrinklesSeverity(Number(e.target.value))} style={{ width: '100%' }} />
+                  </div>
+                </div>
+
+                <button
+                  onClick={async () => {
+                    setEvaluating(true);
+                    setAssessmentError(null);
+                    try {
+                      const res = await api.evaluateAssessment({
+                        skin_type: selectedSkinType,
+                        acne_severity: acneSeverity,
+                        hyperpigmentation_severity: pigmentationSeverity,
+                        redness_severity: rednessSeverity,
+                        wrinkles_severity: wrinklesSeverity,
+                        allergies: userProfile?.allergies || [],
+                        lifestyle: { sleep_hours: sleepHours, water_intake: waterLiters }
+                      });
+                      setAssessmentReport(res);
+                      setScore(res);
+                      api.getRoutine().then(setRoutineData).catch(() => {});
+                      api.getAnalytics().then(setAnalytics).catch(() => {});
+                    } catch (err: any) {
+                      setAssessmentError(err?.detail || 'Assessment evaluation failed.');
+                    } finally {
+                      setEvaluating(false);
+                    }
+                  }}
+                  disabled={evaluating}
+                  style={{ padding: '14px 24px', borderRadius: '12px', background: PUR, color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: '0.9rem', fontWeight: 700, cursor: evaluating ? 'not-allowed' : 'pointer' }}
+                >
+                  {evaluating ? 'Analyzing Skin Condition…' : '🔬 Evaluate Photo Assessment'}
+                </button>
+
+                {assessmentError && <div style={{ color: '#e11d48', fontSize: '0.84rem', fontWeight: 600 }}>⚠️ {assessmentError}</div>}
+
+                {assessmentReport && (
+                  <div style={{ borderRadius: '16px', background: 'linear-gradient(135deg, #e8f0ea, #f1f6f2)', border: '1px solid #cfe0d4', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: PUR }}>Assessment Evaluation Complete!</div>
+                    <div style={{ fontSize: '0.86rem', color: '#171433' }}>Overall Skin Health Score: <b>{Math.round(assessmentReport.overall_score)}/100</b></div>
+                    <div style={{ fontSize: '0.8rem', color: '#4b4b63' }}>Detected Concerns: {assessmentReport.detected_concerns?.join(', ') || 'General Maintenance'}</div>
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        );
+
+      case 'my-routine':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {routineCard}
+            {checklistCard}
+          </div>
+        );
+
+      case 'product-recommendations':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {productsCard}
+          </div>
+        );
+
+      case 'ingredient-analyzer':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {ingredientCard}
+          </div>
+        );
+
+      case 'progress-tracking':
+      case 'upload-photo':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {progressCard}
+            <Card>
+              <CardHead title="Progress Photo Gallery" right={<span style={{ fontSize: '0.78rem', color: PUR, fontWeight: 700 }}>Live Records</span>} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', paddingTop: '10px' }}>
+                {analytics?.progress_photos?.length ? (
+                  analytics.progress_photos.map((ph: any) => (
+                    <div key={ph.id} style={{ borderRadius: '12px', border: '1px solid #edeef4', overflow: 'hidden', background: '#f6f7fb' }}>
+                      <img src={ph.url} alt={ph.tag} style={{ width: '100%', height: '120px', objectFit: 'cover' }} />
+                      <div style={{ padding: '8px 10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 700, color: PUR }}>{ph.tag}</span>
+                        <span style={{ fontSize: '0.7rem', color: '#8b8fa3' }}>{ph.date}</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ gridColumn: 'span 4', textAlign: 'center', padding: '24px', color: '#8b8fa3', fontSize: '0.82rem' }}>
+                    No progress photos uploaded yet. Take an assessment or upload a photo to start tracking visual skin progress over time.
+                  </div>
+                )}
+              </div>
+            </Card>
+          </div>
+        );
+
+      case 'lifestyle-&-habits':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              {cardHydration}
+              {cardAge}
+            </div>
+            {checklistCard}
+          </div>
+        );
+
+      case 'reports':
+        return (
+          <Card>
+            <CardHead title="Personalized Skincare Clinical Summary Report" right={<button onClick={() => window.print()} style={{ padding: '6px 14px', borderRadius: '8px', background: PUR, color: '#fff', border: 'none', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}>🖨️ Print / Download Report</button>} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '12px 0' }}>
+              <div style={{ padding: '16px', borderRadius: '14px', background: '#f6f7fb', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+                <div><div style={{ fontSize: '0.72rem', color: '#8b8fa3' }}>PATIENT NAME</div><div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#171433' }}>{profileName || userProfile?.name || 'User'}</div></div>
+                <div><div style={{ fontSize: '0.72rem', color: '#8b8fa3' }}>SKIN TYPE</div><div style={{ fontSize: '0.95rem', fontWeight: 800, color: PUR }}>{selectedSkinType} Skin</div></div>
+                <div><div style={{ fontSize: '0.72rem', color: '#8b8fa3' }}>OVERALL SCORE</div><div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#16a34a' }}>{score ? `${Math.round(score.overall_score)}/100` : 'Unassessed'}</div></div>
+                <div><div style={{ fontSize: '0.72rem', color: '#8b8fa3' }}>ACTIVE ROUTINE STEPS</div><div style={{ fontSize: '0.95rem', fontWeight: 800, color: BLU }}>{routine.length} Steps</div></div>
+              </div>
+              <div style={{ fontSize: '0.84rem', color: '#3f4a5a', lineHeight: 1.6 }}>
+                <b>Clinical Summary:</b> Patient presents with <i>{selectedSkinType}</i> skin condition with primary concern <i>{selectedConcerns.join(', ')}</i>. Active daily routine incorporates formulation actives with 100% database verification.
+              </div>
+            </div>
+          </Card>
+        );
+
+      case 'reminders':
+        return (
+          <Card>
+            <CardHead title="Skincare Routine & Habit Reminders" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Active Schedule</span>} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '10px 0' }}>
+              {[
+                { title: 'Morning AM Routine', time: '08:00 AM', desc: 'Gentle Cleanser & SPF 50 application', active: true },
+                { title: 'Mid-day Hydration Alert', time: '01:30 PM', desc: 'Log water intake (Aim: 2.5L daily)', active: true },
+                { title: 'Evening PM Routine', time: '09:00 PM', desc: 'Active treatment serum & barrier moisturizer', active: true },
+                { title: 'Weekly Progress Photo Scan', time: 'Every Sunday', desc: 'Take a progress photo to update skin score history', active: false },
+              ].map((rem, idx) => (
+                <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
+                  <div>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#171433' }}>{rem.title} — <span style={{ color: PUR }}>{rem.time}</span></div>
+                    <div style={{ fontSize: '0.76rem', color: '#8b8fa3', marginTop: '2px' }}>{rem.desc}</div>
+                  </div>
+                  <input type="checkbox" defaultChecked={rem.active} style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
+                </div>
+              ))}
+            </div>
+          </Card>
+        );
+
+      case 'settings':
+        return (
+          <Card>
+            <CardHead title="Account & Preference Settings" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Security</span>} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '10px 0' }}>
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'block', marginBottom: '6px' }}>DISPLAY NAME</label>
+                <input
+                  type="text"
+                  value={profileName}
+                  onChange={e => setProfileName(e.target.value)}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.88rem' }}
+                />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', display: 'block', marginBottom: '6px' }}>EMAIL ADDRESS</label>
+                <input
+                  type="email"
+                  disabled
+                  value={userProfile?.email || JSON.parse(localStorage.getItem('miracle_user') || '{}').email || ''}
+                  style={{ width: '100%', padding: '10px 14px', borderRadius: '10px', border: '1px solid #edeef4', fontFamily: 'inherit', fontSize: '0.88rem', background: '#f6f7fb', color: '#8b8fa3' }}
+                />
+              </div>
+              <button
+                onClick={saveProfileHandler}
+                disabled={profileSaving}
+                style={{ padding: '12px 24px', borderRadius: '12px', background: PUR, color: '#fff', border: 'none', fontFamily: 'inherit', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }}
+              >
+                {profileSaving ? 'Updating…' : 'Update Settings'}
+              </button>
+            </div>
+          </Card>
+        );
+
+      default:
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(5,minmax(0,1fr))' }}>
+              {cardScore}{cardType}{cardConcern}{cardAge}{cardHydration}
+            </div>
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
+              {routineCard}{progressCard}{insightsCard}
+            </div>
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,1.4fr) minmax(300px,1fr)' }}>
+              {productsCard}{concernsCard}
+            </div>
+            {checklistCard}
+            {ingredientCard}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <button onClick={() => setShowAssessmentModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 22px', borderRadius: '12px', background: '#fff', border: `1px solid ${PUR}`, color: PUR, fontFamily: 'inherit', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer' }}>
+                📷 Take Photo Assessment
+              </button>
+              {bookButton}
+            </div>
+            {myAppointmentsSection}
+          </div>
+        );
+    }
+  };
+
   return (
     <>
       {consultModal}
       {productDetailModal}
       {profileEditModal}
       {photoAssessmentModal}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(5,minmax(0,1fr))' }}>
-          {cardScore}{cardType}{cardConcern}{cardAge}{cardHydration}
-        </div>
-        <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
-          {routineCard}{progressCard}{insightsCard}
-        </div>
-        <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,1.4fr) minmax(300px,1fr)' }}>
-          {productsCard}{concernsCard}
-        </div>
-        {checklistCard}
-        {ingredientCard}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <button onClick={() => setShowAssessmentModal(true)} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '12px 22px', borderRadius: '12px', background: '#fff', border: `1px solid ${PUR}`, color: PUR, fontFamily: 'inherit', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer' }}>
-            📷 Take Photo Assessment
-          </button>
-          {bookButton}
-        </div>
-        {myAppointmentsSection}
-      </div>
+      {renderSection()}
     </>
   );
 }

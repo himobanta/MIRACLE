@@ -5,6 +5,8 @@ export type RoleType = 'admin' | 'derma' | 'consultant' | 'user';
 
 interface SidebarProps {
   role: RoleType;
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
 }
 
 const N = {
@@ -12,25 +14,25 @@ const N = {
     {
       heading: 'MAIN MENU',
       items: [
-        ['Dashboard', 'Overview & Analytics', 'grid', true],
-        ['User Management', 'Manage users & roles', 'users', false],
-        ['Role & Permissions', 'Manage roles & access', 'shield', false],
-        ['Skin Assessments', 'View all assessments', 'clip', false],
-        ['Routine Management', 'Manage routines & plans', 'cal', false],
-        ['Product Management', 'Manage products', 'box', false],
-        ['Ingredient Database', 'Manage ingredients', 'beaker', false],
-        ['Content Management', 'Manage articles & resources', 'doc', false],
-        ['Reports & Analytics', 'Platform reports', 'trend', false],
-        ['Notifications', 'System notifications', 'bell', false],
-        ['System Settings', 'Configure platform settings', 'gear', false],
+        ['Dashboard', 'Overview & Analytics', 'grid'],
+        ['User Management', 'Manage users & roles', 'users'],
+        ['Role & Permissions', 'Manage roles & access', 'shield'],
+        ['Skin Assessments', 'View all assessments', 'clip'],
+        ['Routine Management', 'Manage routines & plans', 'cal'],
+        ['Product Management', 'Manage products', 'box'],
+        ['Ingredient Database', 'Manage ingredients', 'beaker'],
+        ['Content Management', 'Manage articles & resources', 'doc'],
+        ['Reports & Analytics', 'Platform reports', 'trend'],
+        ['Notifications', 'System notifications', 'bell'],
+        ['System Settings', 'Configure platform settings', 'gear'],
       ],
     },
     {
       heading: 'SYSTEM & SECURITY',
       items: [
-        ['Audit Logs', 'System activity logs', 'log', false],
-        ['Security & Access', 'Manage security settings', 'lock', false],
-        ['Backup & Restore', 'Data backup & restore', 'db', false],
+        ['Audit Logs', 'System activity logs', 'log'],
+        ['Security & Access', 'Manage security settings', 'lock'],
+        ['Backup & Restore', 'Data backup & restore', 'db'],
       ],
     },
   ],
@@ -38,26 +40,26 @@ const N = {
     {
       heading: 'MAIN MENU',
       items: [
-        ['Dashboard', 'Overview & key insights', 'home', true],
-        ['Patients', 'Manage patient profiles', 'users', false],
-        ['Assessments', 'Skin assessments & analysis', 'clip', false],
-        ['Clinical Insights', 'AI insights & risk analysis', 'spark', false],
-        ['Treatment Plans', 'Create & manage plans', 'note', false],
-        ['Progress Tracking', 'Monitor patient progress', 'trend', false],
-        ['Prescriptions', 'Manage prescriptions', 'pill', false],
-        ['Reports', 'Clinical reports & analytics', 'doc', false],
-        ['Consultations', 'Appointments & notes', 'chat', false],
-        ['Follow-ups', 'Follow-up tracking', 'refresh', false],
-        ['Reminders', 'Treatment reminders', 'bell', false],
+        ['Dashboard', 'Overview & key insights', 'home'],
+        ['Patients', 'Manage patient profiles', 'users'],
+        ['Assessments', 'Skin assessments & analysis', 'clip'],
+        ['Clinical Insights', 'AI insights & risk analysis', 'spark'],
+        ['Treatment Plans', 'Create & manage plans', 'note'],
+        ['Progress Tracking', 'Monitor patient progress', 'trend'],
+        ['Prescriptions', 'Manage prescriptions', 'pill'],
+        ['Reports', 'Clinical reports & analytics', 'doc'],
+        ['Consultations', 'Appointments & notes', 'chat'],
+        ['Follow-ups', 'Follow-up tracking', 'refresh'],
+        ['Reminders', 'Treatment reminders', 'bell'],
       ],
     },
     {
       heading: 'TOOLS & RESOURCES',
       items: [
-        ['Ingredient Database', 'Search & analyze ingredients', 'beaker', false],
-        ['Treatment Protocols', 'Clinical treatment guides', 'book', false],
-        ['Skin Conditions Guide', 'Reference & solutions', 'book', false],
-        ['Research & Publications', 'Latest dermatology research', 'beaker', false],
+        ['Ingredient Database', 'Search & analyze ingredients', 'beaker'],
+        ['Treatment Protocols', 'Clinical treatment guides', 'book'],
+        ['Skin Conditions Guide', 'Reference & solutions', 'book'],
+        ['Research & Publications', 'Latest dermatology research', 'beaker'],
       ],
     },
   ],
@@ -65,23 +67,23 @@ const N = {
     {
       heading: 'MAIN MENU',
       items: [
-        ['Dashboard', 'Overview & key metrics', 'home', true],
-        ['Clients', 'Manage client profiles', 'users', false],
-        ['Assessments', 'Skin assessments & analysis', 'clip', false],
-        ['Routine Plans', 'Create & manage routines', 'cal', false],
-        ['Product Recommendations', 'View & recommend products', 'thumb', false],
-        ['Progress Tracking', 'Track client progress', 'trend', false],
-        ['Reports', 'Client reports & analytics', 'doc', false],
-        ['Follow-ups & Notes', 'Notes & follow-up history', 'note', false],
-        ['Reminders', 'Appointments & reminders', 'bell', false],
+        ['Dashboard', 'Overview & key metrics', 'home'],
+        ['Clients', 'Manage client profiles', 'users'],
+        ['Assessments', 'Skin assessments & analysis', 'clip'],
+        ['Routine Plans', 'Create & manage routines', 'cal'],
+        ['Product Recommendations', 'View & recommend products', 'thumb'],
+        ['Progress Tracking', 'Track client progress', 'trend'],
+        ['Reports', 'Client reports & analytics', 'doc'],
+        ['Follow-ups & Notes', 'Notes & follow-up history', 'note'],
+        ['Reminders', 'Appointments & reminders', 'bell'],
       ],
     },
     {
       heading: 'TOOLS & RESOURCES',
       items: [
-        ['Ingredient Database', 'Search & analyze ingredients', 'beaker', false],
-        ['Skin Concerns Guide', 'Reference & solutions', 'book', false],
-        ['Treatment Protocols', 'Clinical treatment guides', 'book', false],
+        ['Ingredient Database', 'Search & analyze ingredients', 'beaker'],
+        ['Skin Concerns Guide', 'Reference & solutions', 'book'],
+        ['Treatment Protocols', 'Clinical treatment guides', 'book'],
       ],
     },
   ],
@@ -89,25 +91,25 @@ const N = {
     {
       heading: 'MAIN MENU',
       items: [
-        ['Dashboard', '', 'home', true],
-        ['My Skin Profile', 'View & update your profile', 'users', false],
-        ['Skin Assessment', 'Analyze your skin condition', 'clip', false],
-        ['My Routine', 'Your personalized routine', 'cal', false],
-        ['Product Recommendations', 'Products for your skin', 'box', false],
-        ['Ingredient Analyzer', 'Check ingredients & safety', 'search', false],
-        ['Progress Tracking', 'Track your skin progress', 'trend', false],
-        ['Lifestyle & Habits', 'Sleep, water & lifestyle', 'heart', false],
-        ['Reports', 'View & download reports', 'doc', false],
-        ['Reminders', 'Routine & habit reminders', 'bell', false],
-        ['Settings', 'Account & preferences', 'gear', false],
+        ['Dashboard', '', 'home'],
+        ['My Skin Profile', 'View & update your profile', 'users'],
+        ['Skin Assessment', 'Analyze your skin condition', 'clip'],
+        ['My Routine', 'Your personalized routine', 'cal'],
+        ['Product Recommendations', 'Products for your skin', 'box'],
+        ['Ingredient Analyzer', 'Check ingredients & safety', 'search'],
+        ['Progress Tracking', 'Track your skin progress', 'trend'],
+        ['Lifestyle & Habits', 'Sleep, water & lifestyle', 'heart'],
+        ['Reports', 'View & download reports', 'doc'],
+        ['Reminders', 'Routine & habit reminders', 'bell'],
+        ['Settings', 'Account & preferences', 'gear'],
       ],
     },
     {
       heading: 'QUICK ACTIONS',
       items: [
-        ['Skin Scan', 'Start new skin assessment', 'scan', false],
-        ['Ask AI', 'Get skincare guidance', 'spark', false],
-        ['Upload Photo', 'Analyze your skin', 'upload', false],
+        ['Skin Scan', 'Start new skin assessment', 'scan'],
+        ['Ask AI', 'Get skincare guidance', 'spark'],
+        ['Upload Photo', 'Analyze your skin', 'upload'],
       ],
     },
   ],
@@ -120,7 +122,7 @@ const PANEL_NAME: Record<RoleType, string> = {
   user: 'AI Skincare Companion',
 };
 
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar({ role, activeSection = 'dashboard', onSectionChange }: SidebarProps) {
   const groups = N[role] || N.user;
   const panelName = PANEL_NAME[role];
 
@@ -148,12 +150,14 @@ export function Sidebar({ role }: SidebarProps) {
         {groups.map((g) => (
           <div key={g.heading} className="mt-3.5">
             <div className="px-3 pb-2 text-[0.66rem] font-bold tracking-[0.12em] text-[#a3a7bd]">{g.heading}</div>
-            {g.items.map(([label, sub, ic, active]) => {
-              const isActive = Boolean(active);
+            {g.items.map(([label, sub, ic]) => {
+              const itemKey = String(label).toLowerCase().replace(/[^a-z0-9]+/g, '-');
+              const isActive = activeSection === itemKey || (activeSection === 'dashboard' && itemKey === 'dashboard');
               return (
                 <button
                   key={String(label)}
                   type="button"
+                  onClick={() => onSectionChange && onSectionChange(itemKey)}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -177,7 +181,7 @@ export function Sidebar({ role }: SidebarProps) {
                       width: '34px',
                       height: '34px',
                       flexShrink: 0,
-                      borderRadius: '9px',
+                      borderRadius: '99px',
                       background: isActive ? 'rgba(255,255,255,0.18)' : '#f4f5fa',
                       color: isActive ? '#fff' : '#8b8fa3',
                     }}

@@ -23,6 +23,7 @@ export function Dashboard() {
 
   const initialRole = getValidRole(roleParam || searchParams.get('role'));
   const [role, setRole] = useState<RoleType>(initialRole);
+  const [activeSection, setActiveSection] = useState<string>('dashboard');
 
   useEffect(() => {
     let r = getValidRole(roleParam || searchParams.get('role'));
@@ -46,6 +47,10 @@ export function Dashboard() {
     } catch { /* fallback */ }
     setRole(r);
   }, [roleParam, searchParams, navigate]);
+
+  useEffect(() => {
+    setActiveSection('dashboard');
+  }, [role]);
 
   useEffect(() => {
     const fit = () => {
@@ -77,6 +82,7 @@ export function Dashboard() {
 
   const handleSelectRole = (newRole: RoleType) => {
     setRole(newRole);
+    setActiveSection('dashboard');
     setSearchParams({ role: newRole });
     navigate(`/dashboard/${newRole}`, { replace: true });
   };
@@ -100,7 +106,7 @@ export function Dashboard() {
           }}
         >
           {/* Sidebar */}
-          <Sidebar role={role} />
+          <Sidebar role={role} activeSection={activeSection} onSectionChange={setActiveSection} />
 
           {/* Main Workspace */}
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -110,7 +116,7 @@ export function Dashboard() {
             {/* Main Content Area */}
             <div style={{ position: 'relative', zIndex: 1, padding: '10px 24px 16px' }}>
               {/* Stat Cards (Admin, Derma, Consultant only) */}
-              {role !== 'user' && (
+              {role !== 'user' && activeSection === 'dashboard' && (
                 <div>
                   <StatCards role={role} />
                 </div>
@@ -118,10 +124,10 @@ export function Dashboard() {
 
               {/* Workspace by Role */}
               <div style={{ marginTop: contentMt }}>
-                {role === 'admin' && <AdminWorkspace />}
-                {role === 'derma' && <DermaWorkspace />}
-                {role === 'consultant' && <ConsultantWorkspace />}
-                {role === 'user' && <UserWorkspace />}
+                {role === 'admin' && <AdminWorkspace activeSection={activeSection} onSectionChange={setActiveSection} />}
+                {role === 'derma' && <DermaWorkspace activeSection={activeSection} onSectionChange={setActiveSection} />}
+                {role === 'consultant' && <ConsultantWorkspace activeSection={activeSection} onSectionChange={setActiveSection} />}
+                {role === 'user' && <UserWorkspace activeSection={activeSection} onSectionChange={setActiveSection} />}
               </div>
             </div>
           </div>

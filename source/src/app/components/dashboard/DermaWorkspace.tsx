@@ -70,7 +70,12 @@ const EmptyState = ({ icon, message }: { icon: string; message: string }) => (
   </div>
 );
 
-export function DermaWorkspace() {
+interface DermaWorkspaceProps {
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+}
+
+export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }: DermaWorkspaceProps) {
   const [roster, setRoster] = useState<RosterPatient[]>([]);
   const [rosterLoading, setRosterLoading] = useState(true);
   const [rosterError, setRosterError] = useState<string | null>(null);
@@ -1011,30 +1016,72 @@ export function DermaWorkspace() {
     </div>
   );
 
+  const renderSection = () => {
+    switch (activeSection) {
+      case 'patients':
+        return rosterTable;
+      case 'assessments':
+      case 'clinical-insights':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {recent}
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              {dist}
+              {topConcerns}
+            </div>
+          </div>
+        );
+      case 'treatment-plans':
+      case 'prescriptions':
+        return (
+          <Card>
+            <CardHead title="Clinical Treatment Plans & Medical Prescriptions" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Prescription Engine</span>} />
+            <div style={{ padding: '12px 0', fontSize: '0.84rem', color: '#3f4a5a' }}>
+              Inspect patients requiring high-potency prescription actives (Adapalene, Azelaic Acid, Tazarotene) and update routine steps.
+            </div>
+            {rosterTable}
+          </Card>
+        );
+      case 'progress-tracking':
+        return progress;
+      case 'consultations':
+      case 'follow-ups':
+      case 'reminders':
+        return apptQueueCard;
+      case 'treatment-protocols':
+      case 'skin-conditions-guide':
+        return banner;
+      default:
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {headerStats}
+            {apptQueueCard}
+
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
+              {rosterTable}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {dist}
+                <div style={{ flex: 1, display: 'flex' }}>{topConcerns}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}>
+                {progress}
+                {recent}
+              </div>
+              {banner}
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
     <>
       {patientModal}
       {rxModal}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {headerStats}
-        {apptQueueCard}
-
-        <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
-          {rosterTable}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {dist}
-            <div style={{ flex: 1, display: 'flex' }}>{topConcerns}</div>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
-          <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}>
-            {progress}
-            {recent}
-          </div>
-          {banner}
-        </div>
-      </div>
+      {renderSection()}
     </>
   );
 }

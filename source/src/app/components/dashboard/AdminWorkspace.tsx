@@ -57,7 +57,12 @@ const ACTIVITY_TINTS: Record<string, [string, string]> = {
 
 // ── Component ──────────────────────────────────────────────────────────────────
 
-export function AdminWorkspace() {
+interface AdminWorkspaceProps {
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+}
+
+export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }: AdminWorkspaceProps) {
   // ── State
   const [sysHealth, setSysHealth] = useState<{ db: boolean; api: boolean } | null>(null);
   const [adminStats, setAdminStats] = useState<any | null>(null);
@@ -466,12 +471,12 @@ export function AdminWorkspace() {
     </Card>
   );
 
-  // ── Section: Quick Actions (non-data, UI affordances only) ─────────────────
-  const actionItems = [
-    ['users', 'View Users'],
-    ['clip', 'View Assessments'],
-    ['cal', 'View Appointments'],
-    ['db', 'System Health'],
+  // ── Section: Quick Actions ─────────────────────────────────────────────────
+  const actionItems: [string, string, string][] = [
+    ['users', 'View Users', 'user-management'],
+    ['clip', 'View Assessments', 'skin-assessments'],
+    ['cal', 'View Routine Plans', 'routine-management'],
+    ['db', 'System Health', 'system-settings'],
   ];
 
   const actionsSection = (
@@ -479,7 +484,11 @@ export function AdminWorkspace() {
       <h3 style={{ margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' }}>Quick Actions</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
         {actionItems.map((a, i) => (
-          <div key={i} style={{ textAlign: 'center', borderRadius: '14px', border: '1px solid #edeef4', background: '#fafbfe', padding: '18px 8px', cursor: 'pointer' }}>
+          <div
+            key={i}
+            onClick={() => onSectionChange && onSectionChange(a[2])}
+            style={{ textAlign: 'center', borderRadius: '14px', border: '1px solid #edeef4', background: '#fafbfe', padding: '18px 8px', cursor: 'pointer', transition: 'border-color 0.2s' }}
+          >
             <span style={{ display: 'grid', placeItems: 'center', width: '46px', height: '46px', margin: '0 auto 12px', borderRadius: '13px', background: 'rgba(47,107,76,0.12)', color: PUR }}>
               <DashIcon d={PATHS[a[0]] || PATHS.grid} s={20} stroke={PUR} />
             </span>
@@ -490,29 +499,58 @@ export function AdminWorkspace() {
     </Card>
   );
 
-  // ── Render ─────────────────────────────────────────────────────────────────
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {headerStats}
+  const renderSection = () => {
+    switch (activeSection) {
+      case 'user-management':
+      case 'role-&-permissions':
+        return userManagement;
+      case 'skin-assessments':
+      case 'reports-&-analytics':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              {concerns}
+              {scoreSection}
+            </div>
+            {assessRoutine}
+          </div>
+        );
+      case 'system-settings':
+      case 'security-&-access':
+      case 'audit-logs':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {healthSection}
+            {activitySection}
+          </div>
+        );
+      default:
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {headerStats}
 
-      <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
-        {userOverview}
-        {apptOverview}
-        {assessRoutine}
-      </div>
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
+              {userOverview}
+              {apptOverview}
+              {assessRoutine}
+            </div>
 
-      <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
-        {concerns}
-        {scoreSection}
-        {activitySection}
-      </div>
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
+              {concerns}
+              {scoreSection}
+              {activitySection}
+            </div>
 
-      {userManagement}
+            {userManagement}
 
-      <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2,1fr)' }}>
-        {healthSection}
-        {actionsSection}
-      </div>
-    </div>
-  );
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2,1fr)' }}>
+              {healthSection}
+              {actionsSection}
+            </div>
+          </div>
+        );
+    }
+  };
+
+  return renderSection();
 }

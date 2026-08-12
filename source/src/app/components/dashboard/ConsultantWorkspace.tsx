@@ -54,7 +54,12 @@ const EmptyState = ({ icon, message }: { icon: string; message: string }) => (
   </div>
 );
 
-export function ConsultantWorkspace() {
+interface ConsultantWorkspaceProps {
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+}
+
+export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChange }: ConsultantWorkspaceProps) {
   const [roster, setRoster] = useState<RosterPatient[]>([]);
   const [rosterLoading, setRosterLoading] = useState(true);
   const [rosterError, setRosterError] = useState<string | null>(null);
@@ -612,44 +617,89 @@ export function ConsultantWorkspace() {
     </div>
   );
 
+  const renderSection = () => {
+    switch (activeSection) {
+      case 'clients':
+        return table;
+      case 'assessments':
+      case 'progress-tracking':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {progress}
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              {dist}
+              {topConcerns}
+            </div>
+          </div>
+        );
+      case 'routine-plans':
+      case 'prescriptions':
+        return (
+          <Card>
+            <CardHead title="Patient Routine Plans & Clinical Prescriptions" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Active Database</span>} />
+            <div style={{ padding: '12px 0', fontSize: '0.84rem', color: '#3f4a5a' }}>
+              Select a patient from the roster to inspect or overwrite their personalized routine with professional prescriptions.
+            </div>
+            {table}
+          </Card>
+        );
+      case 'follow-ups-&-notes':
+      case 'reminders':
+        return apptQueue;
+      case 'ingredient-database':
+        return (
+          <Card>
+            <CardHead title="Clinical Ingredient Safety Database" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Ingredient Engine</span>} />
+            <div style={{ padding: '16px 0', fontSize: '0.84rem', color: '#3f4a5a' }}>
+              Search formulations and check active ingredient cross-reactivity for client routines.
+            </div>
+          </Card>
+        );
+      default:
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
+              {table}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {dist}
+                <div style={{ flex: 1, display: 'flex' }}>{topConcerns}</div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}>
+                {progress}
+                {apptQueue}
+              </div>
+              <Card style={{ paddingBottom: '10px', display: 'flex', flexDirection: 'column' }}>
+                <CardHead title="Clinical Actions & Stats" right={<span style={{ fontSize: '0.72rem', fontWeight: 600, color: PUR }}>Overview</span>} />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 0' }}>
+                  <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Total Patients Assigned</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: PUR }}>{roster.length}</span>
+                  </div>
+                  <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Consultation Requests</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: BLU }}>{appointments.length}</span>
+                  </div>
+                  <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Patients Requiring Attention</span>
+                    <span style={{ fontSize: '1.1rem', fontWeight: 800, color: ORA }}>{needAttn}</span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        );
+    }
+  };
+
   return (
     <>
       {patientModal}
       {referModal}
       {prescribeModal}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
-          {table}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {dist}
-            <div style={{ flex: 1, display: 'flex' }}>{topConcerns}</div>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'minmax(0,2.1fr) minmax(260px,1fr)' }}>
-          <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2,minmax(0,1fr))' }}>
-            {progress}
-            {apptQueue}
-          </div>
-          <Card style={{ paddingBottom: '10px', display: 'flex', flexDirection: 'column' }}>
-            <CardHead title="Clinical Actions & Stats" right={<span style={{ fontSize: '0.72rem', fontWeight: 600, color: PUR }}>Overview</span>} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '12px 0' }}>
-              <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Total Patients Assigned</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: PUR }}>{roster.length}</span>
-              </div>
-              <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Consultation Requests</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: BLU }}>{appointments.length}</span>
-              </div>
-              <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>Patients Requiring Attention</span>
-                <span style={{ fontSize: '1.1rem', fontWeight: 800, color: ORA }}>{needAttn}</span>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </div>
+      {renderSection()}
     </>
   );
 }
