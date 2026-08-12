@@ -94,6 +94,10 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   // Patient detail modal
   const [selectedPatient, setSelectedPatient] = useState<PatientDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  // Error state for patient load failures
+  const [patientLoadError, setPatientLoadError] = useState<string | null>(null);
+  // Error state for status update failures
+  const [statusError, setStatusError] = useState<string | null>(null);
 
   // Clinical Prescription modal state
   const [showPrescribeModal, setShowPrescribeModal] = useState<string | null>(null);
@@ -132,11 +136,12 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
 
   const openPatient = async (id: string) => {
     setDetailLoading(true);
+    setPatientLoadError(null);
     try {
       const d = await api.getPatientDetails(id);
       setSelectedPatient(d);
     } catch {
-      alert('Failed to load patient details. Please try again.');
+      setPatientLoadError('Failed to load patient details. Please try again.');
     } finally {
       setDetailLoading(false);
     }
@@ -144,11 +149,12 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
 
   const handleStatusUpdate = async (apptId: string, newStatus: string, defaultNotes: string) => {
     setActionLoading(prev => ({ ...prev, [apptId]: true }));
+    setStatusError(null);
     try {
       await api.updateAppointmentStatus(apptId, { status: newStatus, notes: defaultNotes });
       await fetchAppointments();
     } catch (err: any) {
-      alert(err?.detail || `Failed to update status to ${newStatus}`);
+      setStatusError(err?.detail || `Failed to update status to ${newStatus}. Please try again.`);
     } finally {
       setActionLoading(prev => ({ ...prev, [apptId]: false }));
     }
@@ -1051,6 +1057,23 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
       case 'treatment-protocols':
       case 'skin-conditions-guide':
         return banner;
+      case 'reports':
+      case 'ingredient-database':
+      case 'research-&-publications':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {rosterError && <div style={{ padding: '14px 18px', borderRadius: '12px', background: 'rgba(239,68,68,0.08)', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.84rem', fontWeight: 600 }}>{rosterError}</div>}
+            {statusError && <div style={{ padding: '14px 18px', borderRadius: '12px', background: 'rgba(239,68,68,0.08)', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.84rem', fontWeight: 600 }}>{statusError}</div>}
+            {patientLoadError && <div style={{ padding: '14px 18px', borderRadius: '12px', background: 'rgba(239,68,68,0.08)', border: '1px solid #fca5a5', color: '#dc2626', fontSize: '0.84rem', fontWeight: 600 }}>{patientLoadError}</div>}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {recent}
+              <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                {dist}
+                {topConcerns}
+              </div>
+            </div>
+          </div>
+        );
       default:
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>

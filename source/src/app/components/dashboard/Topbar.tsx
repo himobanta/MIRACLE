@@ -4,21 +4,23 @@ import type { RoleType } from './Sidebar';
 
 interface TopbarProps {
   role: RoleType;
+  onSectionChange?: (section: string) => void;
 }
 
-const TOPBAR_MAP: Record<RoleType, { welcome: string; subtitle: string; showSearch: boolean; searchPlaceholder?: string; notif: number; avatarPhoto: boolean; avatarBg?: string; avatarIcon: boolean; name: string; role: string }> = {
-  admin:      { welcome: 'Welcome back, Admin 👋',               subtitle: "Here's what's happening on your platform today.",          showSearch: true,  searchPlaceholder: 'Search users, reports, assessments...', notif: 5, avatarIcon: true,  avatarPhoto: false, name: 'Admin User',       role: 'Super Administrator'   },
-  derma:      { welcome: 'Welcome back, Dr. Meera Iyer 👋',      subtitle: "Here's an overview of your patients and clinical insights.", showSearch: true,  searchPlaceholder: 'Search patients, assessments...',         notif: 5, avatarPhoto: true, avatarBg: FACE.meeraDr, avatarIcon: false, name: 'Dr. Meera Iyer',   role: 'Dermatologist'          },
-  consultant: { welcome: 'Welcome back, Dr. Priya Sharma 👋',    subtitle: "Here's what's happening with your clients today.",         showSearch: true,  searchPlaceholder: 'Search clients, assessments...',          notif: 3, avatarPhoto: true, avatarBg: FACE.priya,   avatarIcon: false, name: 'Dr. Priya Sharma', role: 'Skincare Consultant'    },
-  user:       { welcome: 'Welcome back, Ananya 👋',              subtitle: "Here's your skin summary and personalized recommendations.", showSearch: false,                                                            notif: 3, avatarPhoto: true, avatarBg: FACE.ananyaUser, avatarIcon: false, name: 'Ananya Sharma',  role: 'Premium User'           },
+const TOPBAR_MAP: Record<RoleType, { subtitle: string; showSearch: boolean; searchPlaceholder?: string; notif: number; avatarPhoto: boolean; avatarBg?: string; avatarIcon: boolean; fallbackName: string; role: string }> = {
+  admin:      { subtitle: "Here's what's happening on your platform today.",          showSearch: true,  searchPlaceholder: 'Search users, reports, assessments...', notif: 5, avatarIcon: true,  avatarPhoto: false, fallbackName: 'Admin User',       role: 'Super Administrator'   },
+  derma:      { subtitle: "Here's an overview of your patients and clinical insights.", showSearch: true,  searchPlaceholder: 'Search patients, assessments...',         notif: 5, avatarPhoto: true, avatarBg: FACE.meeraDr, avatarIcon: false, fallbackName: 'Dermatologist',    role: 'Dermatologist'          },
+  consultant: { subtitle: "Here's what's happening with your clients today.",         showSearch: true,  searchPlaceholder: 'Search clients, assessments...',          notif: 3, avatarPhoto: true, avatarBg: FACE.priya,   avatarIcon: false, fallbackName: 'Consultant',       role: 'Skincare Consultant'    },
+  user:       { subtitle: "Here's your skin summary and personalized recommendations.", showSearch: false,                                                            notif: 3, avatarPhoto: true, avatarBg: FACE.ananyaUser, avatarIcon: false, fallbackName: 'there',           role: 'Premium User'           },
 };
 
-export function Topbar({ role }: TopbarProps) {
+export function Topbar({ role, onSectionChange }: TopbarProps) {
   const topbar = TOPBAR_MAP[role];
   const [showProfile, setShowProfile] = useState(false);
   const [liveScore, setLiveScore] = useState<number | null>(null);
+  const [adherencePct, setAdherencePct] = useState<number | null>(null);
 
-  // Read user from localStorage with reactive updates
+  // Read user from localStorage with reactive updates — applies to ALL roles
   const [storedUser, setStoredUser] = useState(() => {
     try { return JSON.parse(localStorage.getItem('miracle_user') || '{}'); } catch { return {}; }
   });
@@ -39,21 +41,33 @@ export function Topbar({ role }: TopbarProps) {
     };
   }, []);
 
-  // Load score for user profile modal
+  // Load score + live adherence for user profile modal
   useEffect(() => {
     if (role === 'user' && showProfile) {
-      import('../../services/api').then(({ api }) => api.getLatestScore().then(d => setLiveScore(d.overall_score)).catch(() => {}));
+      import('../../services/api').then(({ api }) => {
+        api.getLatestScore().then(d => setLiveScore(d.overall_score)).catch(() => {});
+        // Compute real adherence from routine logs
+        api.getRoutineLogs().then((data: any) => {
+          if (data && Array.isArray(data.logs) && data.logs.length > 0) {
+            const last7 = data.logs.slice(-7);
+            const avgCompletion = last7.reduce((sum: number, log: any) => {
+              const steps = Array.isArray(log.completed_steps) ? log.completed_steps.length : 0;
+              return sum + Math.min(steps / 5, 1); // 5 = total checklist items
+            }, 0) / last7.length;
+            setAdherencePct(Math.round(avgCompletion * 100));
+          }
+        }).catch(() => {});
+      });
     }
   }, [role, showProfile]);
 
   const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  const displayName = storedUser.name || topbar.name;
+  // Always use actual stored user name — for ALL roles, not just user
+  const displayName = storedUser.name || topbar.fallbackName;
   const displayEmail = storedUser.email || '';
   const firstName = displayName ? displayName.split(' ')[0] : 'there';
-  const welcomeTitle = role === 'user'
-    ? `Welcome back, ${firstName} 👋`
-    : (storedUser.name ? `Welcome back, ${storedUser.name} 👋` : topbar.welcome);
+  const welcomeTitle = `Welcome back, ${firstName} 👋`;
 
   const handleLogout = () => {
     localStorage.removeItem('miracle_token');
@@ -91,8 +105,8 @@ export function Topbar({ role }: TopbarProps) {
               <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '2px' }}>Skin Score</div>
             </div>
             <div style={{ padding: '12px', borderRadius: '12px', background: '#f6f7fb', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#16a34a' }}>88%</div>
-              <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '2px' }}>Adherence</div>
+              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#16a34a' }}>{adherencePct !== null ? `${adherencePct}%` : '—'}</div>
+              <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '2px' }}>Adherence (7d)</div>
             </div>
           </div>
         )}
@@ -111,9 +125,9 @@ export function Topbar({ role }: TopbarProps) {
         )}
 
         {/* Menu */}
-        {[['👤', 'My Profile', ''], ['⚙️', 'Account Settings', ''], ['🔔', 'Notifications', '']].map(([icon, label], i) => (
-          <button key={i} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', borderRadius: '10px', border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '0.86rem', color: '#3f4a5a', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }} onMouseEnter={e => (e.currentTarget.style.background = '#f6f7fb')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <span style={{ fontSize: '1rem' }}>{icon}</span>{label}
+        {([['👤', 'My Profile', 'settings'], ['⚙️', 'Account Settings', 'settings'], ['🔔', 'Notifications', ''] as [string, string, string]] as [string, string, string][]).map(([icon, label, section], i) => (
+          <button key={i} onClick={() => { if (section && onSectionChange) { onSectionChange(section); setShowProfile(false); } }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', borderRadius: '10px', border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '0.86rem', color: '#3f4a5a', cursor: section ? 'pointer' : 'default', textAlign: 'left', transition: 'background 0.15s' }} onMouseEnter={e => (e.currentTarget.style.background = '#f6f7fb')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <span style={{ fontSize: '1rem' }}>{icon}</span>{label}{!section && <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#c0c4d4' }}>Soon</span>}
           </button>
         ))}
 
@@ -170,7 +184,7 @@ export function Topbar({ role }: TopbarProps) {
           >
             {topbar.avatarPhoto && topbar.avatarBg && (
               <span style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '11px', overflow: 'hidden', flexShrink: 0, background: '#e9eaf5' }}>
-                <img src={topbar.avatarBg} alt={topbar.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img src={topbar.avatarBg} alt={displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </span>
             )}
             {topbar.avatarIcon && (

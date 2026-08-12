@@ -634,7 +634,7 @@ export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: 
     try {
       const d = new Date();
       const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      await api.logRoutineProgress({ log_date: today, completed_steps: updated, water_intake_ml: 2500, sleep_hours: 7.5 });
+      await api.logRoutineProgress({ log_date: today, completed_steps: updated, water_intake_ml: Math.round(waterLiters * 1000), sleep_hours: sleepHours });
       // ONLY update state after backend request succeeds!
       setCompletedSteps(updated);
     } catch (e: any) {

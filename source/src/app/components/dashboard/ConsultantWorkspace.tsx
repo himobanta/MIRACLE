@@ -655,6 +655,19 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
             </div>
           </Card>
         );
+      case 'product-recommendations':
+      case 'skin-concerns-guide':
+      case 'treatment-protocols':
+      case 'reports':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {progress}
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              {dist}
+              {topConcerns}
+            </div>
+          </div>
+        );
       default:
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>

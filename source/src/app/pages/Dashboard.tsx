@@ -111,7 +111,7 @@ export function Dashboard() {
           {/* Main Workspace */}
           <div style={{ flex: 1, minWidth: 0 }}>
             {/* Topbar */}
-            <Topbar role={role} />
+            <Topbar role={role} onSectionChange={setActiveSection} />
 
             {/* Main Content Area */}
             <div style={{ position: 'relative', zIndex: 1, padding: '10px 24px 16px' }}>

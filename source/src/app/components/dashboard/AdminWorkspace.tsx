@@ -475,7 +475,7 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
   const actionItems: [string, string, string][] = [
     ['users', 'View Users', 'user-management'],
     ['clip', 'View Assessments', 'skin-assessments'],
-    ['cal', 'View Routine Plans', 'routine-management'],
+    ['cal', 'View Reports', 'reports-&-analytics'],
     ['db', 'System Health', 'system-settings'],
   ];
 
@@ -522,6 +522,22 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {healthSection}
             {activitySection}
+          </div>
+        );
+      case 'routine-management':
+      case 'product-management':
+      case 'ingredient-database':
+      case 'content-management':
+      case 'notifications':
+      case 'backup-&-restore':
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+              {concerns}
+              {scoreSection}
+            </div>
+            {assessRoutine}
+            {userManagement}
           </div>
         );
       default:
