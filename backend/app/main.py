@@ -158,29 +158,63 @@ def readiness_check():
     )
 
 # ── Static SPA Mount & Fallback Routing ────────────────────────────────────────
-DIST_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "dist")
+# Try multiple possible dist/ locations to cover Railway's deployment layout
+_this_file = os.path.abspath(__file__)  # e.g. /app/backend/app/main.py
+_app_root = os.path.dirname(os.path.dirname(os.path.dirname(_this_file)))  # /app
 
-if os.path.exists(DIST_DIR):
+_candidate_dirs = [
+    os.path.join(_app_root, "dist"),                                   # /app/dist
+    os.path.join(os.path.dirname(_this_file), "..", "..", "dist"),     # relative from backend/app
+    os.path.join(os.getcwd(), "dist"),                                  # cwd/dist
+    "/app/dist",                                                        # Railway absolute
+]
+
+DIST_DIR = None
+for _candidate in _candidate_dirs:
+    _normalized = os.path.normpath(_candidate)
+    if os.path.isdir(_normalized) and os.path.isfile(os.path.join(_normalized, "index.html")):
+        DIST_DIR = _normalized
+        logger.info(f"SPA dist/ found at: {DIST_DIR}")
+        break
+
+if not DIST_DIR:
+    logger.warning(f"SPA dist/ NOT found. Checked: {[os.path.normpath(c) for c in _candidate_dirs]}")
+
+if DIST_DIR:
     assets_dir = os.path.join(DIST_DIR, "assets")
-    if os.path.exists(assets_dir):
+    if os.path.isdir(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="static_assets")
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa_or_fallback(full_path: str):
         # Don't intercept API routes or docs
-        if full_path.startswith("api/") or full_path in ["docs", "openapi.json", "redoc"]:
+        if full_path.startswith("api/") or full_path in ["docs", "openapi.json", "redoc", "debug-paths"]:
             return JSONResponse(status_code=404, content={"detail": "Not Found"})
-        
+
         file_path = os.path.join(DIST_DIR, full_path)
-        if full_path and os.path.exists(file_path) and os.path.isfile(file_path):
+        if full_path and os.path.isfile(file_path):
             return FileResponse(file_path)
-        
+
         index_file = os.path.join(DIST_DIR, "index.html")
-        if os.path.exists(index_file):
+        if os.path.isfile(index_file):
             return FileResponse(index_file)
-        
+
         return JSONResponse(status_code=404, content={"detail": "SPA index.html not found"})
-else:
+
+# Debug endpoint — always registered regardless of dist/ presence
+@app.get("/debug-paths", tags=["Debug"], include_in_schema=False)
+def debug_paths():
+    """Diagnose static file path resolution on Railway."""
+    return {
+        "cwd": os.getcwd(),
+        "this_file": _this_file,
+        "app_root": _app_root,
+        "dist_dir_used": DIST_DIR,
+        "candidates_checked": {os.path.normpath(c): os.path.isdir(os.path.normpath(c)) for c in _candidate_dirs},
+        "dist_index_exists": DIST_DIR is not None and os.path.isfile(os.path.join(DIST_DIR, "index.html")),
+    }
+
+if not DIST_DIR:
     @app.get("/")
     def root():
         return {
@@ -189,4 +223,3 @@ else:
             "version": "1.0.0",
             "documentation": "/docs"
         }
-
