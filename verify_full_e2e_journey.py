@@ -17,9 +17,13 @@ def get(url, headers=None):
         return json.loads(r.read().decode())
 
 def reg(email, role='User', name=None):
-    try:
-        return post(BASE+'/api/v1/auth/register', {'name': name or role+' Test', 'email': email, 'password': 'Pwd123!', 'role': role})
-    except Exception:
+    if role == 'User':
+        try:
+            return post(BASE+'/api/v1/auth/register', {'name': name or role+' Test', 'email': email, 'password': 'Pwd123!', 'role': role})
+        except Exception:
+            return post(BASE+'/api/v1/auth/login', {'email': email, 'password': 'Pwd123!'})
+    else:
+        # Privileged roles require login (seeded or existing) or special handling
         return post(BASE+'/api/v1/auth/login', {'email': email, 'password': 'Pwd123!'})
 
 def hdr(tok):
@@ -144,8 +148,8 @@ appt_req = post(BASE+'/api/v1/appointments/request', {
 appt_id = appt_req["id"]
 print(f"Appointment requested: ID={appt_id[:12]} | Status={appt_req['status']}")
 
-# 2. Login as Consultant
-res_cons = reg(f"cons_{ts}@miracle.com", "Skincare Consultant", "Dr. Priya Sharma")
+# 2. Login as Consultant / Doctor (using seeded doctor account)
+res_cons = post(BASE+'/api/v1/auth/login', {'email': 'derma@miracle.com', 'password': 'doctor123'})
 h_cons = hdr(res_cons["access_token"])
 
 # 3. Consultant views roster & patient details
@@ -190,7 +194,7 @@ refer_res = post(BASE+f'/api/v1/appointments/{appt_id}/refer', {
 print(f"Referral status: {refer_res['status']} | Date: {refer_res['preferred_date']}")
 
 # 2. Login as Dermatologist
-res_derma = reg(f"derma_{ts}@miracle.com", "Dermatologist", "Dr. Meera Iyer")
+res_derma = post(BASE+'/api/v1/auth/login', {'email': 'derma@miracle.com', 'password': 'doctor123'})
 h_derma = hdr(res_derma["access_token"])
 
 # 3. Dermatologist views patient & accepts
