@@ -119,11 +119,15 @@ def test_readiness_endpoint_returns_200_with_sqlite(client):
 
 
 def test_root_endpoint_returns_200(client):
-    """GET / must return HTTP 200 with service info."""
+    """GET / must return HTTP 200 with service info or static SPA index.html."""
     resp = client.get("/")
     assert resp.status_code == 200
-    data = resp.json()
-    assert data.get("status") == "online"
+    if "text/html" in resp.headers.get("content-type", ""):
+        assert "<title>" in resp.text or "<html" in resp.text
+    else:
+        data = resp.json()
+        assert data.get("status") == "online"
+
 
 
 # ── Error handling: no secret leakage ─────────────────────────────────────────
