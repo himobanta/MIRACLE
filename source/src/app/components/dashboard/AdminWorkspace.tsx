@@ -317,12 +317,22 @@ function AdminDashboardPage({ onSectionChange }: { onSectionChange?: (s: string)
           </div>
         </Card>
         <Card style={{ display: 'flex', flexDirection: 'column' }}>
-          <CardHead title="Recent Activity" right={<Pill text="Live" />} />
-          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, gap: '4px' }}>
-            {activity.length === 0 ? <EmptyState icon="📋" message="No activity yet." /> : activity.slice(0, 4).map((evt: any, i: number) => {
+          <CardHead title="Recent Activity" right={<Pill text="Live Feed" />} />
+          <div style={{
+            height: '240px',
+            maxHeight: '240px',
+            overflowY: 'scroll',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            paddingRight: '6px',
+            scrollbarWidth: 'thin',
+            scrollbarColor: '#cbd5e1 #f8fafc'
+          }}>
+            {activity.length === 0 ? <EmptyState icon="📋" message="No activity yet." /> : activity.map((evt: any, i: number) => {
               const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
               return (
-                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '10px 12px', borderRadius: '10px', background: '#fafbfe', border: '1px solid #f1f2f7' }}>
+                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '9px 12px', borderRadius: '10px', background: '#fafbfe', border: '1px solid #f1f2f7', flexShrink: 0 }}>
                   <span style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', flexShrink: 0, borderRadius: '10px', background: ib }}>
                     <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={15} stroke={icl} />
                   </span>
