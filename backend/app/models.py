@@ -118,3 +118,94 @@ class Product(Base):
     price = Column(Float, nullable=True)   # NULL = not available in SkinSAFE dataset
     safety_score = Column(Float, default=90.0)
     rating = Column(Float, default=4.6)
+
+
+# ── Admin & System Models ─────────────────────────────────────────────────────
+
+class Ingredient(Base):
+    """Skincare ingredient knowledge base for admin management."""
+    __tablename__ = "ingredients"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    name = Column(String, index=True, nullable=False)
+    category = Column(String, nullable=True)        # Humectant, Emollient, Active, Exfoliant, Preservative
+    function = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    benefits = Column(JSON, default=list)           # list of benefit strings
+    concerns = Column(JSON, default=list)           # potential side effects / concerns
+    skin_types = Column(JSON, default=list)         # suitable skin types
+    avoid_with = Column(JSON, default=list)         # ingredient conflicts
+    safety_rating = Column(String, default="Safe")  # Safe, Moderate, Caution
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ContentArticle(Base):
+    """CMS content articles managed by admin."""
+    __tablename__ = "content_articles"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    title = Column(String, nullable=False)
+    body = Column(Text, nullable=True)
+    category = Column(String, nullable=True)        # Skincare Guide, Research, FAQ, Announcement
+    author_id = Column(String, ForeignKey("users.id"), nullable=True)
+    status = Column(String, default="Draft")        # Draft, Published, Archived
+    tags = Column(JSON, default=list)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    published_at = Column(DateTime, nullable=True)
+
+
+class SystemNotification(Base):
+    """Platform-wide admin-created system notifications."""
+    __tablename__ = "system_notifications"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    title = Column(String, nullable=False)
+    message = Column(Text, nullable=False)
+    notification_type = Column(String, default="System")  # System, Appointment, Assessment, Product, Security, Announcement
+    audience = Column(String, default="All")              # All, User, Skincare Consultant, Dermatologist, Administrator
+    created_by = Column(String, ForeignKey("users.id"), nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class AuditLog(Base):
+    """Immutable trail of administrative actions on the platform."""
+    __tablename__ = "audit_logs"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), nullable=True)
+    user_name = Column(String, nullable=True)       # denormalized for log readability
+    user_role = Column(String, nullable=True)
+    action = Column(String, nullable=False)         # USER_CREATED, ROLE_CHANGED, PRODUCT_DELETED, etc.
+    resource_type = Column(String, nullable=True)   # User, Product, Ingredient, Content, etc.
+    resource_id = Column(String, nullable=True)
+    details = Column(JSON, nullable=True)           # additional metadata dict
+    status = Column(String, default="Success")      # Success, Failure
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SystemConfig(Base):
+    """Key-value platform configuration editable by admin."""
+    __tablename__ = "system_config"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    key = Column(String, unique=True, index=True, nullable=False)
+    value = Column(Text, nullable=True)
+    category = Column(String, default="General")   # General, Assessment, Notifications, Security, Platform
+    description = Column(Text, nullable=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class BackupRecord(Base):
+    """Records of database backup operations."""
+    __tablename__ = "backup_records"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    status = Column(String, default="Pending")      # Pending, Running, Completed, Failed
+    backup_type = Column(String, default="Manual")  # Manual, Automatic
+    notes = Column(Text, nullable=True)
+    size_bytes = Column(Integer, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    completed_at = Column(DateTime, nullable=True)

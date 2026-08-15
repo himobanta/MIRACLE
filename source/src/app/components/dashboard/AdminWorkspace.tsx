@@ -16,21 +16,59 @@ import {
   GRN,
   TEA,
   GRY,
-  UpEl,
 } from './dashboardUtils';
 import { API_BASE_URL, api } from '../../services/api';
 
-function EmptyState({ icon, message }: { icon: string; message: string }) {
+// ── Shared helpers ──────────────────────────────────────────────────────────
+
+function EmptyState({ icon, message, action, onAction }: { icon: string; message: string; action?: string; onAction?: () => void }) {
   return (
-    <div style={{ padding: '36px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>
-      <div style={{ fontSize: '1.4rem', marginBottom: '6px' }}>{icon}</div>
-      <div>{message}</div>
+    <div style={{ padding: '40px 24px', textAlign: 'center', color: '#a3a7bd' }}>
+      <div style={{ fontSize: '2rem', marginBottom: '10px' }}>{icon}</div>
+      <div style={{ fontSize: '0.86rem', marginBottom: action ? '14px' : 0 }}>{message}</div>
+      {action && onAction && (
+        <button onClick={onAction} style={{ padding: '8px 18px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          {action}
+        </button>
+      )}
     </div>
   );
 }
 
+function LoadingRow({ cols }: { cols: number }) {
+  return (
+    <tr>
+      <td colSpan={cols} style={{ padding: '32px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>
+        <span style={{ display: 'inline-block', animation: 'pulse 1.4s ease-in-out infinite' }}>Loading…</span>
+      </td>
+    </tr>
+  );
+}
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => void }) {
+  useEffect(() => { const t = setTimeout(onClose, 3500); return () => clearTimeout(t); }, [onClose]);
+  return (
+    <div style={{ position: 'fixed', bottom: '28px', right: '32px', zIndex: 9999, padding: '12px 20px', borderRadius: '12px', background: ok ? '#16a34a' : '#ef4444', color: '#fff', fontSize: '0.84rem', fontWeight: 600, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+      {ok ? '✓' : '✗'} {msg}
+      <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '0 0 0 6px' }}>×</button>
+    </div>
+  );
+}
+
+function ConfirmModal({ msg, onConfirm, onCancel }: { msg: string; onConfirm: () => void; onCancel: () => void }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: '16px', padding: '28px 32px', maxWidth: '420px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        <div style={{ fontSize: '1.05rem', fontWeight: 700, color: '#171433', marginBottom: '12px' }}>Confirm Action</div>
+        <div style={{ fontSize: '0.88rem', color: '#3f4a5a', marginBottom: '24px', lineHeight: 1.6 }}>{msg}</div>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button onClick={onCancel} style={{ padding: '8px 18px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.82rem', fontWeight: 600, color: '#3f4a5a', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          <button onClick={onConfirm} style={{ padding: '8px 18px', borderRadius: '10px', background: '#ef4444', color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 const ROLE_COLORS: Record<string, string> = {
   User: PUR,
@@ -48,371 +86,2384 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const ACTIVITY_TINTS: Record<string, [string, string]> = {
-  users:      ['rgba(47,107,76,0.12)', PUR],
-  clip:       ['rgba(34,197,94,0.14)', '#16a34a'],
-  cal:        ['rgba(59,157,248,0.14)', '#2f8fe0'],
-  db:         ['rgba(34,201,184,0.16)', '#12a99a'],
-  box:        ['rgba(245,166,35,0.16)', '#e08a1e'],
+  users: ['rgba(47,107,76,0.12)', PUR],
+  clip: ['rgba(34,197,94,0.14)', '#16a34a'],
+  cal: ['rgba(59,157,248,0.14)', '#2f8fe0'],
+  db: ['rgba(34,201,184,0.16)', '#12a99a'],
+  box: ['rgba(245,166,35,0.16)', '#e08a1e'],
+  bell: ['rgba(47,107,76,0.14)', PUR],
 };
 
-// ── Component ──────────────────────────────────────────────────────────────────
+// ── Admin API helpers ──────────────────────────────────────────────────────
+const BASE = API_BASE_URL;
 
-interface AdminWorkspaceProps {
-  activeSection?: string;
-  onSectionChange?: (section: string) => void;
+async function adminFetch(path: string, opts: RequestInit = {}) {
+  const token = localStorage.getItem('miracle_token');
+  const res = await fetch(`${BASE}${path}`, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(opts.headers || {}) },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ detail: res.statusText }));
+    throw new Error(err?.detail || `Error ${res.status}`);
+  }
+  return res.json();
 }
 
-export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }: AdminWorkspaceProps) {
-  // ── State
-  const [sysHealth, setSysHealth] = useState<{ db: boolean; api: boolean } | null>(null);
-  const [adminStats, setAdminStats] = useState<any | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
-  const [statsError, setStatsError] = useState<string | null>(null);
-
+// ══════════════════════════════════════════════════════════════════════════════
+// 1. ADMIN DASHBOARD (overview)
+// ══════════════════════════════════════════════════════════════════════════════
+function AdminDashboardPage({ onSectionChange }: { onSectionChange?: (s: string) => void }) {
+  const [stats, setStats] = useState<any>(null);
   const [activity, setActivity] = useState<any[]>([]);
-  const [activityLoading, setActivityLoading] = useState(true);
-  const [activityError, setActivityError] = useState<string | null>(null);
-
+  const [sysHealth, setSysHealth] = useState<{ db: boolean; api: boolean } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [users, setUsers] = useState<any[]>([]);
-  const [usersLoading, setUsersLoading] = useState(true);
-  const [usersError, setUsersError] = useState<string | null>(null);
-  const [userSearch, setUserSearch] = useState('');
-  const [userRoleFilter, setUserRoleFilter] = useState('');
 
-  // ── Fetch
-  const fetchAll = useCallback(() => {
+  useEffect(() => {
     const baseUrl = API_BASE_URL.replace('/api/v1', '');
-
-    // Platform health checks
     Promise.all([
       fetch(`${baseUrl}/health`).then(r => r.json()).catch(() => null),
       fetch(`${baseUrl}/ready`).then(r => r.json()).catch(() => null),
-    ]).then(([health, ready]) => {
-      setSysHealth({
-        db: ready?.database === 'connected',
-        api: health?.status === 'ok',
-      });
-    }).catch(() => setSysHealth({ db: false, api: false }));
+    ]).then(([health, ready]) => setSysHealth({ db: ready?.database === 'connected', api: health?.status === 'ok' })).catch(() => {});
 
-    // Admin stats
-    setStatsLoading(true);
-    api.getAdminStats()
-      .then(d => { setAdminStats(d); setStatsError(null); })
-      .catch(e => setStatsError(e?.detail || 'Failed to load platform statistics.'))
-      .finally(() => setStatsLoading(false));
-
-    // Activity feed
-    setActivityLoading(true);
-    api.getAdminActivity(10)
-      .then((d: any) => { setActivity(d.events || []); setActivityError(null); })
-      .catch(e => setActivityError(e?.detail || 'Failed to load activity feed.'))
-      .finally(() => setActivityLoading(false));
-
-    // User roster
-    setUsersLoading(true);
-    api.getAdminUsers()
-      .then((d: any) => { setUsers(d.users || []); setUsersError(null); })
-      .catch(e => setUsersError(e?.detail || 'Failed to load user list.'))
-      .finally(() => setUsersLoading(false));
+    Promise.all([
+      api.getAdminStats(),
+      api.getAdminActivity(15),
+      api.getAdminUsers(),
+    ]).then(([s, a, u]) => {
+      setStats(s);
+      setActivity(a.events || []);
+      setUsers(u.users || []);
+      setError(null);
+    }).catch(e => setError(e?.message || 'Failed to load dashboard.')).finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    fetchAll();
-    const handleGlobalSearch = (e: any) => {
-      if (typeof e.detail === 'string') {
-        setUserSearch(e.detail);
-      }
-    };
-    window.addEventListener('miracle_global_search', handleGlobalSearch);
-    return () => window.removeEventListener('miracle_global_search', handleGlobalSearch);
-  }, []);
+  const totalUsers = stats?.total_users ?? 0;
+  const uByRole = stats?.users_by_role ?? {};
+  const totalAssessments = stats?.total_assessments ?? 0;
+  const activeRoutines = stats?.active_routines ?? 0;
+  const rxRoutines = stats?.doctor_prescribed_routines ?? 0;
+  const totalPhotos = stats?.total_progress_photos ?? 0;
+  const totalAppts = stats?.total_appointments ?? 0;
+  const apptByStatus = stats?.appointments_by_status ?? {};
+  const concernDist = stats?.concern_distribution ?? [];
 
-  // ── Derived stats
-  const totalUsers      = adminStats?.total_users ?? 0;
-  const uByRole         = adminStats?.users_by_role ?? { User: 0, 'Skincare Consultant': 0, Dermatologist: 0, Administrator: 0 };
-  const totalAssessments = adminStats?.total_assessments ?? 0;
-  const activeRoutines  = adminStats?.active_routines ?? 0;
-  const rxRoutines      = adminStats?.doctor_prescribed_routines ?? 0;
-  const totalPhotos     = adminStats?.total_progress_photos ?? 0;
-  const totalAppts      = adminStats?.total_appointments ?? 0;
-  const apptByStatus    = adminStats?.appointments_by_status ?? {};
-  const concernDist     = adminStats?.concern_distribution ?? [];
+  const userPct = totalUsers > 0 ? Math.round(((uByRole.User || 0) / totalUsers) * 100) : 0;
+  const consPct = totalUsers > 0 ? Math.round(((uByRole['Skincare Consultant'] || 0) / totalUsers) * 100) : 0;
+  const dermaPct = totalUsers > 0 ? Math.round(((uByRole.Dermatologist || 0) / totalUsers) * 100) : 0;
+  const adminPct = totalUsers > 0 ? Math.round(((uByRole.Administrator || 0) / totalUsers) * 100) : 0;
+  const validScores = users.map((u: any) => u.health_score).filter((s: any): s is number => s !== null);
+  const avgScore = validScores.length ? Math.round(validScores.reduce((a: number, b: number) => a + b, 0) / validScores.length) : null;
+  const concernRows: [string, number, string][] = concernDist.map((c: any) => [c.label, c.pct, `${c.count} assessments`]);
 
-  // Donut segments for user roles
-  const userPct  = totalUsers > 0 ? Math.round((uByRole.User / totalUsers) * 100) : 0;
-  const consPct  = totalUsers > 0 ? Math.round((uByRole['Skincare Consultant'] / totalUsers) * 100) : 0;
-  const dermaPct = totalUsers > 0 ? Math.round((uByRole.Dermatologist / totalUsers) * 100) : 0;
-  const adminPct = totalUsers > 0 ? Math.round((uByRole.Administrator / totalUsers) * 100) : 0;
-
-  // Appointment donut
   const apptSegs = ['Requested', 'Accepted', 'Completed', 'Rejected', 'Referred_To_Dermatologist'].map(s => ({
     pct: totalAppts > 0 ? Math.round(((apptByStatus[s] ?? 0) / totalAppts) * 100) : 0,
     color: STATUS_COLORS[s],
   }));
 
-  // Concern bars
-  const concernRows: [string, number, string][] = concernDist.map((c: any) => [
-    c.label, c.pct, `${c.count} assessments`
-  ]);
+  const quickActions = [
+    { icon: 'users', label: 'User Management', section: 'user-management', color: PUR },
+    { icon: 'box', label: 'Product Catalog', section: 'product-management', color: BLU },
+    { icon: 'clip', label: 'Skin Assessments', section: 'skin-assessments', color: ORA },
+    { icon: 'trend', label: 'Reports', section: 'reports-&-analytics', color: GRN },
+    { icon: 'bell', label: 'Notifications', section: 'notifications', color: TEA },
+    { icon: 'shield', label: 'Security', section: 'security-&-access', color: '#e08a1e' },
+  ];
 
-  // Health score bars from user list
-  const validScores = users.map((u: any) => u.health_score).filter((s: any): s is number => s !== null);
-  const avgScore = validScores.length
-    ? Math.round(validScores.reduce((a: number, b: number) => a + b, 0) / validScores.length)
-    : null;
+  if (loading) return <EmptyState icon="⏳" message="Loading admin dashboard…" />;
+  if (error) return <div style={{ padding: '20px', color: '#ef4444', background: '#fef2f2', borderRadius: '10px', fontSize: '0.86rem' }}>{error}</div>;
 
-  // Filtered user list
-  const filteredUsers = users.filter(u => {
-    const matchRole = !userRoleFilter || u.role === userRoleFilter;
-    const matchSearch = !userSearch ||
-      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.email.toLowerCase().includes(userSearch.toLowerCase());
-    return matchRole && matchSearch;
-  });
-
-  // ── Section: Platform Stats Header ─────────────────────────────────────────
-  const headerStats = (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '12px' }}>
-      {[
-        { label: 'Total Users', value: totalUsers, icon: 'users', color: PUR },
-        { label: 'Assessments', value: totalAssessments, icon: 'clip', color: BLU },
-        { label: 'Active Routines', value: activeRoutines, icon: 'cal', color: GRN },
-        { label: 'Appointments', value: totalAppts, icon: 'clock', color: ORA },
-        { label: 'Progress Photos', value: totalPhotos, icon: 'eye', color: TEA },
-      ].map((s, i) => (
-        <Card key={i} style={{ padding: '18px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <span style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', borderRadius: '11px', background: `${s.color}22`, color: s.color, flexShrink: 0 }}>
-              <DashIcon d={PATHS[s.icon] || PATHS.grid} s={17} stroke={s.color} />
-            </span>
-            <div>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: '#171433', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-                {statsLoading ? '—' : String(s.value)}
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* KPI Strip */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6,1fr)', gap: '12px' }}>
+        {[
+          { label: 'Total Users', value: totalUsers, icon: 'users', color: PUR },
+          { label: 'Assessments', value: totalAssessments, icon: 'clip', color: BLU },
+          { label: 'Active Routines', value: activeRoutines, icon: 'cal', color: GRN },
+          { label: 'Appointments', value: totalAppts, icon: 'clock', color: ORA },
+          { label: 'Progress Photos', value: totalPhotos, icon: 'eye', color: TEA },
+          { label: 'Rx Routines', value: rxRoutines, icon: 'pill', color: '#e08a1e' },
+        ].map((s, i) => (
+          <Card key={i} style={{ padding: '16px 18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ display: 'grid', placeItems: 'center', width: '36px', height: '36px', borderRadius: '10px', background: `${s.color}22`, color: s.color, flexShrink: 0 }}>
+                <DashIcon d={PATHS[s.icon] || PATHS.grid} s={17} stroke={s.color} />
+              </span>
+              <div>
+                <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#171433', letterSpacing: '-0.02em', lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '3px' }}>{s.label}</div>
             </div>
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
+          </Card>
+        ))}
+      </div>
 
-  // ── Section: User Overview ─────────────────────────────────────────────────
-  const userOverview = (
-    <Card>
-      <CardHead title="User Overview" right={<Pill text="Live Platform Data" />} />
-      {statsLoading ? (
-        <EmptyState icon="⏳" message="Loading system metrics…" />
-      ) : statsError ? (
-        <div style={{ padding: '16px', borderRadius: '10px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem' }}>{statsError}</div>
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '20px', alignItems: 'center' }}>
-          <DonutChart
-            segs={[
+      {/* Row 2: User role donut + Appointments donut + Assessments/Routines */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+        <Card>
+          <CardHead title="Platform Users" right={<Pill text="Live DB" />} />
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <DonutChart segs={[
               { pct: userPct || (totalUsers === 0 ? 100 : 0), color: PUR },
               { pct: consPct, color: BLU },
               { pct: dermaPct, color: ORA },
               { pct: adminPct, color: GRN },
-            ]}
-            center={String(totalUsers)}
-            sub="Total Users"
-            size={168}
-          />
-          <Legend
-            rows={[
-              ['Users', `${uByRole.User} (${userPct}%)`, PUR],
-              ['Consultants', `${uByRole['Skincare Consultant']} (${consPct}%)`, BLU],
-              ['Dermatologists', `${uByRole.Dermatologist} (${dermaPct}%)`, ORA],
-              ['Admins', `${uByRole.Administrator} (${adminPct}%)`, GRN],
-            ]}
-          />
-        </div>
-      )}
-    </Card>
-  );
-
-  // ── Section: Appointment Distribution ─────────────────────────────────────
-  const apptOverview = (
-    <Card>
-      <CardHead title="Appointments by Status" right={<Pill text="Live" />} />
-      {statsLoading ? (
-        <EmptyState icon="⏳" message="Loading appointment data…" />
-      ) : totalAppts === 0 ? (
-        <EmptyState icon="📅" message="No appointments recorded yet." />
-      ) : (
-        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: '20px', alignItems: 'center' }}>
-          <DonutChart segs={apptSegs} center={String(totalAppts)} sub="Total" size={168} />
-          <Legend
-            rows={[
-              ['Requested', `${apptByStatus.Requested ?? 0}`, ORA],
-              ['Accepted', `${apptByStatus.Accepted ?? 0}`, GRN],
-              ['Completed', `${apptByStatus.Completed ?? 0}`, BLU],
-              ['Rejected', `${apptByStatus.Rejected ?? 0}`, '#ef4444'],
-              ['Referred', `${apptByStatus.Referred_To_Dermatologist ?? 0}`, TEA],
-            ]}
-          />
-        </div>
-      )}
-    </Card>
-  );
-
-  // ── Section: Assessments & Routines ───────────────────────────────────────
-  const assessRoutine = (
-    <Card>
-      <CardHead title="Assessments & Routines" right={<Pill text="Live" />} />
-      {statsLoading ? (
-        <EmptyState icon="⏳" message="Loading…" />
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: '12px', marginTop: '4px' }}>
-          {[
-            { label: 'Total Assessments', value: totalAssessments, color: PUR },
-            { label: 'Active Routines', value: activeRoutines, color: GRN },
-            { label: 'Doctor-Prescribed', value: rxRoutines, color: BLU },
-            { label: 'Progress Photos', value: totalPhotos, color: ORA },
-          ].map((s, i) => (
-            <div key={i} style={{ padding: '14px 16px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
-              <div style={{ fontSize: '1.4rem', fontWeight: 800, color: s.color, letterSpacing: '-0.02em' }}>{s.value}</div>
-              <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+            ]} center={String(totalUsers)} sub="Users" size={150} />
+            <Legend rows={[
+              ['Users', `${uByRole.User ?? 0} (${userPct}%)`, PUR],
+              ['Consultants', `${uByRole['Skincare Consultant'] ?? 0} (${consPct}%)`, BLU],
+              ['Dermatologists', `${uByRole.Dermatologist ?? 0} (${dermaPct}%)`, ORA],
+              ['Admins', `${uByRole.Administrator ?? 0} (${adminPct}%)`, GRN],
+            ]} />
+          </div>
+        </Card>
+        <Card>
+          <CardHead title="Appointments" right={<Pill text="Live" />} />
+          {totalAppts === 0 ? <EmptyState icon="📅" message="No appointments yet." /> : (
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <DonutChart segs={apptSegs} center={String(totalAppts)} sub="Total" size={150} />
+              <Legend rows={[
+                ['Requested', `${apptByStatus.Requested ?? 0}`, ORA],
+                ['Accepted', `${apptByStatus.Accepted ?? 0}`, GRN],
+                ['Completed', `${apptByStatus.Completed ?? 0}`, BLU],
+                ['Rejected', `${apptByStatus.Rejected ?? 0}`, '#ef4444'],
+                ['Referred', `${apptByStatus.Referred_To_Dermatologist ?? 0}`, TEA],
+              ]} />
             </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-
-  // ── Section: Top Skin Concerns ─────────────────────────────────────────────
-  const concerns = (
-    <Card>
-      <CardHead title="Top Detected Skin Concerns" right={<Pill text="Live DB" />} />
-      {statsLoading ? (
-        <EmptyState icon="⏳" message="Loading concern data…" />
-      ) : concernRows.length === 0 ? (
-        <EmptyState icon="🔍" message="No skin concerns logged yet — concerns appear once users complete assessments." />
-      ) : (
-        <Bars rows={concernRows} />
-      )}
-    </Card>
-  );
-
-  // ── Section: Health Score Distribution ────────────────────────────────────
-  const scoreSection = (
-    <Card>
-      <CardHead title="Platform Health Score Distribution" right={<Pill text="Live Users" />} />
-      {usersLoading ? (
-        <EmptyState icon="⏳" message="Loading health scores…" />
-      ) : validScores.length === 0 ? (
-        <EmptyState icon="📈" message="No health scores yet — appears once users complete assessments." />
-      ) : (
-        <>
-          <ChartFrame
-            chart={{ el: <LineChart vals={validScores} min={0} max={100} /> }}
-            yLabels={['100', '75', '50', '25', '0']}
-            xLabels={validScores.length <= 5 ? validScores.map((_: any, i: number) => `U${i + 1}`) : ['Start', '', '', '', 'Latest']}
-            h={150}
-          />
-          <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f2f7', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' }}>
+          )}
+        </Card>
+        <Card>
+          <CardHead title="Skin & Routines" right={<Pill text="Live" />} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '4px' }}>
             {[
-              { label: 'Avg Score', value: avgScore !== null ? String(avgScore) : '—', color: PUR },
-              { label: 'Score ≥ 75', value: String(validScores.filter((s: number) => s >= 75).length), color: GRN },
-              { label: 'Need Attention', value: String(validScores.filter((s: number) => s < 60).length), color: '#ef4444' },
+              { label: 'Assessments', value: totalAssessments, color: PUR },
+              { label: 'Active Routines', value: activeRoutines, color: GRN },
+              { label: 'Doctor-Prescribed', value: rxRoutines, color: BLU },
+              { label: 'Progress Photos', value: totalPhotos, color: ORA },
             ].map((s, i) => (
-              <div key={i} style={{ textAlign: 'center', padding: '10px 8px', borderRadius: '10px', background: '#f6f7fb' }}>
-                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: s.color }}>{s.value}</div>
-                <div style={{ fontSize: '0.68rem', color: '#8b8fa3', marginTop: '3px' }}>{s.label}</div>
+              <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: s.color, letterSpacing: '-0.02em' }}>{s.value}</div>
+                <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
               </div>
             ))}
           </div>
-        </>
-      )}
-    </Card>
-  );
+        </Card>
+      </div>
 
-  // ── Section: Recent Activity (Live DB) ────────────────────────────────────
-  const activitySection = (
-    <Card>
-      <CardHead title="Recent Platform Activity" right={<Pill text="Live DB" />} />
-      {activityLoading ? (
-        <EmptyState icon="⏳" message="Loading activity feed…" />
-      ) : activityError ? (
-        <div style={{ padding: '12px', borderRadius: '10px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem' }}>{activityError}</div>
-      ) : activity.length === 0 ? (
-        <EmptyState icon="📋" message="No platform activity yet." />
-      ) : (
-        <div style={{ maxHeight: '280px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {activity.map((evt: any, i: number) => {
-            const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
-            return (
-              <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                <span style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', flexShrink: 0, borderRadius: '11px', background: ib, color: icl }}>
-                  <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={17} stroke={icl} />
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#171433' }}>{evt.title}</div>
-                  <div style={{ fontSize: '0.76rem', color: '#8b8fa3' }}>{evt.detail}</div>
+      {/* Row 3: Concerns + Score chart */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <Card>
+          <CardHead title="Top Skin Concerns" right={<Pill text="From Assessments" />} />
+          {concernRows.length === 0 ? <EmptyState icon="🔍" message="Concerns appear once users complete assessments." /> : <Bars rows={concernRows} />}
+        </Card>
+        <Card>
+          <CardHead title="Health Score Distribution" right={<Pill text="Live Users" />} />
+          {validScores.length === 0 ? <EmptyState icon="📈" message="Score chart appears after users complete assessments." /> : (
+            <>
+              <ChartFrame
+                chart={{ el: <LineChart vals={validScores} min={0} max={100} /> }}
+                yLabels={['100', '75', '50', '25', '0']}
+                xLabels={validScores.length <= 5 ? validScores.map((_: any, i: number) => `U${i + 1}`) : ['Start', '', '', '', 'Latest']}
+                h={140}
+              />
+              <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '8px' }}>
+                {[
+                  { label: 'Avg Score', value: avgScore !== null ? String(avgScore) : '—', color: PUR },
+                  { label: 'Score ≥ 75', value: String(validScores.filter((s: number) => s >= 75).length), color: GRN },
+                  { label: 'Need Attention', value: String(validScores.filter((s: number) => s < 60).length), color: '#ef4444' },
+                ].map((s, i) => (
+                  <div key={i} style={{ textAlign: 'center', padding: '10px 8px', borderRadius: '10px', background: '#f6f7fb' }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#8b8fa3', marginTop: '3px' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+
+      {/* Row 4: System health + Activity + Quick Actions */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+        <Card>
+          <CardHead title="System Health" right={<Pill text={sysHealth?.api ? 'Operational' : 'Checking…'} />} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {[
+              { label: 'Database', ok: sysHealth?.db, icon: 'db' },
+              { label: 'API Services', ok: sysHealth?.api, icon: 'gear' },
+              { label: 'Storage Layer', ok: sysHealth?.api, icon: 'box' },
+              { label: 'Email Service', ok: sysHealth?.api, icon: 'bell' },
+            ].map((h, i) => {
+              const col = h.ok === null || h.ok === undefined ? '#a3a7bd' : h.ok ? '#16a34a' : '#ef4444';
+              const bg = h.ok === null || h.ok === undefined ? 'rgba(163,167,189,0.12)' : h.ok ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
+              return (
+                <div key={i} style={{ padding: '12px', borderRadius: '10px', background: bg }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <DashIcon d={PATHS[h.icon] || PATHS.grid} s={16} stroke={col} />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433' }}>{h.label}</span>
+                  </div>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 600, color: col, marginTop: '4px' }}>
+                    {h.ok === null || h.ok === undefined ? 'Checking…' : h.ok ? '● Healthy' : '● Degraded'}
+                  </div>
                 </div>
-                <div style={{ fontSize: '0.72rem', color: '#a3a7bd', whiteSpace: 'nowrap', flexShrink: 0 }}>{evt.timestamp}</div>
+              );
+            })}
+          </div>
+        </Card>
+        <Card>
+          <CardHead title="Recent Activity" right={<Pill text="Live" />} />
+          <div style={{ maxHeight: '220px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            {activity.length === 0 ? <EmptyState icon="📋" message="No activity yet." /> : activity.slice(0, 8).map((evt: any, i: number) => {
+              const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
+              return (
+                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <span style={{ display: 'grid', placeItems: 'center', width: '34px', height: '34px', flexShrink: 0, borderRadius: '10px', background: ib }}>
+                    <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={15} stroke={icl} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#171433' }}>{evt.title}</div>
+                    <div style={{ fontSize: '0.72rem', color: '#8b8fa3' }}>{evt.detail}</div>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#a3a7bd', whiteSpace: 'nowrap', flexShrink: 0 }}>{evt.timestamp?.split(' ')[0]}</div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+        <Card>
+          <CardHead title="Quick Actions" />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            {quickActions.map((a, i) => (
+              <div key={i} onClick={() => onSectionChange && onSectionChange(a.section)}
+                style={{ padding: '14px 10px', borderRadius: '12px', border: '1px solid #edeef4', background: '#fafbfe', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.2s, background 0.2s' }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = a.color; (e.currentTarget as HTMLElement).style.background = `${a.color}08`; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#edeef4'; (e.currentTarget as HTMLElement).style.background = '#fafbfe'; }}>
+                <span style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', margin: '0 auto 8px', borderRadius: '11px', background: `${a.color}20` }}>
+                  <DashIcon d={PATHS[a.icon] || PATHS.grid} s={18} stroke={a.color} />
+                </span>
+                <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#3f4a5a' }}>{a.label}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 2. USER MANAGEMENT
+// ══════════════════════════════════════════════════════════════════════════════
+function UserManagementPage() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [confirm, setConfirm] = useState<{ msg: string; onConfirm: () => void } | null>(null);
+  const [editUser, setEditUser] = useState<any | null>(null);
+  const [editRole, setEditRole] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [detailUser, setDetailUser] = useState<any | null>(null);
+  const [detailData, setDetailData] = useState<any | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+
+  const reload = useCallback(() => {
+    setLoading(true);
+    api.getAdminUsers(roleFilter || undefined, search || undefined)
+      .then((d: any) => { setUsers(d.users || []); setError(null); })
+      .catch(e => setError(e?.message || 'Failed to load users.'))
+      .finally(() => setLoading(false));
+  }, [roleFilter, search]);
+
+  useEffect(() => { reload(); }, [reload]);
+
+  useEffect(() => {
+    const h = (e: any) => { if (typeof e.detail === 'string') setSearch(e.detail); };
+    window.addEventListener('miracle_global_search', h);
+    return () => window.removeEventListener('miracle_global_search', h);
+  }, []);
+
+  const showDetail = async (u: any) => {
+    setDetailUser(u);
+    setDetailLoading(true);
+    try {
+      const d = await adminFetch(`/admin/users/${u.id}/detail`);
+      setDetailData(d);
+    } catch {
+      setDetailData(null);
+    } finally {
+      setDetailLoading(false);
+    }
+  };
+
+  const updateRole = async () => {
+    if (!editUser) return;
+    setSaving(true);
+    try {
+      await adminFetch(`/admin/users/${editUser.id}`, { method: 'PUT', body: JSON.stringify({ role: editRole }) });
+      setToast({ msg: `Role updated to ${editRole}`, ok: true });
+      setEditUser(null);
+      reload();
+    } catch (e: any) {
+      setToast({ msg: e.message || 'Failed to update role.', ok: false });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteUser = (u: any) => {
+    setConfirm({
+      msg: `Permanently delete "${u.name}" (${u.email})? This action cannot be undone.`,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await adminFetch(`/admin/users/${u.id}`, { method: 'DELETE' });
+          setToast({ msg: 'User deleted.', ok: true });
+          reload();
+        } catch (e: any) {
+          setToast({ msg: e.message || 'Delete failed.', ok: false });
+        }
+      },
+    });
+  };
+
+  const filtered = users.filter(u => {
+    const s = search.toLowerCase();
+    return (!s || u.name?.toLowerCase().includes(s) || u.email?.toLowerCase().includes(s));
+  });
+
+  const cols = ['Name', 'Email', 'Role', 'Skin Type', 'Health Score', 'Joined', 'Actions'];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      {confirm && <ConfirmModal msg={confirm.msg} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
+
+      {/* Edit Role Modal */}
+      {editUser && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px 32px', maxWidth: '400px', width: '90%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ fontSize: '1rem', fontWeight: 700, color: '#171433', marginBottom: '6px' }}>Change Role</div>
+            <div style={{ fontSize: '0.82rem', color: '#8b8fa3', marginBottom: '18px' }}>Editing: <b>{editUser.name}</b> ({editUser.email})</div>
+            <select value={editRole} onChange={e => setEditRole(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.86rem', marginBottom: '18px', fontFamily: 'inherit' }}>
+              {['User', 'Skincare Consultant', 'Dermatologist', 'Administrator'].map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button onClick={() => setEditUser(null)} style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={updateRole} disabled={saving} style={{ padding: '8px 16px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving ? 0.6 : 1 }}>
+                {saving ? 'Saving…' : 'Save Role'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Detail Modal */}
+      {detailUser && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '600px', width: '100%', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#171433' }}>{detailUser.name}</div>
+                <div style={{ fontSize: '0.82rem', color: '#8b8fa3' }}>{detailUser.email} · {detailUser.role}</div>
+              </div>
+              <button onClick={() => { setDetailUser(null); setDetailData(null); }} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#8b8fa3' }}>×</button>
+            </div>
+            {detailLoading ? <EmptyState icon="⏳" message="Loading user details…" /> : !detailData ? <EmptyState icon="⚠️" message="Could not load user details." /> : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                  {[
+                    { label: 'Skin Type', value: detailData.profile?.skin_type || '—' },
+                    { label: 'Age', value: detailData.profile?.age ? `${detailData.profile.age} yrs` : '—' },
+                    { label: 'Gender', value: detailData.profile?.gender || '—' },
+                    { label: 'Assessments', value: String(detailData.assessments?.length ?? 0) },
+                    { label: 'Active Routines', value: String(detailData.active_routine_count ?? 0) },
+                    { label: 'Appointments', value: String(detailData.appointments?.length ?? 0) },
+                  ].map(({ label, value }, i) => (
+                    <div key={i} style={{ padding: '12px', borderRadius: '10px', background: '#f6f7fb' }}>
+                      <div style={{ fontSize: '0.7rem', color: '#8b8fa3' }}>{label}</div>
+                      <div style={{ fontSize: '0.9rem', fontWeight: 700, color: '#171433', marginTop: '3px' }}>{value}</div>
+                    </div>
+                  ))}
+                </div>
+                {(detailData.profile?.concerns?.length > 0) && (
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#8b8fa3', marginBottom: '8px' }}>Skin Concerns</div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {detailData.profile.concerns.map((c: string, i: number) => (
+                        <span key={i} style={{ padding: '3px 10px', borderRadius: '999px', background: `${PUR}18`, color: PUR, fontSize: '0.74rem', fontWeight: 600 }}>{c}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(detailData.assessments?.length > 0) && (
+                  <div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#8b8fa3', marginBottom: '8px' }}>Assessment History</div>
+                    <div style={{ maxHeight: '150px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {detailData.assessments.map((a: any, i: number) => (
+                        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 12px', borderRadius: '8px', background: '#fafbfe', border: '1px solid #edeef4', fontSize: '0.78rem' }}>
+                          <span style={{ color: '#3f4a5a' }}>{a.created_at?.split('T')[0]}</span>
+                          <span style={{ fontWeight: 700, color: a.overall_score >= 75 ? GRN : a.overall_score >= 60 ? ORA : '#ef4444' }}>{Math.round(a.overall_score)}/100</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Card>
+        <CardHead
+          title={`User Management (${filtered.length}${filtered.length !== users.length ? ` of ${users.length}` : ''})`}
+          right={
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <input type="text" placeholder="Search name or email…" value={search} onChange={e => setSearch(e.target.value)}
+                style={{ padding: '7px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '200px' }} />
+              <select value={roleFilter} onChange={e => { setRoleFilter(e.target.value); }}
+                style={{ padding: '7px 10px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', background: '#fff' }}>
+                <option value="">All Roles</option>
+                <option value="User">Users</option>
+                <option value="Skincare Consultant">Consultants</option>
+                <option value="Dermatologist">Dermatologists</option>
+                <option value="Administrator">Admins</option>
+              </select>
+            </div>
+          }
+        />
+        <div style={{ overflowX: 'auto', maxHeight: '480px', overflowY: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', minWidth: '900px', width: '100%' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+              <tr>
+                {cols.map((c, i) => (
+                  <th key={i} style={{ textAlign: 'left', padding: '0 16px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? <LoadingRow cols={7} /> : error ? (
+                <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#ef4444', fontSize: '0.82rem' }}>{error}</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>
+                  {search || roleFilter ? 'No users match your filters.' : 'No users registered yet.'}
+                </td></tr>
+              ) : filtered.map((u: any) => {
+                const rc = ROLE_COLORS[u.role] || GRY;
+                return (
+                  <tr key={u.id} style={{ borderTop: '1px solid #f1f2f7' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fafbfe'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                    <td style={{ padding: '12px 16px', fontSize: '0.84rem', fontWeight: 600, color: '#171433' }}>{u.name}</td>
+                    <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#3f4a5a' }}>{u.email}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: `${rc}22`, color: rc }}>{u.role}</span>
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#3f4a5a' }}>{u.skin_type || '—'}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'left' }}>
+                      {u.health_score !== null && u.health_score !== undefined ? (
+                        <span style={{ fontSize: '0.85rem', fontWeight: 700, color: u.health_score >= 75 ? GRN : u.health_score >= 60 ? ORA : '#ef4444' }}>{Math.round(u.health_score)}</span>
+                      ) : <span style={{ color: '#a3a7bd' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#8b8fa3', whiteSpace: 'nowrap' }}>{u.created_at || '—'}</td>
+                    <td style={{ padding: '12px 16px' }}>
+                      <div style={{ display: 'flex', gap: '6px' }}>
+                        <button onClick={() => showDetail(u)} style={{ padding: '4px 10px', borderRadius: '7px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.72rem', fontWeight: 600, color: BLU, cursor: 'pointer', fontFamily: 'inherit' }}>View</button>
+                        <button onClick={() => { setEditUser(u); setEditRole(u.role); }} style={{ padding: '4px 10px', borderRadius: '7px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.72rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit' }}>Role</button>
+                        <button onClick={() => deleteUser(u)} style={{ padding: '4px 10px', borderRadius: '7px', border: '1px solid #fecaca', background: '#fff', fontSize: '0.72rem', fontWeight: 600, color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 3. ROLE & PERMISSIONS
+// ══════════════════════════════════════════════════════════════════════════════
+function RolePermissionsPage() {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getAdminStats().then(setStats).catch(() => {}).finally(() => setLoading(false));
+  }, []);
+
+  const uByRole = stats?.users_by_role ?? {};
+
+  const roles = [
+    {
+      name: 'User', color: PUR, count: uByRole.User ?? 0,
+      desc: 'End users accessing personal skincare features',
+      perms: [
+        { module: 'Dashboard', access: 'Own Data' },
+        { module: 'Skin Assessment', access: 'Full Access' },
+        { module: 'Routine', access: 'Own Routine' },
+        { module: 'Product Recs', access: 'View & Filter' },
+        { module: 'Progress Photos', access: 'Own Photos' },
+        { module: 'Appointments', access: 'Request Only' },
+        { module: 'Admin Portal', access: '—' },
+        { module: 'Clinical Data', access: '—' },
+      ],
+    },
+    {
+      name: 'Skincare Consultant', color: BLU, count: uByRole['Skincare Consultant'] ?? 0,
+      desc: 'Licensed skincare professionals managing client care',
+      perms: [
+        { module: 'Dashboard', access: 'Client Overview' },
+        { module: 'Skin Assessment', access: 'View Client' },
+        { module: 'Routine', access: 'Prescribe' },
+        { module: 'Product Recs', access: 'Recommend' },
+        { module: 'Progress Photos', access: 'View Client' },
+        { module: 'Appointments', access: 'Manage' },
+        { module: 'Admin Portal', access: '—' },
+        { module: 'Clinical Data', access: 'Limited' },
+      ],
+    },
+    {
+      name: 'Dermatologist', color: ORA, count: uByRole.Dermatologist ?? 0,
+      desc: 'Medical professionals with clinical access',
+      perms: [
+        { module: 'Dashboard', access: 'Patient Overview' },
+        { module: 'Skin Assessment', access: 'Full Clinical' },
+        { module: 'Routine', access: 'Prescribe & Override' },
+        { module: 'Product Recs', access: 'Prescribe' },
+        { module: 'Progress Photos', access: 'Full Clinical' },
+        { module: 'Appointments', access: 'Full Manage' },
+        { module: 'Admin Portal', access: '—' },
+        { module: 'Clinical Data', access: 'Full Access' },
+      ],
+    },
+    {
+      name: 'Administrator', color: GRN, count: uByRole.Administrator ?? 0,
+      desc: 'Platform administrators with full system access',
+      perms: [
+        { module: 'Dashboard', access: 'All Platform' },
+        { module: 'Skin Assessment', access: 'View All' },
+        { module: 'Routine', access: 'Manage All' },
+        { module: 'Product Recs', access: 'Full CRUD' },
+        { module: 'Progress Photos', access: 'View All' },
+        { module: 'Appointments', access: 'View All' },
+        { module: 'Admin Portal', access: 'Full Access' },
+        { module: 'Clinical Data', access: 'Full Access' },
+      ],
+    },
+  ];
+
+  const permModules = ['Dashboard', 'Skin Assessment', 'Routine', 'Product Recs', 'Progress Photos', 'Appointments', 'Admin Portal', 'Clinical Data'];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Role summary cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+        {roles.map((r, i) => (
+          <Card key={i} style={{ padding: '18px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: r.color }}>{r.name}</span>
+              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 9px', borderRadius: '999px', background: `${r.color}20`, color: r.color }}>
+                {loading ? '—' : r.count} users
+              </span>
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#8b8fa3' }}>{r.desc}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Permission Matrix */}
+      <Card>
+        <CardHead title="Platform Permission Matrix" right={<Pill text="RBAC Engine" />} />
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '700px' }}>
+            <thead>
+              <tr style={{ background: '#f6f7fb' }}>
+                <th style={{ textAlign: 'left', padding: '12px 16px', fontSize: '0.74rem', fontWeight: 700, color: '#3f4a5a', borderBottom: '2px solid #edeef4' }}>Module</th>
+                {roles.map((r, i) => (
+                  <th key={i} style={{ textAlign: 'center', padding: '12px 16px', fontSize: '0.74rem', fontWeight: 700, color: r.color, borderBottom: '2px solid #edeef4' }}>{r.name}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {permModules.map((mod, mi) => (
+                <tr key={mi} style={{ borderBottom: '1px solid #f1f2f7' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fafbfe'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                  <td style={{ padding: '12px 16px', fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>{mod}</td>
+                  {roles.map((r, ri) => {
+                    const perm = r.perms[mi];
+                    const isDenied = perm.access === '—';
+                    const isLimited = perm.access.includes('Limited') || perm.access.includes('Only') || perm.access.includes('Own');
+                    const isFull = perm.access.includes('Full') || perm.access.includes('All');
+                    const col = isDenied ? '#d1d5db' : isFull ? GRN : isLimited ? ORA : BLU;
+                    return (
+                      <td key={ri} style={{ textAlign: 'center', padding: '12px 16px' }}>
+                        <span style={{ fontSize: '0.74rem', fontWeight: 600, color: col, display: 'inline-block', padding: '2px 8px', borderRadius: '6px', background: isDenied ? '#f3f4f6' : `${col}18` }}>
+                          {isDenied ? '—' : perm.access}
+                        </span>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+
+      <div style={{ padding: '12px 16px', borderRadius: '12px', background: '#fff8ed', border: '1px solid #fde68a', fontSize: '0.82rem', color: '#92400e' }}>
+        <b>⚠️ Note:</b> This permission matrix is enforced by the MIRACLE backend RBAC system. Role assignments take effect immediately. Changes to a user's role are reflected across all API authorization checks.
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 4. SKIN ASSESSMENTS
+// ══════════════════════════════════════════════════════════════════════════════
+function SkinAssessmentsPage() {
+  const [assessments, setAssessments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [scoreFilter, setScoreFilter] = useState('');
+  const [detail, setDetail] = useState<any | null>(null);
+  const [stats, setStats] = useState<any>(null);
+
+  useEffect(() => {
+    Promise.all([
+      adminFetch('/admin/assessments?per_page=100'),
+      api.getAdminStats(),
+    ]).then(([a, s]) => {
+      setAssessments(a.items || []);
+      setStats(s);
+      setError(null);
+    }).catch(e => setError(e?.message || 'Failed to load assessments.')).finally(() => setLoading(false));
+  }, []);
+
+  const filtered = assessments.filter(a => {
+    const s = search.toLowerCase();
+    const matchSearch = !s || a.user_name?.toLowerCase().includes(s) || a.user_email?.toLowerCase().includes(s);
+    const matchScore = !scoreFilter ||
+      (scoreFilter === 'high' && a.overall_score >= 75) ||
+      (scoreFilter === 'mid' && a.overall_score >= 60 && a.overall_score < 75) ||
+      (scoreFilter === 'low' && a.overall_score < 60);
+    return matchSearch && matchScore;
+  });
+
+  const avgScore = assessments.length ? Math.round(assessments.reduce((a, b) => a + b.overall_score, 0) / assessments.length) : 0;
+  const highCount = assessments.filter(a => a.overall_score >= 75).length;
+  const lowCount = assessments.filter(a => a.overall_score < 60).length;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+        {[
+          { label: 'Total Assessments', value: assessments.length, color: PUR },
+          { label: 'Average Score', value: `${avgScore}/100`, color: BLU },
+          { label: 'Score ≥ 75 (Healthy)', value: highCount, color: GRN },
+          { label: 'Score < 60 (Attention)', value: lowCount, color: '#ef4444' },
+        ].map((s, i) => (
+          <Card key={i} style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, letterSpacing: '-0.02em' }}>{loading ? '—' : s.value}</div>
+            <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Concern distribution */}
+      {(stats?.concern_distribution?.length > 0) && (
+        <Card>
+          <CardHead title="Detected Concern Distribution" right={<Pill text="Across All Assessments" />} />
+          <Bars rows={stats.concern_distribution.map((c: any) => [c.label, c.pct, `${c.count} assessments`] as [string, number, string])} />
+        </Card>
+      )}
+
+      {/* Assessment table */}
+      {detail && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '560px', width: '100%', maxHeight: '80vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#171433' }}>Assessment Detail</div>
+                <div style={{ fontSize: '0.82rem', color: '#8b8fa3' }}>{detail.user_name} · {detail.created_at?.split('T')[0]}</div>
+              </div>
+              <button onClick={() => setDetail(null)} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#8b8fa3' }}>×</button>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '16px' }}>
+              {[
+                { label: 'Overall Score', value: `${Math.round(detail.overall_score)}/100`, color: detail.overall_score >= 75 ? GRN : detail.overall_score >= 60 ? ORA : '#ef4444' },
+                { label: 'Condition', value: `${Math.round(detail.condition_subscore)}/100`, color: BLU },
+                { label: 'Lifestyle', value: `${Math.round(detail.lifestyle_subscore)}/100`, color: PUR },
+                { label: 'Sleep', value: `${Math.round(detail.sleep_subscore)}/100`, color: ORA },
+                { label: 'Consistency', value: `${Math.round(detail.consistency_subscore)}/100`, color: GRN },
+                { label: 'Hydration', value: `${Math.round(detail.hydration_subscore)}/100`, color: TEA },
+              ].map(({ label, value, color }, i) => (
+                <div key={i} style={{ padding: '12px', borderRadius: '10px', background: '#f6f7fb' }}>
+                  <div style={{ fontSize: '0.7rem', color: '#8b8fa3' }}>{label}</div>
+                  <div style={{ fontSize: '1.1rem', fontWeight: 800, color, marginTop: '3px' }}>{value}</div>
+                </div>
+              ))}
+            </div>
+            {detail.detected_concerns?.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#8b8fa3', marginBottom: '8px' }}>Detected Concerns</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                  {detail.detected_concerns.map((c: string, i: number) => (
+                    <span key={i} style={{ padding: '3px 10px', borderRadius: '999px', background: `${ORA}18`, color: ORA, fontSize: '0.74rem', fontWeight: 600 }}>{c}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Card>
+        <CardHead
+          title={`All Assessments (${filtered.length})`}
+          right={
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input type="text" placeholder="Search user…" value={search} onChange={e => setSearch(e.target.value)}
+                style={{ padding: '7px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '180px' }} />
+              <select value={scoreFilter} onChange={e => setScoreFilter(e.target.value)}
+                style={{ padding: '7px 10px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', background: '#fff' }}>
+                <option value="">All Scores</option>
+                <option value="high">Score ≥ 75</option>
+                <option value="mid">Score 60–74</option>
+                <option value="low">Score &lt; 60</option>
+              </select>
+            </div>
+          }
+        />
+        <div style={{ overflowX: 'auto', maxHeight: '420px', overflowY: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', minWidth: '750px', width: '100%' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+              <tr>
+                {['User', 'Email', 'Date', 'Overall Score', 'Concerns', 'Actions'].map((c, i) => (
+                  <th key={i} style={{ textAlign: 'left', padding: '0 16px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? <LoadingRow cols={6} /> : error ? (
+                <tr><td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: '#ef4444', fontSize: '0.82rem' }}>{error}</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={6} style={{ padding: '40px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>No assessments found.</td></tr>
+              ) : filtered.map((a: any, i: number) => (
+                <tr key={i} style={{ borderTop: '1px solid #f1f2f7' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fafbfe'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                  <td style={{ padding: '12px 16px', fontSize: '0.84rem', fontWeight: 600, color: '#171433' }}>{a.user_name}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#8b8fa3' }}>{a.user_email}</td>
+                  <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#3f4a5a', whiteSpace: 'nowrap' }}>{a.created_at?.split('T')[0]}</td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <span style={{ fontWeight: 800, fontSize: '0.92rem', color: a.overall_score >= 75 ? GRN : a.overall_score >= 60 ? ORA : '#ef4444' }}>
+                      {Math.round(a.overall_score)}/100
+                    </span>
+                  </td>
+                  <td style={{ padding: '12px 16px', maxWidth: '220px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {(a.detected_concerns || []).slice(0, 3).map((c: string, ci: number) => (
+                        <span key={ci} style={{ padding: '2px 8px', borderRadius: '999px', background: `${ORA}18`, color: ORA, fontSize: '0.68rem', fontWeight: 600 }}>{c.split(' (')[0]}</span>
+                      ))}
+                      {(a.detected_concerns || []).length > 3 && <span style={{ fontSize: '0.68rem', color: '#8b8fa3' }}>+{a.detected_concerns.length - 3}</span>}
+                    </div>
+                  </td>
+                  <td style={{ padding: '12px 16px' }}>
+                    <button onClick={() => setDetail(a)} style={{ padding: '4px 10px', borderRadius: '7px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.72rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit' }}>View</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 5. ROUTINE MANAGEMENT
+// ══════════════════════════════════════════════════════════════════════════════
+function RoutineManagementPage() {
+  const [routines, setRoutines] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [timeFilter, setTimeFilter] = useState('');
+
+  useEffect(() => {
+    adminFetch('/admin/routines?per_page=200')
+      .then(d => { setRoutines(d.items || []); setError(null); })
+      .catch(e => setError(e?.message || 'Failed to load routines.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = routines.filter(r => {
+    const s = search.toLowerCase();
+    const matchSearch = !s || r.user_name?.toLowerCase().includes(s) || r.product_name?.toLowerCase().includes(s);
+    const matchTime = !timeFilter || r.time_of_day === timeFilter;
+    return matchSearch && matchTime;
+  });
+
+  const amCount = routines.filter(r => r.time_of_day === 'AM').length;
+  const pmCount = routines.filter(r => r.time_of_day === 'PM').length;
+  const activeCount = routines.filter(r => r.is_active).length;
+  const rxCount = routines.filter(r => r.prescribed_by_doctor).length;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+        {[
+          { label: 'Total Routine Steps', value: routines.length, color: PUR },
+          { label: 'Morning (AM) Steps', value: amCount, color: ORA },
+          { label: 'Evening (PM) Steps', value: pmCount, color: BLU },
+          { label: 'Doctor-Prescribed', value: rxCount, color: GRN },
+        ].map((s, i) => (
+          <Card key={i} style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color, letterSpacing: '-0.02em' }}>{loading ? '—' : s.value}</div>
+            <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Category distribution */}
+      <Card>
+        <CardHead title="Step Category Distribution" right={<Pill text="All Routines" />} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '10px' }}>
+          {['Cleansing', 'Exfoliation', 'Treatment', 'Moisturizing', 'Sun Protection'].map((cat, i) => {
+            const count = routines.filter(r => r.step_category === cat).length;
+            const pct = routines.length ? Math.round((count / routines.length) * 100) : 0;
+            const colors = [PUR, ORA, BLU, GRN, TEA];
+            return (
+              <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: colors[i] }}>{loading ? '—' : count}</div>
+                <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{cat}</div>
+                <div style={{ fontSize: '0.68rem', color: colors[i], fontWeight: 600, marginTop: '2px' }}>{pct}%</div>
               </div>
             );
           })}
         </div>
-      )}
-    </Card>
+      </Card>
+
+      <Card>
+        <CardHead
+          title={`Routine Steps (${filtered.length})`}
+          right={
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input type="text" placeholder="Search user or product…" value={search} onChange={e => setSearch(e.target.value)}
+                style={{ padding: '7px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '200px' }} />
+              <select value={timeFilter} onChange={e => setTimeFilter(e.target.value)}
+                style={{ padding: '7px 10px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', background: '#fff' }}>
+                <option value="">All Times</option>
+                <option value="AM">Morning (AM)</option>
+                <option value="PM">Evening (PM)</option>
+                <option value="Weekly">Weekly</option>
+              </select>
+            </div>
+          }
+        />
+        <div style={{ overflowX: 'auto', maxHeight: '420px', overflowY: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', minWidth: '800px', width: '100%' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+              <tr>
+                {['User', 'Product', 'Category', 'Time', 'Step #', 'Doctor Rx', 'Status', 'Created'].map((c, i) => (
+                  <th key={i} style={{ textAlign: 'left', padding: '0 16px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? <LoadingRow cols={8} /> : error ? (
+                <tr><td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#ef4444', fontSize: '0.82rem' }}>{error}</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>No routine steps found.</td></tr>
+              ) : filtered.slice(0, 100).map((r: any, i: number) => (
+                <tr key={i} style={{ borderTop: '1px solid #f1f2f7' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fafbfe'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                  <td style={{ padding: '10px 16px', fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>{r.user_name || '—'}</td>
+                  <td style={{ padding: '10px 16px', fontSize: '0.82rem', color: '#3f4a5a' }}>{r.product_name}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: '6px', background: `${PUR}18`, color: PUR, fontSize: '0.72rem', fontWeight: 600 }}>{r.step_category}</span>
+                  </td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: r.time_of_day === 'AM' ? `${ORA}18` : `${BLU}18`, color: r.time_of_day === 'AM' ? ORA : BLU }}>
+                      {r.time_of_day}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 16px', fontSize: '0.82rem', color: '#3f4a5a', textAlign: 'center' }}>{r.step_number}</td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{ fontSize: '0.74rem', fontWeight: 600, color: r.prescribed_by_doctor ? GRN : '#d1d5db' }}>
+                      {r.prescribed_by_doctor ? '✓ Yes' : '—'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 16px' }}>
+                    <span style={{ padding: '2px 8px', borderRadius: '6px', fontSize: '0.72rem', fontWeight: 700, background: r.is_active ? `${GRN}18` : '#f3f4f6', color: r.is_active ? GRN : '#9ca3af' }}>
+                      {r.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  </td>
+                  <td style={{ padding: '10px 16px', fontSize: '0.76rem', color: '#8b8fa3', whiteSpace: 'nowrap' }}>{r.created_at?.split('T')[0]}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 6. PRODUCT MANAGEMENT
+// ══════════════════════════════════════════════════════════════════════════════
+function ProductManagementPage() {
+  const [products, setProducts] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [confirm, setConfirm] = useState<{ msg: string; onConfirm: () => void } | null>(null);
+  const [editProduct, setEditProduct] = useState<any | null>(null);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({ product_name: '', brand: '', category: '', price: '', rating: '4.5', safety_score: '90', image_url: '', ingredients: '' });
+  const [saving, setSaving] = useState(false);
+  const PER_PAGE = 25;
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE) });
+    if (search) params.append('search', search);
+    if (categoryFilter) params.append('category', categoryFilter);
+    adminFetch(`/admin/products?${params}`)
+      .then(d => { setProducts(d.items || []); setTotal(d.total || 0); setError(null); })
+      .catch(e => setError(e?.message || 'Failed to load products.'))
+      .finally(() => setLoading(false));
+  }, [page, search, categoryFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const deleteProduct = (p: any) => {
+    setConfirm({
+      msg: `Delete product "${p.product_name}" by ${p.brand || 'Unknown Brand'}? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await adminFetch(`/admin/products/${p.id}`, { method: 'DELETE' });
+          setToast({ msg: 'Product deleted.', ok: true });
+          load();
+        } catch (e: any) {
+          setToast({ msg: e.message || 'Delete failed.', ok: false });
+        }
+      },
+    });
+  };
+
+  const saveProduct = async () => {
+    setSaving(true);
+    try {
+      const body = { ...formData, price: formData.price ? parseFloat(formData.price) : null, rating: parseFloat(formData.rating), safety_score: parseFloat(formData.safety_score) };
+      if (editProduct) {
+        await adminFetch(`/admin/products/${editProduct.id}`, { method: 'PUT', body: JSON.stringify(body) });
+        setToast({ msg: 'Product updated.', ok: true });
+        setEditProduct(null);
+      } else {
+        await adminFetch('/admin/products', { method: 'POST', body: JSON.stringify(body) });
+        setToast({ msg: 'Product created.', ok: true });
+        setShowAddForm(false);
+      }
+      load();
+    } catch (e: any) {
+      setToast({ msg: e.message || 'Save failed.', ok: false });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const openEdit = (p: any) => {
+    setEditProduct(p);
+    setFormData({ product_name: p.product_name || '', brand: p.brand || '', category: p.category || '', price: p.price != null ? String(p.price) : '', rating: String(p.rating || 4.5), safety_score: String(p.safety_score || 90), image_url: p.image_url || '', ingredients: p.ingredients || '' });
+    setShowAddForm(false);
+  };
+
+  const openAdd = () => {
+    setEditProduct(null);
+    setFormData({ product_name: '', brand: '', category: '', price: '', rating: '4.5', safety_score: '90', image_url: '', ingredients: '' });
+    setShowAddForm(true);
+  };
+
+  const totalPages = Math.ceil(total / PER_PAGE);
+
+  const ProductForm = () => (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '560px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: '#171433' }}>{editProduct ? 'Edit Product' : 'Add Product'}</div>
+          <button onClick={() => { setEditProduct(null); setShowAddForm(false); }} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#8b8fa3' }}>×</button>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          {[
+            { label: 'Product Name *', key: 'product_name', full: true },
+            { label: 'Brand', key: 'brand' },
+            { label: 'Category', key: 'category' },
+            { label: 'Price (INR)', key: 'price', type: 'number' },
+            { label: 'Rating (0–5)', key: 'rating', type: 'number' },
+            { label: 'Safety Score', key: 'safety_score', type: 'number' },
+            { label: 'Image URL', key: 'image_url', full: true },
+          ].map(({ label, key, type, full }: any) => (
+            <div key={key} style={{ gridColumn: full ? '1 / -1' : undefined }}>
+              <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>{label}</label>
+              <input type={type || 'text'} value={(formData as any)[key]} onChange={e => setFormData(prev => ({ ...prev, [key]: e.target.value }))}
+                style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+            </div>
+          ))}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>Ingredients</label>
+            <textarea value={formData.ingredients} onChange={e => setFormData(prev => ({ ...prev, ingredients: e.target.value }))} rows={3}
+              style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button onClick={() => { setEditProduct(null); setShowAddForm(false); }} style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+          <button onClick={saveProduct} disabled={saving || !formData.product_name} style={{ padding: '8px 16px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving || !formData.product_name ? 0.6 : 1 }}>
+            {saving ? 'Saving…' : editProduct ? 'Update' : 'Create'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 
-  // ── Section: Notifications ─────────────────────────────────────────────────
-  const notificationsSection = (
-    <Card>
-      <CardHead title="System Notifications" right={<Pill text="Live" />} />
-      <div style={{ maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
-        {activityLoading ? (
-          <EmptyState icon="⏳" message="Loading notifications…" />
-        ) : activity.length === 0 ? (
-          <EmptyState icon="🔔" message="No system notifications yet." />
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      {confirm && <ConfirmModal msg={confirm.msg} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
+      {(showAddForm || editProduct) && <ProductForm />}
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+        {[
+          { label: 'Total Products', value: total.toLocaleString(), color: PUR },
+          { label: 'Current Page Products', value: products.length, color: BLU },
+          { label: 'Total Pages', value: totalPages, color: GRN },
+          { label: 'Products per Page', value: PER_PAGE, color: ORA },
+        ].map((s, i) => (
+          <Card key={i} style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color }}>{loading ? '—' : s.value}</div>
+            <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+          </Card>
+        ))}
+      </div>
+
+      <Card>
+        <CardHead
+          title={`Product Catalog (${total.toLocaleString()} total)`}
+          right={
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+              <input type="text" placeholder="Search products…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+                style={{ padding: '7px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '180px' }} />
+              <input type="text" placeholder="Category filter…" value={categoryFilter} onChange={e => { setCategoryFilter(e.target.value); setPage(1); }}
+                style={{ padding: '7px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '150px' }} />
+              <button onClick={openAdd} style={{ padding: '7px 14px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                + Add Product
+              </button>
+            </div>
+          }
+        />
+        <div style={{ overflowX: 'auto', maxHeight: '440px', overflowY: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', minWidth: '900px', width: '100%' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+              <tr>
+                {['Image', 'Product Name', 'Brand', 'Category', 'Price (INR)', 'Rating', 'Safety', 'Actions'].map((c, i) => (
+                  <th key={i} style={{ textAlign: 'left', padding: '0 12px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? <LoadingRow cols={8} /> : error ? (
+                <tr><td colSpan={8} style={{ padding: '32px', textAlign: 'center', color: '#ef4444', fontSize: '0.82rem' }}>{error}</td></tr>
+              ) : products.length === 0 ? (
+                <tr><td colSpan={8} style={{ padding: '40px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>No products found.</td></tr>
+              ) : products.map((p: any, i: number) => (
+                <tr key={i} style={{ borderTop: '1px solid #f1f2f7' }}
+                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fafbfe'}
+                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                  <td style={{ padding: '10px 12px' }}>
+                    {p.image_url ? (
+                      <img src={p.image_url} alt="" style={{ width: '36px', height: '36px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #edeef4' }} onError={e => (e.currentTarget.style.display = 'none')} />
+                    ) : (
+                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: '#f6f7fb', border: '1px solid #edeef4', display: 'grid', placeItems: 'center', fontSize: '1rem' }}>📦</div>
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '0.82rem', fontWeight: 600, color: '#171433', maxWidth: '200px' }}>
+                    <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.product_name}</div>
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '0.78rem', color: '#3f4a5a' }}>{p.brand || '—'}</td>
+                  <td style={{ padding: '10px 12px' }}>
+                    {p.category ? <span style={{ padding: '2px 8px', borderRadius: '6px', background: `${BLU}18`, color: BLU, fontSize: '0.72rem', fontWeight: 600 }}>{p.category}</span> : <span style={{ color: '#a3a7bd', fontSize: '0.78rem' }}>—</span>}
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '0.84rem', fontWeight: 700, color: p.price != null ? PUR : '#a3a7bd' }}>
+                    {p.price != null ? `₹${Math.round(p.price).toLocaleString('en-IN')}` : '₹850'}
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '0.82rem', color: ORA, fontWeight: 700 }}>
+                    {'★'.repeat(Math.round(p.rating || 4.5)).slice(0, 5)} {(p.rating || 4.5).toFixed(1)}
+                  </td>
+                  <td style={{ padding: '10px 12px', fontSize: '0.82rem', fontWeight: 700, color: (p.safety_score || 90) >= 85 ? GRN : ORA }}>
+                    {Math.round(p.safety_score || 90)}%
+                  </td>
+                  <td style={{ padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => openEdit(p)} style={{ padding: '4px 10px', borderRadius: '7px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.72rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+                      <button onClick={() => deleteProduct(p)} style={{ padding: '4px 10px', borderRadius: '7px', border: '1px solid #fecaca', background: '#fff', fontSize: '0.72rem', fontWeight: 600, color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '14px', marginTop: '14px', borderTop: '1px solid #f1f2f7', fontSize: '0.8rem', color: '#8b8fa3' }}>
+            <span>Page {page} of {totalPages} · {total.toLocaleString()} total products</span>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? '#a3a7bd' : PUR, fontFamily: 'inherit' }}>← Prev</button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: page === totalPages ? 'not-allowed' : 'pointer', color: page === totalPages ? '#a3a7bd' : PUR, fontFamily: 'inherit' }}>Next →</button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 7. INGREDIENT DATABASE
+// ══════════════════════════════════════════════════════════════════════════════
+function IngredientDatabasePage() {
+  const [ingredients, setIngredients] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [confirm, setConfirm] = useState<{ msg: string; onConfirm: () => void } | null>(null);
+  const [editIngredient, setEditIngredient] = useState<any | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ name: '', category: '', function: '', description: '', safety_rating: 'Safe', benefits: '', concerns: '' });
+  const [saving, setSaving] = useState(false);
+
+  const load = useCallback(() => {
+    const params = new URLSearchParams({ per_page: '100' });
+    if (search) params.append('search', search);
+    adminFetch(`/admin/ingredients?${params}`)
+      .then(d => { setIngredients(d.items || []); setTotal(d.total || 0); setError(null); })
+      .catch(e => setError(e?.message || 'Failed to load ingredients.'))
+      .finally(() => setLoading(false));
+  }, [search]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const body = {
+        ...form,
+        benefits: form.benefits.split(',').map(s => s.trim()).filter(Boolean),
+        concerns: form.concerns.split(',').map(s => s.trim()).filter(Boolean),
+      };
+      if (editIngredient) {
+        await adminFetch(`/admin/ingredients/${editIngredient.id}`, { method: 'PUT', body: JSON.stringify(body) });
+        setToast({ msg: 'Ingredient updated.', ok: true });
+        setEditIngredient(null);
+      } else {
+        await adminFetch('/admin/ingredients', { method: 'POST', body: JSON.stringify(body) });
+        setToast({ msg: 'Ingredient created.', ok: true });
+        setShowAdd(false);
+      }
+      load();
+    } catch (e: any) {
+      setToast({ msg: e.message || 'Save failed.', ok: false });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteIngredient = (ing: any) => {
+    setConfirm({
+      msg: `Delete ingredient "${ing.name}"? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await adminFetch(`/admin/ingredients/${ing.id}`, { method: 'DELETE' });
+          setToast({ msg: 'Ingredient deleted.', ok: true });
+          load();
+        } catch (e: any) {
+          setToast({ msg: e.message || 'Delete failed.', ok: false });
+        }
+      },
+    });
+  };
+
+  const openEdit = (ing: any) => {
+    setEditIngredient(ing);
+    setForm({ name: ing.name || '', category: ing.category || '', function: ing.function || '', description: ing.description || '', safety_rating: ing.safety_rating || 'Safe', benefits: (ing.benefits || []).join(', '), concerns: (ing.concerns || []).join(', ') });
+    setShowAdd(false);
+  };
+
+  const SAFETY_COLORS: Record<string, string> = { Safe: GRN, Moderate: ORA, Caution: '#ef4444' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      {confirm && <ConfirmModal msg={confirm.msg} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
+
+      {(showAdd || editIngredient) && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '520px', width: '100%', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#171433' }}>{editIngredient ? 'Edit Ingredient' : 'Add Ingredient'}</div>
+              <button onClick={() => { setEditIngredient(null); setShowAdd(false); }} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#8b8fa3' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {[
+                { label: 'Ingredient Name *', key: 'name' },
+                { label: 'Category (e.g. Humectant, Active)', key: 'category' },
+                { label: 'Function / Role', key: 'function' },
+                { label: 'Description', key: 'description' },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>{label}</label>
+                  <input value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>Safety Rating</label>
+                <select value={form.safety_rating} onChange={e => setForm(p => ({ ...p, safety_rating: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', fontFamily: 'inherit' }}>
+                  <option value="Safe">Safe</option>
+                  <option value="Moderate">Moderate</option>
+                  <option value="Caution">Caution</option>
+                </select>
+              </div>
+              {[
+                { label: 'Benefits (comma-separated)', key: 'benefits' },
+                { label: 'Concerns (comma-separated)', key: 'concerns' },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>{label}</label>
+                  <textarea value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))} rows={2}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button onClick={() => { setEditIngredient(null); setShowAdd(false); }} style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={save} disabled={saving || !form.name} style={{ padding: '8px 16px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving || !form.name ? 0.6 : 1 }}>
+                {saving ? 'Saving…' : editIngredient ? 'Update' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Card>
+        <CardHead
+          title={`Ingredient Database (${total} ingredients)`}
+          right={
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input type="text" placeholder="Search ingredients…" value={search} onChange={e => setSearch(e.target.value)}
+                style={{ padding: '7px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '200px' }} />
+              <button onClick={() => { setEditIngredient(null); setForm({ name: '', category: '', function: '', description: '', safety_rating: 'Safe', benefits: '', concerns: '' }); setShowAdd(true); }}
+                style={{ padding: '7px 14px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                + Add Ingredient
+              </button>
+            </div>
+          }
+        />
+        {loading ? <EmptyState icon="⏳" message="Loading ingredient database…" /> : error ? (
+          <div style={{ padding: '16px', borderRadius: '10px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem' }}>{error}</div>
+        ) : ingredients.length === 0 ? (
+          <EmptyState icon="🧪" message="No ingredients in the database yet." action="Add First Ingredient" onAction={() => setShowAdd(true)} />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-            {activity.map((evt: any, i: number) => {
-              const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px', maxHeight: '500px', overflowY: 'auto', paddingRight: '4px' }}>
+            {ingredients.map((ing: any, i: number) => {
+              const sc = SAFETY_COLORS[ing.safety_rating] || GRN;
               return (
-                <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '14px 12px', borderRadius: '12px', background: i % 2 === 0 ? '#fafbfe' : '#fff', border: '1px solid #edeef4', marginBottom: '8px' }}>
-                  <span style={{ display: 'grid', placeItems: 'center', width: '40px', height: '40px', flexShrink: 0, borderRadius: '12px', background: ib, color: icl }}>
-                    <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={18} stroke={icl} />
-                  </span>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#171433' }}>{evt.title}</div>
-                    <div style={{ fontSize: '0.78rem', color: '#8b8fa3', marginTop: '3px' }}>{evt.detail}</div>
-                    <div style={{ fontSize: '0.7rem', color: '#c0c4d4', marginTop: '5px' }}>{evt.timestamp}</div>
+                <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#171433', flex: 1 }}>{ing.name}</div>
+                    <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: `${sc}20`, color: sc, whiteSpace: 'nowrap', marginLeft: '6px' }}>{ing.safety_rating}</span>
                   </div>
-                  <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700, background: `${icl}22`, color: icl, flexShrink: 0 }}>New</span>
+                  {ing.category && <div style={{ fontSize: '0.72rem', color: PUR, fontWeight: 600 }}>{ing.category}</div>}
+                  {ing.function && <div style={{ fontSize: '0.76rem', color: '#3f4a5a' }}>{ing.function}</div>}
+                  {(ing.benefits?.length > 0) && (
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                      {ing.benefits.slice(0, 3).map((b: string, bi: number) => (
+                        <span key={bi} style={{ padding: '1px 6px', borderRadius: '4px', background: `${GRN}18`, color: GRN, fontSize: '0.68rem' }}>{b}</span>
+                      ))}
+                    </div>
+                  )}
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '2px' }}>
+                    <button onClick={() => openEdit(ing)} style={{ flex: 1, padding: '5px 8px', borderRadius: '7px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.72rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+                    <button onClick={() => deleteIngredient(ing)} style={{ padding: '5px 10px', borderRadius: '7px', border: '1px solid #fecaca', background: '#fff', fontSize: '0.72rem', fontWeight: 600, color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}>✕</button>
+                  </div>
                 </div>
               );
             })}
           </div>
         )}
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
+}
 
-  // ── Section: Profile & Account Settings ────────────────────────────────────
-  const profileSection = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <Card>
-        <CardHead title="My Profile" right={<Pill text="Administrator" />} />
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', padding: '8px 0 16px', borderBottom: '1px solid #f1f2f7' }}>
-          <span style={{ display: 'grid', placeItems: 'center', width: '68px', height: '68px', borderRadius: '18px', background: 'rgba(47,107,76,0.12)', color: PUR, fontSize: '2rem', flexShrink: 0 }}>👤</span>
-          <div>
-            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#171433' }}>Himobanta Dutta</div>
-            <div style={{ fontSize: '0.82rem', color: '#8b8fa3', marginTop: '3px' }}>Super Administrator</div>
-            <div style={{ fontSize: '0.78rem', color: '#a3a7bd', marginTop: '2px' }}>admin@miracle.com</div>
+// ══════════════════════════════════════════════════════════════════════════════
+// 8. CONTENT MANAGEMENT
+// ══════════════════════════════════════════════════════════════════════════════
+function ContentManagementPage() {
+  const [articles, setArticles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [confirm, setConfirm] = useState<{ msg: string; onConfirm: () => void } | null>(null);
+  const [editArticle, setEditArticle] = useState<any | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: '', body: '', category: '', status: 'Draft', tags: '' });
+  const [saving, setSaving] = useState(false);
+  const [statusFilter, setStatusFilter] = useState('');
+
+  const load = useCallback(() => {
+    const params = statusFilter ? `?status=${statusFilter}` : '';
+    adminFetch(`/admin/content${params}`)
+      .then(d => { setArticles(d.items || []); setError(null); })
+      .catch(e => setError(e?.message || 'Failed to load content.'))
+      .finally(() => setLoading(false));
+  }, [statusFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const body = { ...form, tags: form.tags.split(',').map(s => s.trim()).filter(Boolean) };
+      if (editArticle) {
+        await adminFetch(`/admin/content/${editArticle.id}`, { method: 'PUT', body: JSON.stringify(body) });
+        setToast({ msg: 'Article updated.', ok: true });
+        setEditArticle(null);
+      } else {
+        await adminFetch('/admin/content', { method: 'POST', body: JSON.stringify(body) });
+        setToast({ msg: 'Article created.', ok: true });
+        setShowAdd(false);
+      }
+      load();
+    } catch (e: any) {
+      setToast({ msg: e.message || 'Save failed.', ok: false });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const togglePublish = async (art: any) => {
+    const newStatus = art.status === 'Published' ? 'Draft' : 'Published';
+    try {
+      await adminFetch(`/admin/content/${art.id}`, { method: 'PUT', body: JSON.stringify({ status: newStatus }) });
+      setToast({ msg: `Article ${newStatus === 'Published' ? 'published' : 'unpublished'}.`, ok: true });
+      load();
+    } catch (e: any) {
+      setToast({ msg: e.message || 'Action failed.', ok: false });
+    }
+  };
+
+  const deleteArticle = (art: any) => {
+    setConfirm({
+      msg: `Delete article "${art.title}"? This cannot be undone.`,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await adminFetch(`/admin/content/${art.id}`, { method: 'DELETE' });
+          setToast({ msg: 'Article deleted.', ok: true });
+          load();
+        } catch (e: any) {
+          setToast({ msg: e.message || 'Delete failed.', ok: false });
+        }
+      },
+    });
+  };
+
+  const STATUS_COLORS_C: Record<string, string> = { Published: GRN, Draft: ORA, Archived: '#9ca3af' };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      {confirm && <ConfirmModal msg={confirm.msg} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
+
+      {(showAdd || editArticle) && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '640px', width: '100%', maxHeight: '88vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#171433' }}>{editArticle ? 'Edit Article' : 'Create Article'}</div>
+              <button onClick={() => { setEditArticle(null); setShowAdd(false); }} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#8b8fa3' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              {[
+                { label: 'Title *', key: 'title' },
+                { label: 'Category', key: 'category' },
+                { label: 'Tags (comma-separated)', key: 'tags' },
+              ].map(({ label, key }) => (
+                <div key={key}>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>{label}</label>
+                  <input value={(form as any)[key]} onChange={e => setForm(p => ({ ...p, [key]: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+                </div>
+              ))}
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>Status</label>
+                <select value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', fontFamily: 'inherit' }}>
+                  <option value="Draft">Draft</option>
+                  <option value="Published">Published</option>
+                  <option value="Archived">Archived</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>Article Body</label>
+                <textarea value={form.body} onChange={e => setForm(p => ({ ...p, body: e.target.value }))} rows={8}
+                  placeholder="Write your article content here…"
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.7 }} />
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button onClick={() => { setEditArticle(null); setShowAdd(false); }} style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={save} disabled={saving || !form.title} style={{ padding: '8px 16px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving || !form.title ? 0.6 : 1 }}>
+                {saving ? 'Saving…' : editArticle ? 'Update Article' : 'Create Article'}
+              </button>
+            </div>
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px' }}>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {['', 'Draft', 'Published', 'Archived'].map(s => (
+            <button key={s} onClick={() => setStatusFilter(s)}
+              style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid', borderColor: statusFilter === s ? PUR : '#edeef4', background: statusFilter === s ? `${PUR}12` : '#fff', color: statusFilter === s ? PUR : '#3f4a5a', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {s || 'All'}
+            </button>
+          ))}
+        </div>
+        <button onClick={() => { setEditArticle(null); setForm({ title: '', body: '', category: '', status: 'Draft', tags: '' }); setShowAdd(true); }}
+          style={{ padding: '8px 16px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          + New Article
+        </button>
+      </div>
+
+      {loading ? <EmptyState icon="⏳" message="Loading content…" /> : error ? (
+        <div style={{ padding: '16px', borderRadius: '10px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem' }}>{error}</div>
+      ) : articles.length === 0 ? (
+        <EmptyState icon="📝" message="No articles yet. Create your first article." action="Create Article" onAction={() => setShowAdd(true)} />
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {articles.map((art: any, i: number) => {
+            const sc = STATUS_COLORS_C[art.status] || GRY;
+            return (
+              <Card key={i}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                      <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#171433' }}>{art.title}</span>
+                      <span style={{ padding: '2px 9px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700, background: `${sc}20`, color: sc }}>{art.status}</span>
+                    </div>
+                    <div style={{ fontSize: '0.76rem', color: '#8b8fa3', display: 'flex', gap: '16px' }}>
+                      {art.category && <span style={{ color: PUR, fontWeight: 600 }}>{art.category}</span>}
+                      <span>Created: {art.created_at?.split('T')[0]}</span>
+                      {art.updated_at && <span>Updated: {art.updated_at?.split('T')[0]}</span>}
+                    </div>
+                    {art.body && <div style={{ fontSize: '0.78rem', color: '#3f4a5a', marginTop: '8px', lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>{art.body}</div>}
+                    {(art.tags?.length > 0) && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+                        {art.tags.map((t: string, ti: number) => (
+                          <span key={ti} style={{ padding: '1px 7px', borderRadius: '4px', background: '#f3f4f6', color: '#6b7280', fontSize: '0.68rem' }}>#{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', flexShrink: 0, marginLeft: '16px' }}>
+                    <button onClick={() => togglePublish(art)}
+                      style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid', borderColor: art.status === 'Published' ? '#fde68a' : `${GRN}44`, background: '#fff', fontSize: '0.74rem', fontWeight: 600, color: art.status === 'Published' ? ORA : GRN, cursor: 'pointer', fontFamily: 'inherit' }}>
+                      {art.status === 'Published' ? 'Unpublish' : 'Publish'}
+                    </button>
+                    <button onClick={() => { setEditArticle(art); setForm({ title: art.title || '', body: art.body || '', category: art.category || '', status: art.status || 'Draft', tags: (art.tags || []).join(', ') }); setShowAdd(false); }}
+                      style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.74rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+                    <button onClick={() => deleteArticle(art)}
+                      style={{ padding: '5px 10px', borderRadius: '8px', border: '1px solid #fecaca', background: '#fff', fontSize: '0.74rem', fontWeight: 600, color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit' }}>Delete</button>
+                  </div>
+                </div>
+              </Card>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 9. REPORTS & ANALYTICS
+// ══════════════════════════════════════════════════════════════════════════════
+function ReportsAnalyticsPage() {
+  const [report, setReport] = useState<any>(null);
+  const [stats, setStats] = useState<any>(null);
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    Promise.all([
+      adminFetch('/admin/reports/overview').catch(() => null),
+      api.getAdminStats(),
+      api.getAdminUsers(),
+    ]).then(([r, s, u]) => {
+      setReport(r);
+      setStats(s);
+      setUsers(u.users || []);
+      setError(null);
+    }).catch(e => setError(e?.message || 'Failed to load reports.')).finally(() => setLoading(false));
+  }, []);
+
+  const uByRole = stats?.users_by_role ?? {};
+  const concernDist = stats?.concern_distribution ?? [];
+  const apptByStatus = stats?.appointments_by_status ?? {};
+  const validScores = users.map(u => u.health_score).filter((s): s is number => s !== null);
+  const avgScore = validScores.length ? (validScores.reduce((a, b) => a + b, 0) / validScores.length).toFixed(1) : '—';
+
+  if (loading) return <EmptyState icon="⏳" message="Loading analytics reports…" />;
+  if (error) return <div style={{ padding: '16px', borderRadius: '10px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem' }}>{error}</div>;
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ padding: '12px 16px', borderRadius: '12px', background: `${PUR}12`, border: `1px solid ${PUR}30`, fontSize: '0.82rem', color: '#171433', fontWeight: 600 }}>
+        📊 Reports & Analytics — Deep platform analytics derived from live database records. All figures are real-time.
+      </div>
+
+      {/* KPI Summary */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5,1fr)', gap: '12px' }}>
+        {[
+          { label: 'Total Platform Users', value: stats?.total_users ?? 0, color: PUR },
+          { label: 'Total Assessments', value: stats?.total_assessments ?? 0, color: BLU },
+          { label: 'Avg Health Score', value: avgScore, color: GRN },
+          { label: 'Total Appointments', value: stats?.total_appointments ?? 0, color: ORA },
+          { label: 'Active Routines', value: stats?.active_routines ?? 0, color: TEA },
+        ].map((s, i) => (
+          <Card key={i} style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+            <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+          </Card>
+        ))}
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        {/* Role Distribution */}
+        <Card>
+          <CardHead title="User Role Distribution" right={<Pill text="All Registered Users" />} />
+          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            <DonutChart segs={[
+              { pct: stats?.total_users > 0 ? Math.round(((uByRole.User || 0) / stats.total_users) * 100) : 0, color: PUR },
+              { pct: stats?.total_users > 0 ? Math.round(((uByRole['Skincare Consultant'] || 0) / stats.total_users) * 100) : 0, color: BLU },
+              { pct: stats?.total_users > 0 ? Math.round(((uByRole.Dermatologist || 0) / stats.total_users) * 100) : 0, color: ORA },
+              { pct: stats?.total_users > 0 ? Math.round(((uByRole.Administrator || 0) / stats.total_users) * 100) : 0, color: GRN },
+            ]} center={String(stats?.total_users ?? 0)} sub="Total" size={140} />
+            <Legend rows={[
+              ['Users', `${uByRole.User ?? 0}`, PUR],
+              ['Consultants', `${uByRole['Skincare Consultant'] ?? 0}`, BLU],
+              ['Dermatologists', `${uByRole.Dermatologist ?? 0}`, ORA],
+              ['Admins', `${uByRole.Administrator ?? 0}`, GRN],
+            ]} />
+          </div>
+        </Card>
+
+        {/* Appointment Analytics */}
+        <Card>
+          <CardHead title="Appointment Status Analysis" right={<Pill text="All Appointments" />} />
+          {stats?.total_appointments === 0 ? <EmptyState icon="📅" message="No appointments recorded." /> : (
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              {Object.entries(apptByStatus).map(([status, count]: [string, any], i: number) => {
+                const col = STATUS_COLORS[status] || GRY;
+                const pct = stats.total_appointments > 0 ? Math.round((count / stats.total_appointments) * 100) : 0;
+                return (
+                  <div key={i} style={{ padding: '12px', borderRadius: '10px', background: `${col}12`, border: `1px solid ${col}30` }}>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 800, color: col }}>{count}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#3f4a5a', marginTop: '3px' }}>{status.replace(/_/g, ' ')}</div>
+                    <div style={{ fontSize: '0.72rem', color: col, fontWeight: 600 }}>{pct}%</div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
+      </div>
+
+      {/* Concern & Score */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <Card>
+          <CardHead title="Top Skin Concern Frequency" right={<Pill text="From Assessment Data" />} />
+          {concernDist.length === 0 ? <EmptyState icon="🔍" message="No concern data yet." /> : <Bars rows={concernDist.map((c: any) => [c.label, c.pct, `${c.count} assessments`] as [string, number, string])} />}
+        </Card>
+        <Card>
+          <CardHead title="Health Score Performance" right={<Pill text="All Users with Assessments" />} />
+          {validScores.length === 0 ? <EmptyState icon="📈" message="Score data appears after assessments." /> : (
+            <>
+              <ChartFrame chart={{ el: <LineChart vals={validScores} min={0} max={100} /> }} yLabels={['100', '75', '50', '25', '0']} xLabels={['', '', '', '', '']} h={130} />
+              <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '8px' }}>
+                {[
+                  { label: 'Average', value: avgScore, color: PUR },
+                  { label: 'Excellent (≥80)', value: validScores.filter(s => s >= 80).length, color: GRN },
+                  { label: 'Good (60–79)', value: validScores.filter(s => s >= 60 && s < 80).length, color: BLU },
+                  { label: 'At Risk (<60)', value: validScores.filter(s => s < 60).length, color: '#ef4444' },
+                ].map((s, i) => (
+                  <div key={i} style={{ textAlign: 'center', padding: '8px', borderRadius: '8px', background: '#f6f7fb' }}>
+                    <div style={{ fontSize: '1rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+                    <div style={{ fontSize: '0.64rem', color: '#8b8fa3', marginTop: '2px' }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      </div>
+
+      {/* Weekly user growth if available */}
+      {report?.user_growth_by_week && (
+        <Card>
+          <CardHead title="User Registration Trend (Last 8 Weeks)" right={<Pill text="Weekly Breakdown" />} />
+          {report.user_growth_by_week.length === 0 ? <EmptyState icon="📊" message="Not enough data for trend analysis." /> : (
+            <Bars rows={report.user_growth_by_week.map((w: any) => [`W${w.week || w.week_label || '?'}`, w.pct || Math.round((w.count / Math.max(...report.user_growth_by_week.map((x: any) => x.count), 1)) * 100), `${w.count} registrations`] as [string, number, string])} />
+          )}
+        </Card>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 10. NOTIFICATIONS
+// ══════════════════════════════════════════════════════════════════════════════
+function NotificationsPage() {
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [confirm, setConfirm] = useState<{ msg: string; onConfirm: () => void } | null>(null);
+  const [showAdd, setShowAdd] = useState(false);
+  const [form, setForm] = useState({ title: '', message: '', notification_type: 'System', audience: 'All' });
+  const [saving, setSaving] = useState(false);
+  const [activity, setActivity] = useState<any[]>([]);
+
+  const load = useCallback(() => {
+    Promise.all([
+      adminFetch('/admin/notifications'),
+      api.getAdminActivity(20),
+    ]).then(([n, a]) => {
+      setNotifications(n.items || []);
+      setActivity(a.events || []);
+      setError(null);
+    }).catch(e => setError(e?.message || 'Failed to load notifications.')).finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      await adminFetch('/admin/notifications', { method: 'POST', body: JSON.stringify(form) });
+      setToast({ msg: 'Notification created and sent.', ok: true });
+      setShowAdd(false);
+      setForm({ title: '', message: '', notification_type: 'System', audience: 'All' });
+      load();
+    } catch (e: any) {
+      setToast({ msg: e.message || 'Failed to create notification.', ok: false });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteNotif = (n: any) => {
+    setConfirm({
+      msg: `Delete notification "${n.title}"?`,
+      onConfirm: async () => {
+        setConfirm(null);
+        try {
+          await adminFetch(`/admin/notifications/${n.id}`, { method: 'DELETE' });
+          setToast({ msg: 'Notification deleted.', ok: true });
+          load();
+        } catch (e: any) {
+          setToast({ msg: e.message || 'Delete failed.', ok: false });
+        }
+      },
+    });
+  };
+
+  const TYPE_COLORS: Record<string, string> = { System: PUR, Appointment: BLU, Assessment: ORA, Product: GRN, Security: '#ef4444', Announcement: TEA };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      {confirm && <ConfirmModal msg={confirm.msg} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
+
+      {showAdd && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '500px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#171433' }}>Create System Notification</div>
+              <button onClick={() => setShowAdd(false)} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#8b8fa3' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>Title *</label>
+                <input value={form.title} onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>Message *</label>
+                <textarea value={form.message} onChange={e => setForm(p => ({ ...p, message: e.target.value }))} rows={3}
+                  style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>Type</label>
+                  <select value={form.notification_type} onChange={e => setForm(p => ({ ...p, notification_type: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', fontFamily: 'inherit' }}>
+                    {['System', 'Appointment', 'Assessment', 'Product', 'Security', 'Announcement'].map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+                <div>
+                  <label style={{ fontSize: '0.72rem', fontWeight: 600, color: '#8b8fa3', display: 'block', marginBottom: '4px' }}>Audience</label>
+                  <select value={form.audience} onChange={e => setForm(p => ({ ...p, audience: e.target.value }))}
+                    style={{ width: '100%', padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', fontSize: '0.82rem', fontFamily: 'inherit' }}>
+                    <option value="All">All Users</option>
+                    <option value="User">End Users Only</option>
+                    <option value="Skincare Consultant">Consultants Only</option>
+                    <option value="Dermatologist">Dermatologists Only</option>
+                    <option value="Administrator">Admins Only</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button onClick={() => setShowAdd(false)} style={{ padding: '8px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.82rem', cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+              <button onClick={save} disabled={saving || !form.title || !form.message}
+                style={{ padding: '8px 16px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', opacity: saving || !form.title || !form.message ? 0.6 : 1 }}>
+                {saving ? 'Sending…' : 'Send Notification'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ fontSize: '1rem', fontWeight: 700, color: '#171433' }}>System Notifications Management</div>
+        <button onClick={() => setShowAdd(true)} style={{ padding: '8px 16px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+          + Create Notification
+        </button>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+        <Card>
+          <CardHead title="Sent Notifications" right={<Pill text={`${notifications.length} total`} />} />
+          <div style={{ maxHeight: '420px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '4px' }}>
+            {loading ? <EmptyState icon="⏳" message="Loading notifications…" /> : error ? (
+              <div style={{ padding: '12px', borderRadius: '10px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem' }}>{error}</div>
+            ) : notifications.length === 0 ? (
+              <EmptyState icon="🔔" message="No notifications sent yet." action="Create Notification" onAction={() => setShowAdd(true)} />
+            ) : notifications.map((n: any, i: number) => {
+              const tc = TYPE_COLORS[n.notification_type] || PUR;
+              return (
+                <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '6px', background: `${tc}18`, color: tc, fontSize: '0.68rem', fontWeight: 700 }}>{n.notification_type}</span>
+                      <span style={{ fontSize: '0.72rem', color: '#8b8fa3' }}>→ {n.audience}</span>
+                    </div>
+                    <button onClick={() => deleteNotif(n)} style={{ background: 'none', border: 'none', color: '#ef4444', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit', padding: '0' }}>Delete</button>
+                  </div>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#171433', marginBottom: '4px' }}>{n.title}</div>
+                  <div style={{ fontSize: '0.78rem', color: '#3f4a5a' }}>{n.message}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#a3a7bd', marginTop: '6px' }}>{n.created_at?.split('T')[0]}</div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+
+        <Card>
+          <CardHead title="Recent Platform Activity" right={<Pill text="Live Feed" />} />
+          <div style={{ maxHeight: '420px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', paddingRight: '4px' }}>
+            {activity.length === 0 ? <EmptyState icon="📋" message="No activity recorded yet." /> : activity.map((evt: any, i: number) => {
+              const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
+              return (
+                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'flex-start' }}>
+                  <span style={{ display: 'grid', placeItems: 'center', width: '36px', height: '36px', flexShrink: 0, borderRadius: '10px', background: ib }}>
+                    <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={15} stroke={icl} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>{evt.title}</div>
+                    <div style={{ fontSize: '0.74rem', color: '#8b8fa3' }}>{evt.detail}</div>
+                  </div>
+                  <div style={{ fontSize: '0.68rem', color: '#a3a7bd', whiteSpace: 'nowrap', flexShrink: 0 }}>{evt.timestamp?.split(' ')[0]}</div>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 11. SYSTEM SETTINGS
+// ══════════════════════════════════════════════════════════════════════════════
+function SystemSettingsPage() {
+  const [settings, setSettings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [editKey, setEditKey] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [sysHealth, setSysHealth] = useState<{ db: boolean; api: boolean } | null>(null);
+
+  useEffect(() => {
+    const baseUrl = API_BASE_URL.replace('/api/v1', '');
+    Promise.all([
+      fetch(`${baseUrl}/health`).then(r => r.json()).catch(() => null),
+      fetch(`${baseUrl}/ready`).then(r => r.json()).catch(() => null),
+    ]).then(([health, ready]) => setSysHealth({ db: ready?.database === 'connected', api: health?.status === 'ok' })).catch(() => {});
+
+    adminFetch('/admin/settings')
+      .then(d => { setSettings(d.settings || []); setError(null); })
+      .catch(e => setError(e?.message || 'Failed to load settings.'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const saveEdit = async () => {
+    if (!editKey) return;
+    setSaving(true);
+    try {
+      await adminFetch(`/admin/settings/${editKey}`, { method: 'PUT', body: JSON.stringify({ value: editValue }) });
+      setToast({ msg: 'Setting updated.', ok: true });
+      setEditKey(null);
+      const d = await adminFetch('/admin/settings');
+      setSettings(d.settings || []);
+    } catch (e: any) {
+      setToast({ msg: e.message || 'Save failed.', ok: false });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const grouped = settings.reduce((acc: Record<string, any[]>, s: any) => {
+    const cat = s.category || 'General';
+    if (!acc[cat]) acc[cat] = [];
+    acc[cat].push(s);
+    return acc;
+  }, {});
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+
+      {/* System Health Overview */}
+      <Card>
+        <CardHead title="Live System Health" right={<Pill text={sysHealth?.api ? '● Operational' : '○ Checking…'} />} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+          {[
+            { label: 'Database', ok: sysHealth?.db, icon: 'db' },
+            { label: 'API Services', ok: sysHealth?.api, icon: 'gear' },
+            { label: 'Authentication', ok: sysHealth?.api, icon: 'lock' },
+            { label: 'Static Serve', ok: sysHealth?.api, icon: 'box' },
+          ].map((h, i) => {
+            const col = h.ok === null || h.ok === undefined ? '#a3a7bd' : h.ok ? '#16a34a' : '#ef4444';
+            const bg = h.ok === null || h.ok === undefined ? 'rgba(163,167,189,0.1)' : h.ok ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)';
+            return (
+              <div key={i} style={{ padding: '14px', borderRadius: '12px', background: bg }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                  <DashIcon d={PATHS[h.icon] || PATHS.grid} s={17} stroke={col} />
+                  <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#171433' }}>{h.label}</span>
+                </div>
+                <div style={{ fontSize: '0.74rem', fontWeight: 600, color: col }}>
+                  {h.ok === null || h.ok === undefined ? 'Checking…' : h.ok ? '● Healthy' : '● Degraded'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+
+      {/* Configuration Sections */}
+      {loading ? <EmptyState icon="⏳" message="Loading system configuration…" /> : error ? (
+        <div style={{ padding: '16px', borderRadius: '10px', background: '#fef2f2', color: '#dc2626', fontSize: '0.82rem' }}>{error}</div>
+      ) : Object.keys(grouped).length === 0 ? (
+        <EmptyState icon="⚙️" message="No configuration settings found." />
+      ) : Object.entries(grouped).map(([category, items]: [string, any[]]) => (
+        <Card key={category}>
+          <CardHead title={`${category} Settings`} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {items.map((s: any, i: number) => (
+              <div key={i} style={{ display: 'flex', alignItems: 'center', padding: '14px 16px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#171433' }}>{s.key?.replace(/_/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())}</div>
+                  {s.description && <div style={{ fontSize: '0.74rem', color: '#8b8fa3', marginTop: '2px' }}>{s.description}</div>}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
+                  {editKey === s.key ? (
+                    <>
+                      <input value={editValue} onChange={e => setEditValue(e.target.value)}
+                        style={{ padding: '6px 12px', borderRadius: '8px', border: `1px solid ${PUR}`, fontSize: '0.82rem', outline: 'none', fontFamily: 'inherit', width: '200px' }} />
+                      <button onClick={saveEdit} disabled={saving} style={{ padding: '6px 12px', borderRadius: '8px', background: PUR, color: '#fff', border: 'none', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                        {saving ? '…' : 'Save'}
+                      </button>
+                      <button onClick={() => setEditKey(null)} style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit' }}>×</button>
+                    </>
+                  ) : (
+                    <>
+                      <span style={{ fontSize: '0.86rem', fontWeight: 700, color: PUR, padding: '4px 12px', borderRadius: '8px', background: `${PUR}10` }}>{s.value}</span>
+                      <button onClick={() => { setEditKey(s.key); setEditValue(s.value || ''); }}
+                        style={{ padding: '6px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', fontWeight: 600, color: '#3f4a5a', cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      ))}
+
+      <div style={{ padding: '12px 16px', borderRadius: '12px', background: '#fff8ed', border: '1px solid #fde68a', fontSize: '0.82rem', color: '#92400e' }}>
+        <b>⚠️ Security Note:</b> Sensitive configuration (JWT secret, database URL, API keys) is managed via environment variables and is not accessible from this interface.
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 12. AUDIT LOGS
+// ══════════════════════════════════════════════════════════════════════════════
+function AuditLogsPage() {
+  const [logs, setLogs] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [actionFilter, setActionFilter] = useState('');
+  const [detail, setDetail] = useState<any | null>(null);
+  const PER_PAGE = 30;
+
+  const load = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams({ page: String(page), per_page: String(PER_PAGE) });
+    if (search) params.append('search', search);
+    if (actionFilter) params.append('action', actionFilter);
+    adminFetch(`/admin/audit-logs?${params}`)
+      .then(d => { setLogs(d.items || []); setTotal(d.total || 0); setError(null); })
+      .catch(e => setError(e?.message || 'Failed to load audit logs.'))
+      .finally(() => setLoading(false));
+  }, [page, search, actionFilter]);
+
+  useEffect(() => { load(); }, [load]);
+
+  const ACTION_COLORS: Record<string, string> = {
+    USER_CREATED: GRN, USER_UPDATED: BLU, USER_DELETED: '#ef4444', ROLE_CHANGED: ORA,
+    PRODUCT_CREATED: GRN, PRODUCT_UPDATED: BLU, PRODUCT_DELETED: '#ef4444',
+    INGREDIENT_CREATED: GRN, INGREDIENT_UPDATED: BLU, INGREDIENT_DELETED: '#ef4444',
+    CONTENT_CREATED: GRN, CONTENT_UPDATED: BLU, CONTENT_DELETED: '#ef4444',
+    NOTIFICATION_CREATED: TEA, SETTING_UPDATED: PUR,
+    LOGIN: PUR, LOGIN_FAILED: '#ef4444', BACKUP_CREATED: GRN,
+  };
+
+  const totalPages = Math.ceil(total / PER_PAGE);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {detail && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9000, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+          <div style={{ background: '#fff', borderRadius: '16px', padding: '28px', maxWidth: '520px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: '#171433' }}>Audit Log Detail</div>
+              <button onClick={() => setDetail(null)} style={{ background: 'none', border: 'none', fontSize: '1.3rem', cursor: 'pointer', color: '#8b8fa3' }}>×</button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {[
+                { label: 'Action', value: detail.action },
+                { label: 'Actor', value: `${detail.user_name || '—'} (${detail.user_role || '—'})` },
+                { label: 'Resource', value: `${detail.resource_type || '—'} ${detail.resource_id ? `#${detail.resource_id.slice(0, 8)}` : ''}` },
+                { label: 'Status', value: detail.status },
+                { label: 'Timestamp', value: detail.created_at },
+              ].map(({ label, value }, i) => (
+                <div key={i} style={{ display: 'flex', gap: '12px', padding: '10px 12px', borderRadius: '8px', background: '#f6f7fb' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8b8fa3', minWidth: '90px', flexShrink: 0 }}>{label}</span>
+                  <span style={{ fontSize: '0.82rem', color: '#171433', fontWeight: 600 }}>{value}</span>
+                </div>
+              ))}
+              {detail.details && Object.keys(detail.details).length > 0 && (
+                <div style={{ padding: '10px 12px', borderRadius: '8px', background: '#f6f7fb' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#8b8fa3', marginBottom: '6px' }}>Additional Details</div>
+                  <pre style={{ fontSize: '0.76rem', color: '#3f4a5a', margin: 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word', fontFamily: 'monospace' }}>
+                    {JSON.stringify(detail.details, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Card>
+        <CardHead
+          title={`Audit Log (${total.toLocaleString()} records)`}
+          right={
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <input type="text" placeholder="Search user or resource…" value={search} onChange={e => { setSearch(e.target.value); setPage(1); }}
+                style={{ padding: '7px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '200px' }} />
+              <input type="text" placeholder="Action filter…" value={actionFilter} onChange={e => { setActionFilter(e.target.value); setPage(1); }}
+                style={{ padding: '7px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '150px' }} />
+            </div>
+          }
+        />
+        <div style={{ overflowX: 'auto', maxHeight: '500px', overflowY: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', minWidth: '850px', width: '100%' }}>
+            <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+              <tr>
+                {['Timestamp', 'User', 'Role', 'Action', 'Resource', 'Status', ''].map((c, i) => (
+                  <th key={i} style={{ textAlign: 'left', padding: '0 14px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? <LoadingRow cols={7} /> : error ? (
+                <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#ef4444', fontSize: '0.82rem' }}>{error}</td></tr>
+              ) : logs.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>No audit log records found.</td></tr>
+              ) : logs.map((log: any, i: number) => {
+                const ac = ACTION_COLORS[log.action] || PUR;
+                return (
+                  <tr key={i} style={{ borderTop: '1px solid #f1f2f7' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fafbfe'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                    <td style={{ padding: '10px 14px', fontSize: '0.76rem', color: '#8b8fa3', whiteSpace: 'nowrap' }}>{log.created_at?.replace('T', ' ').split('.')[0]}</td>
+                    <td style={{ padding: '10px 14px', fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>{log.user_name || 'System'}</td>
+                    <td style={{ padding: '10px 14px', fontSize: '0.76rem', color: '#3f4a5a' }}>{log.user_role || '—'}</td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '6px', background: `${ac}18`, color: ac, fontSize: '0.72rem', fontWeight: 700 }}>{log.action}</span>
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: '0.78rem', color: '#3f4a5a' }}>
+                      {log.resource_type ? `${log.resource_type}${log.resource_id ? ` #${log.resource_id.slice(0, 8)}` : ''}` : '—'}
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: log.status === 'Success' ? GRN : '#ef4444' }}>
+                        {log.status === 'Success' ? '✓' : '✗'} {log.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <button onClick={() => setDetail(log)} style={{ padding: '3px 8px', borderRadius: '6px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.7rem', color: BLU, cursor: 'pointer', fontFamily: 'inherit' }}>View</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {totalPages > 1 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '12px', marginTop: '12px', borderTop: '1px solid #f1f2f7', fontSize: '0.8rem', color: '#8b8fa3' }}>
+            <span>Page {page} of {totalPages} · {total.toLocaleString()} records</span>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: page === 1 ? 'not-allowed' : 'pointer', color: page === 1 ? '#a3a7bd' : PUR, fontFamily: 'inherit' }}>← Prev</button>
+              <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                style={{ padding: '5px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: page === totalPages ? 'not-allowed' : 'pointer', color: page === totalPages ? '#a3a7bd' : PUR, fontFamily: 'inherit' }}>Next →</button>
+            </div>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 13. SECURITY & ACCESS
+// ══════════════════════════════════════════════════════════════════════════════
+function SecurityAccessPage() {
+  const [events, setEvents] = useState<any[]>([]);
+  const [secStats, setSecStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [sysHealth, setSysHealth] = useState<{ db: boolean; api: boolean } | null>(null);
+
+  useEffect(() => {
+    const baseUrl = API_BASE_URL.replace('/api/v1', '');
+    Promise.all([
+      fetch(`${baseUrl}/health`).then(r => r.json()).catch(() => null),
+      fetch(`${baseUrl}/ready`).then(r => r.json()).catch(() => null),
+      adminFetch('/admin/security/events').catch(() => ({ events: [] })),
+      adminFetch('/admin/security/stats').catch(() => null),
+    ]).then(([health, ready, evts, stats]) => {
+      setSysHealth({ db: ready?.database === 'connected', api: health?.status === 'ok' });
+      setEvents(evts.events || []);
+      setSecStats(stats);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const securityConfig = [
+    { title: 'Password Hashing', detail: 'Argon2id — m=65536, t=3, p=4', status: 'Active', color: GRN },
+    { title: 'JWT Token Algorithm', detail: 'HS256 · 7-day expiry', status: 'Active', color: GRN },
+    { title: 'CORS Policy', detail: 'Configurable origin allowlist', status: 'Active', color: GRN },
+    { title: 'Role-Based Access Control', detail: '4-tier RBAC: User / Consultant / Derma / Admin', status: 'Enforced', color: GRN },
+    { title: 'SQL Injection Protection', detail: 'SQLAlchemy ORM with parameterized queries', status: 'Active', color: GRN },
+    { title: 'Input Validation', detail: 'Strict Pydantic schema validation on all inputs', status: 'Active', color: GRN },
+  ];
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {/* Security stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+        {[
+          { label: 'Failed Logins (30d)', value: secStats?.failed_logins_30d ?? '—', color: '#ef4444' },
+          { label: 'Role Changes (30d)', value: secStats?.role_changes_30d ?? '—', color: ORA },
+          { label: 'User Deletions (30d)', value: secStats?.user_deletions_30d ?? '—', color: BLU },
+          { label: 'System Uptime', value: sysHealth?.api ? '● Online' : '○ Checking', color: sysHealth?.api ? GRN : '#a3a7bd' },
+        ].map((s, i) => (
+          <Card key={i} style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: s.color }}>{loading ? '—' : s.value}</div>
+            <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Active security configuration */}
+      <Card>
+        <CardHead title="Active Security Configuration" right={<Pill text="Platform-Wide" />} />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: '12px' }}>
+          {securityConfig.map((s, i) => (
+            <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '6px' }}>
+                <span style={{ fontSize: '0.84rem', fontWeight: 800, color: '#171433' }}>{s.title}</span>
+                <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: `${s.color}20`, color: s.color }}>{s.status}</span>
+              </div>
+              <div style={{ fontSize: '0.74rem', color: '#8b8fa3' }}>{s.detail}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+
+      {/* Recent security events */}
+      <Card>
+        <CardHead title="Recent Security Events" right={<Pill text="Audit Stream" />} />
+        {loading ? <EmptyState icon="⏳" message="Loading security events…" /> : events.length === 0 ? (
+          <EmptyState icon="🔒" message="No security events recorded yet. Events appear as users interact with the platform." />
+        ) : (
+          <div style={{ maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%' }}>
+              <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+                <tr>
+                  {['Timestamp', 'User', 'Action', 'Status', 'Details'].map((c, i) => (
+                    <th key={i} style={{ textAlign: 'left', padding: '0 14px 12px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {events.map((evt: any, i: number) => (
+                  <tr key={i} style={{ borderTop: '1px solid #f1f2f7' }}>
+                    <td style={{ padding: '10px 14px', fontSize: '0.74rem', color: '#8b8fa3', whiteSpace: 'nowrap' }}>{evt.created_at?.replace('T', ' ').split('.')[0]}</td>
+                    <td style={{ padding: '10px 14px', fontSize: '0.82rem', fontWeight: 600, color: '#171433' }}>{evt.user_name || 'System'}</td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '6px', background: `${evt.action?.includes('FAIL') ? '#ef4444' : PUR}18`, color: evt.action?.includes('FAIL') ? '#ef4444' : PUR, fontSize: '0.72rem', fontWeight: 700 }}>{evt.action}</span>
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ fontSize: '0.74rem', fontWeight: 700, color: evt.status === 'Success' ? GRN : '#ef4444' }}>{evt.status}</span>
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: '0.76rem', color: '#3f4a5a' }}>
+                      {evt.resource_type ? `${evt.resource_type}` : '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+
+      <div style={{ padding: '12px 16px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca', fontSize: '0.82rem', color: '#b91c1c' }}>
+        <b>🔒 Security Notice:</b> Passwords, JWT secrets, database credentials, and API keys are never exposed through this interface. All sensitive configuration is managed via environment variables.
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// 14. BACKUP & RESTORE
+// ══════════════════════════════════════════════════════════════════════════════
+function BackupRestorePage() {
+  const [backups, setBackups] = useState<any[]>([]);
+  const [status, setStatus] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [creating, setCreating] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  const [confirm, setConfirm] = useState<{ msg: string; onConfirm: () => void } | null>(null);
+
+  const load = useCallback(() => {
+    adminFetch('/admin/backup/status')
+      .then(d => { setBackups(d.backups || []); setStatus(d); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const createBackup = async () => {
+    setCreating(true);
+    try {
+      await adminFetch('/admin/backup/create', { method: 'POST' });
+      setToast({ msg: 'Backup created successfully.', ok: true });
+      load();
+    } catch (e: any) {
+      setToast({ msg: e.message || 'Backup failed.', ok: false });
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const formatSize = (bytes: number | null) => {
+    if (!bytes) return '—';
+    if (bytes > 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    if (bytes > 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${bytes} bytes`;
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      {confirm && <ConfirmModal msg={confirm.msg} onConfirm={confirm.onConfirm} onCancel={() => setConfirm(null)} />}
+
+      {/* Status overview */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
+        {[
+          { label: 'Total Backups', value: backups.length, color: PUR },
+          { label: 'Successful', value: backups.filter(b => b.status === 'Completed').length, color: GRN },
+          { label: 'Failed', value: backups.filter(b => b.status === 'Failed').length, color: '#ef4444' },
+          { label: 'Last Backup', value: backups[0]?.created_at?.split('T')[0] || '—', color: BLU },
+        ].map((s, i) => (
+          <Card key={i} style={{ padding: '16px 18px' }}>
+            <div style={{ fontSize: i === 3 ? '1rem' : '1.5rem', fontWeight: 800, color: s.color }}>{loading ? '—' : s.value}</div>
+            <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+          </Card>
+        ))}
+      </div>
+
+      {/* Create backup panel */}
+      <Card>
+        <CardHead title="Backup Operations" right={<Pill text="Manual Backup" />} />
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+          <div style={{ padding: '20px', borderRadius: '14px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#171433', marginBottom: '8px' }}>Create Database Snapshot</div>
+            <div style={{ fontSize: '0.8rem', color: '#8b8fa3', marginBottom: '16px', lineHeight: 1.6 }}>
+              Creates an application-level backup record capturing current database state metadata. Actual infrastructure backups are managed by the Railway hosting platform.
+            </div>
+            <button onClick={createBackup} disabled={creating}
+              style={{ padding: '10px 20px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontSize: '0.84rem', fontWeight: 700, cursor: creating ? 'not-allowed' : 'pointer', fontFamily: 'inherit', opacity: creating ? 0.7 : 1 }}>
+              {creating ? 'Creating Backup…' : '● Create Backup Now'}
+            </button>
+          </div>
+          <div style={{ padding: '20px', borderRadius: '14px', background: '#fff8ed', border: '1px solid #fde68a' }}>
+            <div style={{ fontSize: '0.95rem', fontWeight: 800, color: '#92400e', marginBottom: '8px' }}>⚠️ Restore Operations</div>
+            <div style={{ fontSize: '0.8rem', color: '#b45309', marginBottom: '12px', lineHeight: 1.6 }}>
+              Database restoration is a destructive infrastructure operation that must be performed at the hosting platform (Railway) level. This prevents accidental data loss from application-layer restore commands.
+            </div>
+            <div style={{ fontSize: '0.74rem', color: '#92400e', fontWeight: 600 }}>Contact Railway support or use the Railway dashboard to perform database restores safely.</div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Backup history */}
+      <Card>
+        <CardHead title="Backup History" right={<Pill text={`${backups.length} records`} />} />
+        {loading ? <EmptyState icon="⏳" message="Loading backup history…" /> : backups.length === 0 ? (
+          <EmptyState icon="💾" message="No backup records yet. Create your first backup." action="Create Backup" onAction={createBackup} />
+        ) : (
+          <div style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: '600px' }}>
+              <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
+                <tr>
+                  {['Timestamp', 'Type', 'Status', 'Size', 'Notes'].map((c, i) => (
+                    <th key={i} style={{ textAlign: 'left', padding: '0 14px 12px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>{c}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {backups.map((b: any, i: number) => (
+                  <tr key={i} style={{ borderTop: '1px solid #f1f2f7' }}
+                    onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#fafbfe'}
+                    onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = ''}>
+                    <td style={{ padding: '10px 14px', fontSize: '0.78rem', color: '#3f4a5a', whiteSpace: 'nowrap' }}>{b.created_at?.replace('T', ' ').split('.')[0]}</td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: '6px', background: `${BLU}18`, color: BLU, fontSize: '0.72rem', fontWeight: 700 }}>{b.backup_type}</span>
+                    </td>
+                    <td style={{ padding: '10px 14px' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: 700, color: b.status === 'Completed' ? GRN : b.status === 'Failed' ? '#ef4444' : ORA }}>
+                        {b.status === 'Completed' ? '✓' : b.status === 'Failed' ? '✗' : '○'} {b.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '10px 14px', fontSize: '0.78rem', color: '#3f4a5a' }}>{formatSize(b.size_bytes)}</td>
+                    <td style={{ padding: '10px 14px', fontSize: '0.76rem', color: '#8b8fa3' }}>{b.notes || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// PROFILE & ACCOUNT SETTINGS
+// ══════════════════════════════════════════════════════════════════════════════
+function ProfilePage({ stats }: { stats: any }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <Card>
+        <CardHead title="Administrator Profile" right={<Pill text="Super Administrator" />} />
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', padding: '8px 0 20px', borderBottom: '1px solid #f1f2f7' }}>
+          <span style={{ display: 'grid', placeItems: 'center', width: '72px', height: '72px', borderRadius: '20px', background: `${PUR}20`, color: PUR, fontSize: '2rem', flexShrink: 0 }}>👤</span>
+          <div>
+            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#171433' }}>Himobanta Dutta</div>
+            <div style={{ fontSize: '0.84rem', color: PUR, fontWeight: 600, marginTop: '3px' }}>Super Administrator</div>
+            <div style={{ fontSize: '0.8rem', color: '#a3a7bd', marginTop: '2px' }}>admin@miracle.com</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '16px' }}>
           {[
             { label: 'Platform Role', value: 'Super Administrator', color: PUR },
-            { label: 'Status', value: 'Active', color: GRN },
-            { label: 'Total Users Managed', value: String(adminStats?.total_users ?? '—'), color: BLU },
+            { label: 'Account Status', value: 'Active', color: GRN },
+            { label: 'Users Managed', value: String(stats?.total_users ?? '—'), color: BLU },
+            { label: 'Platform Assessments', value: String(stats?.total_assessments ?? '—'), color: ORA },
           ].map((s, i) => (
             <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4', textAlign: 'center' }}>
-              <div style={{ fontSize: '1rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: s.color }}>{s.value}</div>
               <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
             </div>
           ))}
@@ -420,524 +2471,96 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
       </Card>
     </div>
   );
+}
 
-  const accountSettingsSection = (
-    <Card>
-      <CardHead title="Account Settings" right={<Pill text="Admin" />} />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {[['Full Name', 'Himobanta Dutta'], ['Email Address', 'admin@miracle.com'], ['Role', 'Super Administrator'], ['Password', '••••••••••']].map(([label, value], i) => (
-          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
-            <div>
-              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
-              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#171433', marginTop: '3px' }}>{value}</div>
-            </div>
-            <button style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.76rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-
-  // ── Section: System Health ─────────────────────────────────────────────────
-  const healthItems = [
-    ['Database', '<ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>', sysHealth?.db],
-    ['API Services', '<path d="m8 8-4 4 4 4M16 8l4 4-4 4M14 6l-4 12"/>', sysHealth?.api],
-    ['Storage', '<path d="M21 8 12 3 3 8l9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/>', sysHealth?.api],
-    ['Email Service', '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/>', sysHealth?.api],
-  ];
-
-  const healthSection = (
-    <Card style={{ height: '100%', minWidth: 0 }}>
-      <h3 style={{ margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' }}>System Health</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '10px' }}>
-        {healthItems.map((h, i) => {
-          const status = sysHealth === null ? null : h[2];
-          const isHealthy = status === true;
-          const isPending = status === null;
-          const iconBg = isPending ? 'rgba(163,167,189,0.15)' : isHealthy ? 'rgba(34,197,94,0.14)' : 'rgba(239,68,68,0.14)';
-          const iconColor = isPending ? '#a3a7bd' : isHealthy ? '#16a34a' : '#ef4444';
-          const labelColor = isPending ? '#a3a7bd' : isHealthy ? '#16a34a' : '#ef4444';
-          const labelText = isPending ? 'Checking…' : isHealthy ? 'Healthy' : 'Degraded';
-          const checkPath = isHealthy ? "<path d='M20 6 9 17l-5-5'/>" : isPending ? "<circle cx='12' cy='12' r='3'/>" : "<path d='M18 6 6 18M6 6l12 12'/>";
-          return (
-            <div key={i} style={{ borderRadius: '14px', border: '1px solid #edeef4', background: '#fafbfe', padding: '14px 10px', minWidth: 0 }}>
-              <span style={{ display: 'grid', placeItems: 'center', width: '36px', height: '36px', borderRadius: '11px', background: iconBg, color: iconColor, marginBottom: '10px' }}>
-                <DashIcon d={String(h[1])} s={17} stroke={iconColor} />
-              </span>
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#171433', marginBottom: '4px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{String(h[0])}</div>
-              <div style={{ fontSize: '0.74rem', color: labelColor, fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <DashIcon d={checkPath} s={12} stroke={iconColor} sw={2.6} /> {labelText}
+function AccountSettingsPage() {
+  const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      <Card>
+        <CardHead title="Account Settings" right={<Pill text="Admin" />} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {[
+            { label: 'Full Name', value: 'Himobanta Dutta', editable: true },
+            { label: 'Email Address', value: 'admin@miracle.com', editable: false },
+            { label: 'Platform Role', value: 'Super Administrator', editable: false },
+            { label: 'Password', value: '••••••••••••', editable: true },
+          ].map(({ label, value, editable }, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+              <div>
+                <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+                <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#171433', marginTop: '3px' }}>{value}</div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-    </Card>
-  );
-
-  // ── Section: User Management Table ────────────────────────────────────────
-  const userTableRight = (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-      <input
-        type="text"
-        placeholder="Search name or email…"
-        value={userSearch}
-        onChange={e => setUserSearch(e.target.value)}
-        style={{ padding: '6px 12px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', width: '200px' }}
-      />
-      <select
-        value={userRoleFilter}
-        onChange={e => setUserRoleFilter(e.target.value)}
-        style={{ padding: '6px 10px', borderRadius: '10px', border: '1px solid #edeef4', fontSize: '0.78rem', outline: 'none', fontFamily: 'inherit', background: '#fff' }}
-      >
-        <option value="">All Roles</option>
-        <option value="User">Users</option>
-        <option value="Skincare Consultant">Consultants</option>
-        <option value="Dermatologist">Dermatologists</option>
-        <option value="Administrator">Admins</option>
-      </select>
-    </div>
-  );
-
-  const userCols = ['Name', 'Email', 'Role', 'Skin Type', 'Health Score', 'Last Assessment', 'Joined'];
-  const userTableBody = usersLoading ? (
-    <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>Loading user list…</td></tr>
-  ) : usersError ? (
-    <tr><td colSpan={7} style={{ padding: '32px', textAlign: 'center', color: '#ef4444', fontSize: '0.82rem' }}>{usersError}</td></tr>
-  ) : filteredUsers.length === 0 ? (
-    <tr><td colSpan={7} style={{ padding: '40px', textAlign: 'center', color: '#a3a7bd', fontSize: '0.82rem' }}>
-      {userSearch || userRoleFilter ? 'No users match your search/filter criteria.' : 'No users registered yet.'}
-    </td></tr>
-  ) : (
-    <>
-      {filteredUsers.map((u: any) => {
-        const roleColor = ROLE_COLORS[u.role] || GRY;
-        return (
-          <tr key={u.id} style={{ borderTop: '1px solid #f1f2f7' }}>
-            <td style={{ padding: '12px 16px', fontSize: '0.84rem', fontWeight: 600, color: '#171433' }}>{u.name}</td>
-            <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#3f4a5a' }}>{u.email}</td>
-            <td style={{ padding: '12px 16px' }}>
-              <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: `${roleColor}22`, color: roleColor }}>
-                {u.role}
-              </span>
-            </td>
-            <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#3f4a5a' }}>{u.skin_type || '—'}</td>
-            <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-              {u.health_score !== null ? (
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, color: u.health_score >= 75 ? GRN : u.health_score >= 60 ? ORA : '#ef4444' }}>
-                  {Math.round(u.health_score)}
-                </span>
-              ) : <span style={{ color: '#a3a7bd' }}>—</span>}
-            </td>
-            <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#3f4a5a', whiteSpace: 'nowrap' }}>
-              {u.last_assessment_date || '—'}
-            </td>
-            <td style={{ padding: '12px 16px', fontSize: '0.78rem', color: '#8b8fa3', whiteSpace: 'nowrap' }}>{u.created_at}</td>
-          </tr>
-        );
-      })}
-    </>
-  );
-
-  const userManagement = (
-    <Card>
-      <CardHead title={`User Management (${filteredUsers.length}${filteredUsers.length !== users.length ? ` of ${users.length}` : ''})`} right={userTableRight} />
-      <div className="dash-scroll" style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto' }}>
-        <table style={{ borderCollapse: 'collapse', minWidth: '860px', width: '100%' }}>
-          <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
-            <tr>
-              {userCols.map((c, i) => (
-                <th key={i} style={{ textAlign: i === 4 ? 'center' : 'left', padding: '0 16px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>
-                  {c}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>{userTableBody}</tbody>
-        </table>
-      </div>
-    </Card>
-  );
-
-  // ── Section: Quick Actions ─────────────────────────────────────────────────
-  const actionItems: [string, string, string][] = [
-    ['users', 'View Users', 'user-management'],
-    ['clip', 'View Assessments', 'skin-assessments'],
-    ['cal', 'View Reports', 'reports-&-analytics'],
-    ['db', 'System Health', 'system-settings'],
-  ];
-
-  const actionsSection = (
-    <Card style={{ height: '100%', minWidth: 0 }}>
-      <h3 style={{ margin: '0 0 18px', fontSize: '1.02rem', fontWeight: 700, color: '#171433' }}>Quick Actions</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: '12px' }}>
-        {actionItems.map((a, i) => (
-          <div
-            key={i}
-            onClick={() => onSectionChange && onSectionChange(a[2])}
-            style={{ textAlign: 'center', borderRadius: '14px', border: '1px solid #edeef4', background: '#fafbfe', padding: '18px 8px', cursor: 'pointer', transition: 'border-color 0.2s' }}
-          >
-            <span style={{ display: 'grid', placeItems: 'center', width: '46px', height: '46px', margin: '0 auto 12px', borderRadius: '13px', background: 'rgba(47,107,76,0.12)', color: PUR }}>
-              <DashIcon d={PATHS[a[0]] || PATHS.grid} s={20} stroke={PUR} />
-            </span>
-            <div style={{ fontSize: '0.78rem', fontWeight: 600, color: '#3f4a5a' }}>{a[1]}</div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-
-  // ── 1. Role & Permissions Management ─────────────────────────────────────
-  const rolesSection = (
-    <Card>
-      <CardHead title="Role & Permission Matrix" right={<Pill text="RBAC Engine" />} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '14px', marginBottom: '20px' }}>
-        {[
-          { role: 'User', count: uByRole.User, color: PUR, permissions: ['Self Assessment', 'Personal Routine', 'Daily Log', 'Book Consultations', 'View Products'] },
-          { role: 'Skincare Consultant', count: uByRole['Skincare Consultant'], color: BLU, permissions: ['Client Roster', 'View Clinical Photos', 'Prescribe Routine', 'Refer to Derma', 'Consultant Notes'] },
-          { role: 'Dermatologist', count: uByRole.Dermatologist, color: ORA, permissions: ['Clinical Diagnostics', 'Medical Records', 'Prescription Overwrite', 'Manage Referrals', 'Accept Consults'] },
-          { role: 'Administrator', count: uByRole.Administrator, color: GRN, permissions: ['Full System Access', 'RBAC Management', 'Audit Logging', 'Product Catalog DB', 'Platform Analytics'] },
-        ].map((r, i) => (
-          <div key={i} style={{ borderRadius: '14px', border: '1px solid #edeef4', background: '#fafbfe', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: r.color }}>{r.role}</span>
-              <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: `${r.color}22`, color: r.color }}>{r.count} users</span>
-            </div>
-            <div style={{ borderTop: '1px solid #edeef4', paddingTop: '8px', display: 'flex', flexDirection: 'column', gap: '5px' }}>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, color: '#8b8fa3', textTransform: 'uppercase' }}>Allowed Scopes:</span>
-              {r.permissions.map((p, idx) => (
-                <div key={idx} style={{ fontSize: '0.74rem', color: '#3f4a5a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <span style={{ color: r.color, fontWeight: 800 }}>✓</span> {p}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-      {userManagement}
-    </Card>
-  );
-
-  // ── 2. Skin Assessments Intelligence ──────────────────────────────────────
-  const skinAssessmentsSection = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-        <Card style={{ padding: '18px' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8b8fa3' }}>Total Completed Assessments</div>
-          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: PUR, marginTop: '6px' }}>{totalAssessments}</div>
-          <div style={{ fontSize: '0.72rem', color: '#16a34a', marginTop: '4px' }}>↑ 100% Verified DB Records</div>
-        </Card>
-        <Card style={{ padding: '18px' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8b8fa3' }}>Average Skin Health Score</div>
-          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: GRN, marginTop: '6px' }}>{avgScore !== null ? `${avgScore}/100` : '—'}</div>
-          <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '4px' }}>Weighted 5-Factor Clinical Model</div>
-        </Card>
-        <Card style={{ padding: '18px' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#8b8fa3' }}>Total Progress Photos</div>
-          <div style={{ fontSize: '1.7rem', fontWeight: 800, color: BLU, marginTop: '6px' }}>{totalPhotos}</div>
-          <div style={{ fontSize: '0.72rem', color: '#8b8fa3', marginTop: '4px' }}>Cloud Stored Snapshots</div>
-        </Card>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-        {concerns}
-        {scoreSection}
-      </div>
-    </div>
-  );
-
-  // ── 3. Routine Management Section ─────────────────────────────────────────
-  const routineManagementSection = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
-        {[
-          { label: 'Active Daily Plans', val: activeRoutines, col: GRN },
-          { label: 'Doctor-Prescribed Plans', val: rxRoutines, col: PUR },
-          { label: 'Morning (AM) Steps', val: `${Math.round(activeRoutines * 2.5)}`, col: ORA },
-          { label: 'Evening (PM) Steps', val: `${Math.round(activeRoutines * 3.2)}`, col: BLU },
-        ].map((s, i) => (
-          <Card key={i} style={{ padding: '16px' }}>
-            <div style={{ fontSize: '0.74rem', color: '#8b8fa3' }}>{s.label}</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: s.col, marginTop: '4px' }}>{s.val}</div>
-          </Card>
-        ))}
-      </div>
-      <Card>
-        <CardHead title="Standardized Routine Generation Templates" right={<Pill text="Clinical AI Maps" />} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-          {[
-            { type: 'Oily & Acne-Prone', am: ['Salicylic Cleanser', 'Niacinamide 10%', 'Oil-Free Mattifying SPF 50'], pm: ['Gentle Foaming Cleanser', 'BHA Liquid Exfoliant', 'Centella Soothing Gel'] },
-            { type: 'Dry & Barrier Repair', am: ['Hydrating Cream Cleanser', 'Hyaluronic Acid Serum', 'Ceramide Barrier Cream + SPF'], pm: ['Nourishing Cleansing Balm', 'Peptide Night Serum', 'Rich Squalane Lipid Balm'] },
-            { type: 'Sensitive & Reactive', am: ['Micellar Water Cleanse', 'Azelaic Acid 10%', 'Physical Zinc Oxide Mineral SPF'], pm: ['Oat Soothing Cleanser', 'Panthenol Barrier Repair Cream', 'Pure Squalane Oil'] },
-          ].map((t, i) => (
-            <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4' }}>
-              <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#171433', marginBottom: '8px' }}>{t.type}</div>
-              <div style={{ fontSize: '0.74rem', color: PUR, fontWeight: 700 }}>AM ROUTINE:</div>
-              <div style={{ fontSize: '0.72rem', color: '#3f4a5a', marginBottom: '8px' }}>{t.am.join(' → ')}</div>
-              <div style={{ fontSize: '0.74rem', color: BLU, fontWeight: 700 }}>PM ROUTINE:</div>
-              <div style={{ fontSize: '0.72rem', color: '#3f4a5a' }}>{t.pm.join(' → ')}</div>
+              {editable && (
+                <button onClick={() => setToast({ msg: 'Profile updates require server-side validation. Contact platform administrator.', ok: false })}
+                  style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.76rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+              )}
             </div>
           ))}
         </div>
       </Card>
     </div>
   );
+}
 
-  // ── 4. Product Management Section ─────────────────────────────────────────
-  const productManagementSection = (
-    <Card>
-      <CardHead title="Skincare Product Catalog Database (51,011 Products)" right={<Pill text="51,000+ Ingested" />} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-        {[
-          { label: 'Total Catalog Products', val: '51,011', col: PUR },
-          { label: 'Unique Verified Brands', val: '1,420+', col: BLU },
-          { label: 'SkinSAFE Compatibility', val: '99.4%', col: GRN },
-          { label: 'Indexed INCI Ingredients', val: '8,900+', col: ORA },
-        ].map((s, i) => (
-          <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
-            <div style={{ fontSize: '0.72rem', color: '#8b8fa3' }}>{s.label}</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: s.col, marginTop: '4px' }}>{s.val}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{ padding: '16px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4' }}>
-        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#171433', marginBottom: '8px' }}>Catalog Category Distribution</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px' }}>
-          {[
-            ['Cleansers', '12,450'],
-            ['Moisturizers', '14,820'],
-            ['Serums & Treatments', '10,930'],
-            ['Sunscreens (SPF)', '6,140'],
-            ['Toners & Essences', '4,210'],
-            ['Eye & Lip Care', '2,461'],
-          ].map(([cat, count], i) => (
-            <div key={i} style={{ padding: '10px', borderRadius: '8px', background: '#fff', border: '1px solid #edeef4', textAlign: 'center' }}>
-              <div style={{ fontSize: '0.72rem', color: '#8b8fa3' }}>{cat}</div>
-              <div style={{ fontSize: '0.95rem', fontWeight: 800, color: PUR, marginTop: '2px' }}>{count}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </Card>
-  );
+// ══════════════════════════════════════════════════════════════════════════════
+// MAIN AdminWorkspace ORCHESTRATOR
+// ══════════════════════════════════════════════════════════════════════════════
+interface AdminWorkspaceProps {
+  activeSection?: string;
+  onSectionChange?: (section: string) => void;
+}
 
-  // ── 5. Ingredient Database Section ────────────────────────────────────────
-  const ingredientDatabaseSection = (
-    <Card>
-      <CardHead title="Ingredient Intelligence & Conflict Matrix" right={<Pill text="INCI Knowledge Base" />} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-        {[
-          { name: 'Niacinamide (Vitamin B3)', role: 'Sebum regulator & Barrier strengthener', risk: 'Low', ph: '6.0 - 7.0', compat: 'Compatible with all actives except pure high-dose Ascorbic Acid' },
-          { name: 'Retinol / Retinoids', role: 'Cellular turnover & Collagen synthesis', risk: 'Moderate to High', ph: '5.5 - 6.5', compat: 'CONFLICT: Never combine with AHAs/BHAs in same PM step' },
-          { name: 'Salicylic Acid (BHA)', role: 'Lipophilic pore exfoliation & Anti-acne', risk: 'Moderate', ph: '3.0 - 4.0', compat: 'CONFLICT: Incompatible with high-strength Retinoids' },
-          { name: 'L-Ascorbic Acid (Vitamin C)', role: 'Antioxidant, Brightener, Melanin inhibitor', risk: 'Moderate', ph: '2.5 - 3.5', compat: 'Best used in AM under SPF. Do not mix with Benzoyl Peroxide' },
-          { name: 'Hyaluronic Acid', role: 'Multi-molecular humectant & Hydrator', risk: 'Very Low', ph: '5.0 - 7.0', compat: 'Universally compatible across all skin types and actives' },
-          { name: 'Ceramide NP / AP / EOP', role: 'Lipid barrier reconstruction', risk: 'None (Identical to Skin)', ph: '5.0 - 6.5', compat: 'Essential post-acid treatment to prevent transepidermal water loss' },
-        ].map((ing, i) => (
-          <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#171433' }}>{ing.name}</span>
-              <span style={{ fontSize: '0.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: '999px', background: ing.risk.includes('Low') ? 'rgba(34,197,94,0.14)' : 'rgba(245,166,35,0.16)', color: ing.risk.includes('Low') ? '#16a34a' : '#e08a1e' }}>{ing.risk} Risk</span>
-            </div>
-            <div style={{ fontSize: '0.74rem', color: '#8b8fa3' }}>{ing.role}</div>
-            <div style={{ fontSize: '0.72rem', color: '#3f4a5a', borderTop: '1px solid #edeef4', paddingTop: '6px', marginTop: '4px' }}>
-              <b>Safety Rule:</b> {ing.compat}
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
+export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }: AdminWorkspaceProps) {
+  const [adminStats, setAdminStats] = useState<any | null>(null);
 
-  // ── 6. Content Management Section ─────────────────────────────────────────
-  const contentManagementSection = (
-    <Card>
-      <CardHead title="Content Management & Educational Resources" right={<Pill text="Live CMS" />} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-        {[
-          { title: 'The Ultimate Guide to Chemical vs Physical SPF', category: 'Sun Protection', status: 'Published', reads: '14,200 reads' },
-          { title: 'How to Layer Retinol and Niacinamide Safely', category: 'Active Ingredients', status: 'Published', reads: '28,950 reads' },
-          { title: 'Understanding Transepidermal Water Loss (TEWL)', category: 'Skin Science', status: 'Published', reads: '9,410 reads' },
-          { title: 'Post-Acne Mark Barrier Repair Protocol', category: 'Clinical Guides', status: 'Published', reads: '19,800 reads' },
-          { title: 'Seasonal Skincare: Transitioning from Summer to Winter', category: 'Lifestyle', status: 'Published', reads: '11,340 reads' },
-          { title: 'Non-Comedogenic Ingredient Verification Standards', category: 'Product Safety', status: 'Published', reads: '16,780 reads' },
-        ].map((art, i) => (
-          <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4' }}>
-            <span style={{ fontSize: '0.68rem', fontWeight: 700, color: PUR, textTransform: 'uppercase' }}>{art.category}</span>
-            <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#171433', margin: '4px 0 8px' }}>{art.title}</div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.72rem', color: '#8b8fa3' }}>
-              <span style={{ color: '#16a34a', fontWeight: 600 }}>● {art.status}</span>
-              <span>{art.reads}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-
-  // ── 7. Reports & Analytics Section ────────────────────────────────────────
-  const reportsAnalyticsSection = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-        {userOverview}
-        {apptOverview}
-        {assessRoutine}
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
-        {concerns}
-        {scoreSection}
-      </div>
-    </div>
-  );
-
-  // ── 8. System Settings Section ────────────────────────────────────────────
-  const systemSettingsSection = (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-      {healthSection}
-      <Card>
-        <CardHead title="Platform Environment Configurations" right={<Pill text="Production Mode" />} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-          {[
-            ['API Base URL', 'https://miracle-production-e7d3.up.railway.app'],
-            ['Authentication Provider', 'Argon2id + JWT HS256 Security'],
-            ['Product Dataset Store', '51,011 Indexed SQLite / PostgreSQL Records'],
-            ['Rate Limiting Protocol', 'Strict Auth & Registration Sliding Window'],
-            ['CORS Security', 'Fully Allowed Origin Headers Configured'],
-            ['Container Engine', 'Railway Nixpacks / Multi-Stage Docker Container'],
-          ].map(([key, val], i) => (
-            <div key={i} style={{ padding: '12px', borderRadius: '10px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
-              <div style={{ fontSize: '0.7rem', color: '#8b8fa3' }}>{key}</div>
-              <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', marginTop: '3px' }}>{val}</div>
-            </div>
-          ))}
-        </div>
-      </Card>
-    </div>
-  );
-
-  // ── 9. Audit Logs Section ─────────────────────────────────────────────────
-  const auditLogsSection = (
-    <Card>
-      <CardHead title="System Security & User Audit Logs" right={<Pill text="Real-Time Audit Stream" />} />
-      <div style={{ maxHeight: '440px', overflowY: 'auto' }}>
-        {activitySection}
-      </div>
-    </Card>
-  );
-
-  // ── 10. Security & Access Section ─────────────────────────────────────────
-  const securityAccessSection = (
-    <Card>
-      <CardHead title="Security & Access Control Enforcement" right={<Pill text="Active Defense" />} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
-        {[
-          { title: 'Argon2id Key Derivation', status: 'Enforced', desc: 'All passwords hashed with Argon2id parameters (m=65536, t=3, p=4)' },
-          { title: 'JWT Expiration Policy', status: '7 Days', desc: 'Secure cryptographically signed bearer tokens for state preservation' },
-          { title: 'Role-Based Guardrails', status: 'Strict', desc: 'Unauthorized cross-role API calls immediately return 403 Forbidden' },
-          { title: 'Database SQL Injection Shield', status: 'SQLAlchemy ORM', desc: 'Parameterized query execution across all database transactions' },
-          { title: 'Rate Limiter Hardening', status: 'Active', desc: 'Brute-force mitigation on /auth/login and /auth/register endpoints' },
-          { title: 'Input Sanitization', status: 'Strict Pydantic', desc: 'Every JSON payload strictly validated against Pydantic schema boundaries' },
-        ].map((s, i) => (
-          <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-              <span style={{ fontSize: '0.85rem', fontWeight: 800, color: '#171433' }}>{s.title}</span>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#16a34a', background: 'rgba(34,197,94,0.14)', padding: '2px 8px', borderRadius: '999px' }}>{s.status}</span>
-            </div>
-            <div style={{ fontSize: '0.74rem', color: '#8b8fa3' }}>{s.desc}</div>
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-
-  // ── 11. Backup & Restore Section ──────────────────────────────────────────
-  const backupRestoreSection = (
-    <Card>
-      <CardHead title="Database Backup & Disaster Recovery" right={<Pill text="Automated Snapshots" />} />
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px', marginBottom: '16px' }}>
-        {[
-          { label: 'Relational Database Backup', time: 'Every 24 Hours', state: 'Synced', size: '142 MB' },
-          { label: 'Document Logs & Progress Backup', time: 'Continuous Journal', state: 'Active', size: '18 MB' },
-          { label: 'Product Database Mirror', time: 'Daily Mirror', state: '51,011 Records', size: '84 MB' },
-        ].map((b, i) => (
-          <div key={i} style={{ padding: '16px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#171433' }}>{b.label}</div>
-            <div style={{ fontSize: '0.74rem', color: '#8b8fa3', marginTop: '4px' }}>Frequency: {b.time}</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.74rem', fontWeight: 700 }}>
-              <span style={{ color: '#16a34a' }}>● {b.state}</span>
-              <span style={{ color: '#3f4a5a' }}>{b.size}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div style={{ padding: '16px', borderRadius: '12px', background: '#fafbfe', border: '1px solid #edeef4', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div>
-          <div style={{ fontSize: '0.85rem', fontWeight: 700, color: '#171433' }}>Create Manual Snapshot Now</div>
-          <div style={{ fontSize: '0.74rem', color: '#8b8fa3' }}>Create an immediate immutable point-in-time snapshot of the database state.</div>
-        </div>
-        <button style={{ padding: '8px 16px', borderRadius: '10px', background: PUR, color: '#fff', border: 'none', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer', fontFamily: 'inherit' }}>
-          Backup Database
-        </button>
-      </div>
-    </Card>
-  );
+  useEffect(() => {
+    api.getAdminStats().then(setAdminStats).catch(() => {});
+  }, []);
 
   const renderSection = () => {
     switch (activeSection) {
+      case 'dashboard':
+        return <AdminDashboardPage onSectionChange={onSectionChange} />;
       case 'user-management':
-        return userManagement;
+        return <UserManagementPage />;
       case 'role-&-permissions':
-        return rolesSection;
+        return <RolePermissionsPage />;
       case 'skin-assessments':
-        return skinAssessmentsSection;
+        return <SkinAssessmentsPage />;
       case 'routine-management':
-        return routineManagementSection;
+        return <RoutineManagementPage />;
       case 'product-management':
-        return productManagementSection;
+        return <ProductManagementPage />;
       case 'ingredient-database':
-        return ingredientDatabaseSection;
+        return <IngredientDatabasePage />;
       case 'content-management':
-        return contentManagementSection;
+        return <ContentManagementPage />;
       case 'reports-&-analytics':
-        return reportsAnalyticsSection;
-      case 'system-settings':
-        return systemSettingsSection;
-      case 'audit-logs':
-        return auditLogsSection;
-      case 'security-&-access':
-        return securityAccessSection;
-      case 'backup-&-restore':
-        return backupRestoreSection;
+        return <ReportsAnalyticsPage />;
       case 'notifications':
-        return notificationsSection;
+        return <NotificationsPage />;
+      case 'system-settings':
+        return <SystemSettingsPage />;
+      case 'audit-logs':
+        return <AuditLogsPage />;
+      case 'security-&-access':
+        return <SecurityAccessPage />;
+      case 'backup-&-restore':
+        return <BackupRestorePage />;
       case 'settings':
-        return profileSection;
+        return <ProfilePage stats={adminStats} />;
       case 'account-settings':
-        return accountSettingsSection;
+        return <AccountSettingsPage />;
       default:
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
-              {userOverview}
-              {apptOverview}
-              {assessRoutine}
-            </div>
-
-            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
-              {concerns}
-              {scoreSection}
-              {activitySection}
-            </div>
-
-            {userManagement}
-
-            <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(2,1fr)' }}>
-              {healthSection}
-              {actionsSection}
-            </div>
-          </div>
-        );
+        return <AdminDashboardPage onSectionChange={onSectionChange} />;
     }
   };
 
-  return renderSection();
+  return (
+    <div style={{ width: '100%', minHeight: '100%' }}>
+      {renderSection()}
+    </div>
+  );
 }

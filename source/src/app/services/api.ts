@@ -335,4 +335,132 @@ export const api = {
 
   getAdminActivity: (limit = 10) =>
     request(`/admin/activity?limit=${limit}`),
+
+  // Admin User CRUD
+  updateAdminUser: (userId: string, data: { role?: string; name?: string }) =>
+    request(`/admin/users/${userId}`, { method: "PUT", body: JSON.stringify(data) }),
+
+  deleteAdminUser: (userId: string) =>
+    request(`/admin/users/${userId}`, { method: "DELETE" }),
+
+  getAdminUserDetail: (userId: string) =>
+    request(`/admin/users/${userId}/detail`),
+
+  // Admin Assessments
+  getAdminAssessments: (params?: { page?: number; per_page?: number; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.append("page", String(params.page));
+    if (params?.per_page) q.append("per_page", String(params.per_page));
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/admin/assessments${qs ? `?${qs}` : ""}`);
+  },
+
+  // Admin Routines
+  getAdminRoutines: (params?: { page?: number; per_page?: number; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.append("page", String(params.page));
+    if (params?.per_page) q.append("per_page", String(params.per_page));
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/admin/routines${qs ? `?${qs}` : ""}`);
+  },
+
+  // Admin Products CRUD
+  getAdminProducts: (params?: { page?: number; per_page?: number; search?: string; category?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.append("page", String(params.page));
+    if (params?.per_page) q.append("per_page", String(params.per_page));
+    if (params?.search) q.append("search", params.search);
+    if (params?.category) q.append("category", params.category);
+    const qs = q.toString();
+    return request(`/admin/products${qs ? `?${qs}` : ""}`);
+  },
+
+  createAdminProduct: (data: any) =>
+    request("/admin/products", { method: "POST", body: JSON.stringify(data) }),
+
+  updateAdminProduct: (id: string, data: any) =>
+    request(`/admin/products/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+
+  deleteAdminProduct: (id: string) =>
+    request(`/admin/products/${id}`, { method: "DELETE" }),
+
+  // Admin Ingredients CRUD
+  getAdminIngredients: (params?: { page?: number; per_page?: number; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.append("page", String(params.page));
+    if (params?.per_page) q.append("per_page", String(params.per_page));
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/admin/ingredients${qs ? `?${qs}` : ""}`);
+  },
+
+  createAdminIngredient: (data: any) =>
+    request("/admin/ingredients", { method: "POST", body: JSON.stringify(data) }),
+
+  updateAdminIngredient: (id: string, data: any) =>
+    request(`/admin/ingredients/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+
+  deleteAdminIngredient: (id: string) =>
+    request(`/admin/ingredients/${id}`, { method: "DELETE" }),
+
+  // Admin Content CMS
+  getAdminContent: (params?: { status?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.append("status", params.status);
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/admin/content${qs ? `?${qs}` : ""}`);
+  },
+
+  createAdminContent: (data: any) =>
+    request("/admin/content", { method: "POST", body: JSON.stringify(data) }),
+
+  updateAdminContent: (id: string, data: any) =>
+    request(`/admin/content/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+
+  deleteAdminContent: (id: string) =>
+    request(`/admin/content/${id}`, { method: "DELETE" }),
+
+  // Admin Notifications
+  getAdminNotifications: () => request("/admin/notifications"),
+
+  createAdminNotification: (data: any) =>
+    request("/admin/notifications", { method: "POST", body: JSON.stringify(data) }),
+
+  deleteAdminNotification: (id: string) =>
+    request(`/admin/notifications/${id}`, { method: "DELETE" }),
+
+  // Admin Audit Logs
+  getAdminAuditLogs: (params?: { page?: number; per_page?: number; search?: string; action?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.append("page", String(params.page));
+    if (params?.per_page) q.append("per_page", String(params.per_page));
+    if (params?.search) q.append("search", params.search);
+    if (params?.action) q.append("action", params.action);
+    const qs = q.toString();
+    return request(`/admin/audit-logs${qs ? `?${qs}` : ""}`);
+  },
+
+  // Admin System Settings
+  getAdminSettings: () => request("/admin/settings"),
+
+  updateAdminSetting: (key: string, value: string) =>
+    request(`/admin/settings/${key}`, { method: "PUT", body: JSON.stringify({ value }) }),
+
+  // Admin Backup
+  getAdminBackupStatus: () => request("/admin/backup/status"),
+
+  createAdminBackup: () =>
+    request("/admin/backup/create", { method: "POST" }),
+
+  // Admin Security
+  getAdminSecurityEvents: (limit = 50) =>
+    request(`/admin/security/events?limit=${limit}`),
+
+  getAdminSecurityStats: () => request("/admin/security/stats"),
+
+  // Admin Reports
+  getAdminReportsOverview: () => request("/admin/reports/overview"),
 };

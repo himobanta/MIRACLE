@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import engine, Base, SessionLocal, check_db_connection
-from .models import User, UserProfile
+from .models import User, UserProfile, SystemConfig, ContentArticle, Ingredient, BackupRecord
 from .auth import hash_password
 from .config import CORS_ORIGINS_RAW, ENVIRONMENT, log_startup_summary
 from .routers import (
@@ -20,6 +20,7 @@ from .routers import (
     appointment_router
 )
 from .routers import admin_router
+from .routers import admin_extended_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -135,10 +136,150 @@ def _seed_demo_users():
         db.close()
 
 
+def _seed_demo_content():
+    """Seed default system settings, sample content articles, ingredients, and a backup record.
+    Idempotent — only inserts missing records.
+    """
+    db = SessionLocal()
+    try:
+        # ── 5 Default SystemConfig records ────────────────────────────────────
+        default_configs = [
+            {
+                "key": "platform_name",
+                "value": "MIRACLE",
+                "category": "Platform",
+                "description": "Display name of the platform",
+            },
+            {
+                "key": "registration_enabled",
+                "value": "true",
+                "category": "Security",
+                "description": "Allow new user self-registration",
+            },
+            {
+                "key": "max_daily_assessments",
+                "value": "10",
+                "category": "Assessment",
+                "description": "Maximum skin assessments a user can submit per day",
+            },
+            {
+                "key": "session_timeout_hours",
+                "value": "168",
+                "category": "Security",
+                "description": "JWT access token lifetime in hours (7 days default)",
+            },
+            {
+                "key": "maintenance_mode",
+                "value": "false",
+                "category": "Platform",
+                "description": "When true, non-admin users receive a maintenance notice",
+            },
+        ]
+        for cfg in default_configs:
+            if not db.query(SystemConfig).filter(SystemConfig.key == cfg["key"]).first():
+                db.add(SystemConfig(**cfg))
+        db.commit()
+
+        # ── 3 Sample ContentArticle records ───────────────────────────────────
+        sample_articles = [
+            {
+                "title": "The Complete Guide to Building a Skincare Routine",
+                "body": "Building an effective skincare routine starts with understanding your skin type.",
+                "category": "Skincare Guide",
+                "status": "Published",
+                "tags": ["beginner", "routine", "skincare"],
+            },
+            {
+                "title": "Understanding Skin Types: Oily, Dry, Combination & Sensitive",
+                "body": "Knowing your skin type is the foundation of any effective skincare regimen.",
+                "category": "Research",
+                "status": "Published",
+                "tags": ["skin-type", "oily", "dry", "combination"],
+            },
+            {
+                "title": "FAQ: Common Skincare Myths Debunked",
+                "body": "From sunscreen myths to the truth about natural ingredients — we clear it all up.",
+                "category": "FAQ",
+                "status": "Published",
+                "tags": ["faq", "myths", "sunscreen"],
+            },
+        ]
+        from datetime import datetime, timezone
+        now = datetime.now(timezone.utc)
+        for art in sample_articles:
+            if not db.query(ContentArticle).filter(ContentArticle.title == art["title"]).first():
+                db.add(ContentArticle(
+                    title=art["title"],
+                    body=art["body"],
+                    category=art["category"],
+                    status=art["status"],
+                    tags=art["tags"],
+                    published_at=now,
+                ))
+        db.commit()
+
+        # ── 3 Sample Ingredient records ───────────────────────────────────────
+        sample_ingredients = [
+            {
+                "name": "Niacinamide",
+                "category": "Active",
+                "function": "Brightening, Pore-minimizing, Barrier-repair",
+                "description": "A form of Vitamin B3 that addresses multiple skin concerns simultaneously.",
+                "benefits": ["Reduces pore appearance", "Evens skin tone", "Strengthens skin barrier", "Controls oil"],
+                "concerns": ["May cause flushing at high concentrations (>10%)"],
+                "skin_types": ["Oily", "Combination", "Dry", "Sensitive"],
+                "avoid_with": ["High concentration Vitamin C (temporary)"],
+                "safety_rating": "Safe",
+            },
+            {
+                "name": "Salicylic Acid",
+                "category": "Exfoliant",
+                "function": "Beta Hydroxy Acid (BHA) — exfoliation and pore-clearing",
+                "description": "An oil-soluble BHA that penetrates pores to dissolve sebum and dead skin cells.",
+                "benefits": ["Unclogs pores", "Reduces blackheads", "Treats acne", "Smooths texture"],
+                "concerns": ["Can cause dryness or irritation if overused", "Avoid during pregnancy"],
+                "skin_types": ["Oily", "Acne-prone", "Combination"],
+                "avoid_with": ["Other exfoliants (AHA/BHA)", "Retinol (without buffer)"],
+                "safety_rating": "Safe",
+            },
+            {
+                "name": "Hyaluronic Acid",
+                "category": "Humectant",
+                "function": "Deep hydration and moisture retention",
+                "description": "A naturally occurring polysaccharide that can hold up to 1000x its weight in water.",
+                "benefits": ["Intense hydration", "Plumps fine lines", "Suitable for all skin types", "Non-comedogenic"],
+                "concerns": ["Can dehydrate skin in very low humidity environments without a sealant"],
+                "skin_types": ["Dry", "Oily", "Combination", "Sensitive", "Normal"],
+                "avoid_with": [],
+                "safety_rating": "Safe",
+            },
+        ]
+        for ing in sample_ingredients:
+            if not db.query(Ingredient).filter(Ingredient.name == ing["name"]).first():
+                db.add(Ingredient(**ing))
+        db.commit()
+
+        # ── 1 Sample BackupRecord ─────────────────────────────────────────────
+        if db.query(BackupRecord).count() == 0:
+            db.add(BackupRecord(
+                status="Completed",
+                backup_type="Automatic",
+                notes="Initial system backup at platform launch",
+                size_bytes=1024 * 512,  # 512 KB placeholder
+                completed_at=now,
+            ))
+            db.commit()
+
+        logger.info("Demo content seeded: SystemConfig, ContentArticles, Ingredients, BackupRecord")
+    finally:
+        db.close()
+
+
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
     """FastAPI lifespan handler: runs startup logic before the app accepts requests."""
     _seed_demo_users()
+    _seed_demo_content()
     yield
     # Shutdown: no cleanup required for SQLAlchemy connection pool disposal
 
@@ -202,6 +343,7 @@ app.include_router(analytics_router.router)
 app.include_router(consultant_router.router)
 app.include_router(appointment_router.router)
 app.include_router(admin_router.router)
+app.include_router(admin_extended_router.router)
 
 # ── Health & Readiness Endpoints ──────────────────────────────────────────────
 @app.get("/health", tags=["Health"])
