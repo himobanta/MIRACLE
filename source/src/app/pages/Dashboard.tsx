@@ -107,8 +107,8 @@ export function Dashboard() {
 
             {/* Main Content Area */}
             <div style={{ position: 'relative', zIndex: 1, padding: '10px 24px 16px' }}>
-              {/* Stat Cards (Admin, Derma, Consultant only) */}
-              {role !== 'user' && activeSection === 'dashboard' && (
+              {/* Stat Cards (Derma, Consultant only) */}
+              {role !== 'user' && role !== 'admin' && activeSection === 'dashboard' && (
                 <div>
                   <StatCards role={role} />
                 </div>

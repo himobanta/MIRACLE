@@ -8,7 +8,7 @@ interface TopbarProps {
 }
 
 const TOPBAR_MAP: Record<RoleType, { subtitle: string; showSearch: boolean; searchPlaceholder?: string; notif: number; avatarPhoto: boolean; avatarBg?: string; avatarIcon: boolean; fallbackName: string; role: string }> = {
-  admin:      { subtitle: "Here's what's happening on your platform today.",          showSearch: true,  searchPlaceholder: 'Search users, reports, assessments...', notif: 5, avatarIcon: true,  avatarPhoto: false, fallbackName: 'Admin User',       role: 'Super Administrator'   },
+  admin:      { subtitle: "Here's what's happening on your platform today.",          showSearch: true,  searchPlaceholder: 'Search users, reports, assessments...', notif: 5, avatarIcon: true,  avatarPhoto: false, fallbackName: 'Himobanta Dutta',  role: 'Super Administrator'   },
   derma:      { subtitle: "Here's an overview of your patients and clinical insights.", showSearch: true,  searchPlaceholder: 'Search patients, assessments...',         notif: 5, avatarPhoto: true, avatarBg: FACE.meeraDr, avatarIcon: false, fallbackName: 'Dermatologist',    role: 'Dermatologist'          },
   consultant: { subtitle: "Here's what's happening with your clients today.",         showSearch: true,  searchPlaceholder: 'Search clients, assessments...',          notif: 3, avatarPhoto: true, avatarBg: FACE.priya,   avatarIcon: false, fallbackName: 'Consultant',       role: 'Skincare Consultant'    },
   user:       { subtitle: "Here's your skin summary and personalized recommendations.", showSearch: false,                                                            notif: 3, avatarPhoto: true, avatarBg: FACE.ananyaUser, avatarIcon: false, fallbackName: 'there',           role: 'Premium User'           },
@@ -64,9 +64,10 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
   const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
   // Always use actual stored user name — for ALL roles, not just user
-  const displayName = storedUser.name || topbar.fallbackName;
-  const displayEmail = storedUser.email || '';
-  const firstName = displayName ? displayName.split(' ')[0] : 'there';
+  // Admin role always shows Himobanta Dutta
+  const displayName = role === 'admin' ? (storedUser.name || 'Himobanta Dutta') : (storedUser.name || topbar.fallbackName);
+  const displayEmail = role === 'admin' ? (storedUser.email || 'admin@miracle.com') : (storedUser.email || '');
+  const firstName = role === 'admin' ? 'Himobanta' : (displayName ? displayName.split(' ')[0] : 'there');
   const welcomeTitle = `Welcome back, ${firstName} 👋`;
 
   const handleLogout = () => {
@@ -125,9 +126,9 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
         )}
 
         {/* Menu */}
-        {([['👤', 'My Profile', 'settings'], ['⚙️', 'Account Settings', 'settings'], ['🔔', 'Notifications', ''] as [string, string, string]] as [string, string, string][]).map(([icon, label, section], i) => (
-          <button key={i} onClick={() => { if (section && onSectionChange) { onSectionChange(section); setShowProfile(false); } }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', borderRadius: '10px', border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '0.86rem', color: '#3f4a5a', cursor: section ? 'pointer' : 'default', textAlign: 'left', transition: 'background 0.15s' }} onMouseEnter={e => (e.currentTarget.style.background = '#f6f7fb')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-            <span style={{ fontSize: '1rem' }}>{icon}</span>{label}{!section && <span style={{ marginLeft: 'auto', fontSize: '0.68rem', color: '#c0c4d4' }}>Soon</span>}
+        {([['👤', 'My Profile', 'settings'], ['⚙️', 'Account Settings', 'account-settings'], ['🔔', 'Notifications', 'notifications']] as [string, string, string][]).map(([icon, label, section], i) => (
+          <button key={i} onClick={() => { if (section && onSectionChange) { onSectionChange(section); setShowProfile(false); } }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', borderRadius: '10px', border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '0.86rem', color: '#3f4a5a', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }} onMouseEnter={e => (e.currentTarget.style.background = '#f6f7fb')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <span style={{ fontSize: '1rem' }}>{icon}</span>{label}
           </button>
         ))}
 
@@ -156,6 +157,9 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
               <DashIcon d={PATHS.search} s={17} stroke="#9aa0b4" />
               <input
                 placeholder={topbar.searchPlaceholder}
+                onChange={e => {
+                  window.dispatchEvent(new CustomEvent('miracle_global_search', { detail: e.target.value }));
+                }}
                 onKeyDown={e => {
                   if (e.key === 'Enter' && onSectionChange) {
                     const targetSection = role === 'admin' ? 'user-management' : role === 'derma' ? 'patients' : 'clients';
@@ -180,7 +184,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
 
           <button
             type="button"
-            onClick={() => onSectionChange && onSectionChange('reminders')}
+            onClick={() => onSectionChange && onSectionChange(role === 'admin' ? 'notifications' : 'reminders')}
             style={{ position: 'relative', display: 'grid', placeItems: 'center', width: '46px', height: '46px', borderRadius: '14px', border: '1px solid #edeef4', background: '#fff', cursor: 'pointer', color: '#3f4a5a', boxShadow: '0 2px 10px -6px rgba(23,20,51,0.2)' }}
           >
             <DashIcon d={PATHS.bell} s={19} stroke="#3f4a5a" />

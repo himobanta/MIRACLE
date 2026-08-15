@@ -115,6 +115,13 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
   useEffect(() => {
     fetchRoster();
     fetchAppointments();
+    const handleGlobalSearch = (e: any) => {
+      if (typeof e.detail === 'string') {
+        setSearchTerm(e.detail);
+      }
+    };
+    window.addEventListener('miracle_global_search', handleGlobalSearch);
+    return () => window.removeEventListener('miracle_global_search', handleGlobalSearch);
   }, []);
 
   const openPatient = async (id: string) => {
@@ -289,9 +296,9 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
           </div>
         }
       />
-      <div className="dash-scroll" style={{ overflowX: 'auto', overflowY: 'hidden', paddingTop: '4px', paddingBottom: '6px', marginBottom: '-4px' }}>
+      <div className="dash-scroll" style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto', paddingTop: '4px', paddingBottom: '6px', marginBottom: '-4px' }}>
         <table style={{ borderCollapse: 'collapse', minWidth: '860px', width: '100%' }}>
-          <thead>
+          <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
             <tr>
               {cols.map((c, i) => (
                 <th key={i} style={{ textAlign: i === 3 || i === 5 ? 'center' : 'left', padding: '0 18px 16px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>

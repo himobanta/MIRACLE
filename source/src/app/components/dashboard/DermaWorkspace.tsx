@@ -132,6 +132,13 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   useEffect(() => {
     fetchRoster();
     fetchAppointments();
+    const handleGlobalSearch = (e: any) => {
+      if (typeof e.detail === 'string') {
+        setSearchTerm(e.detail);
+      }
+    };
+    window.addEventListener('miracle_global_search', handleGlobalSearch);
+    return () => window.removeEventListener('miracle_global_search', handleGlobalSearch);
   }, []);
 
   const openPatient = async (id: string) => {
@@ -372,9 +379,9 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
       ) : filteredAppts.length === 0 ? (
         <EmptyState icon="📋" message={apptTab === 'all' ? 'No appointments or referrals found.' : `No appointments in '${apptTab}' state.`} />
       ) : (
-        <div className="dash-scroll" style={{ overflowX: 'auto' }}>
+        <div className="dash-scroll" style={{ overflowX: 'auto', maxHeight: '360px', overflowY: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '780px' }}>
-            <thead>
+            <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
               <tr style={{ borderBottom: '1px solid #edeef4' }}>
                 <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd' }}>Patient</th>
                 <th style={{ textAlign: 'left', padding: '10px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd' }}>Preferred Schedule</th>
@@ -630,9 +637,9 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   const rosterTable = (
     <Card>
       <CardHead title={tableTitle} right={tableRight} />
-      <div className="dash-scroll" style={{ overflowX: 'auto' }}>
+      <div className="dash-scroll" style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', minWidth: '860px', width: '100%' }}>
-          <thead>
+          <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
             <tr>
               {cols.map((c, i) => (
                 <th key={i} style={{ textAlign: i === 3 || i === 5 || i === 6 ? 'center' : 'left', padding: '0 18px 16px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>

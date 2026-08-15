@@ -99,9 +99,10 @@ def _seed_demo_users():
             logger.info("Seeded demo Dermatologist: dermatologist@miracle.com")
 
         # ── Demo Administrator ────────────────────────────────────────────────
-        if not db.query(User).filter(User.email == "admin@miracle.com").first():
+        existing_admin = db.query(User).filter(User.email == "admin@miracle.com").first()
+        if not existing_admin:
             admin = User(
-                name="Rohan Mehta",
+                name="Himobanta Dutta",
                 email="admin@miracle.com",
                 hashed_password=hash_password("password123"),
                 role="Administrator"
@@ -112,7 +113,12 @@ def _seed_demo_users():
             profile = UserProfile(user_id=admin.id)
             db.add(profile)
             db.commit()
-            logger.info("Seeded demo Administrator: admin@miracle.com")
+            logger.info("Seeded demo Administrator: admin@miracle.com (Himobanta Dutta)")
+        else:
+            if existing_admin.name != "Himobanta Dutta":
+                existing_admin.name = "Himobanta Dutta"
+                db.commit()
+                logger.info("Updated demo Administrator name to: Himobanta Dutta")
 
         # ── Legacy Dermatologist alias (backward compatibility) ───────────────
         if not db.query(User).filter(User.email == "derma@miracle.com").first():

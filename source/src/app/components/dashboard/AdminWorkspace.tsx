@@ -116,7 +116,16 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
       .finally(() => setUsersLoading(false));
   }, []);
 
-  useEffect(() => { fetchAll(); }, []);
+  useEffect(() => {
+    fetchAll();
+    const handleGlobalSearch = (e: any) => {
+      if (typeof e.detail === 'string') {
+        setUserSearch(e.detail);
+      }
+    };
+    window.addEventListener('miracle_global_search', handleGlobalSearch);
+    return () => window.removeEventListener('miracle_global_search', handleGlobalSearch);
+  }, []);
 
   // ── Derived stats
   const totalUsers      = adminStats?.total_users ?? 0;
@@ -329,7 +338,7 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
       ) : activity.length === 0 ? (
         <EmptyState icon="📋" message="No platform activity yet." />
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ maxHeight: '280px', overflowY: 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {activity.map((evt: any, i: number) => {
             const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
             return (
@@ -347,6 +356,85 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
           })}
         </div>
       )}
+    </Card>
+  );
+
+  // ── Section: Notifications ─────────────────────────────────────────────────
+  const notificationsSection = (
+    <Card>
+      <CardHead title="System Notifications" right={<Pill text="Live" />} />
+      <div style={{ maxHeight: '420px', overflowY: 'auto', paddingRight: '4px' }}>
+        {activityLoading ? (
+          <EmptyState icon="⏳" message="Loading notifications…" />
+        ) : activity.length === 0 ? (
+          <EmptyState icon="🔔" message="No system notifications yet." />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+            {activity.map((evt: any, i: number) => {
+              const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
+              return (
+                <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '14px 12px', borderRadius: '12px', background: i % 2 === 0 ? '#fafbfe' : '#fff', border: '1px solid #edeef4', marginBottom: '8px' }}>
+                  <span style={{ display: 'grid', placeItems: 'center', width: '40px', height: '40px', flexShrink: 0, borderRadius: '12px', background: ib, color: icl }}>
+                    <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={18} stroke={icl} />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#171433' }}>{evt.title}</div>
+                    <div style={{ fontSize: '0.78rem', color: '#8b8fa3', marginTop: '3px' }}>{evt.detail}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#c0c4d4', marginTop: '5px' }}>{evt.timestamp}</div>
+                  </div>
+                  <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '0.68rem', fontWeight: 700, background: `${icl}22`, color: icl, flexShrink: 0 }}>New</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </Card>
+  );
+
+  // ── Section: Profile & Account Settings ────────────────────────────────────
+  const profileSection = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <Card>
+        <CardHead title="My Profile" right={<Pill text="Administrator" />} />
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', padding: '8px 0 16px', borderBottom: '1px solid #f1f2f7' }}>
+          <span style={{ display: 'grid', placeItems: 'center', width: '68px', height: '68px', borderRadius: '18px', background: 'rgba(47,107,76,0.12)', color: PUR, fontSize: '2rem', flexShrink: 0 }}>👤</span>
+          <div>
+            <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#171433' }}>Himobanta Dutta</div>
+            <div style={{ fontSize: '0.82rem', color: '#8b8fa3', marginTop: '3px' }}>Super Administrator</div>
+            <div style={{ fontSize: '0.78rem', color: '#a3a7bd', marginTop: '2px' }}>admin@miracle.com</div>
+          </div>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '16px' }}>
+          {[
+            { label: 'Platform Role', value: 'Super Administrator', color: PUR },
+            { label: 'Status', value: 'Active', color: GRN },
+            { label: 'Total Users Managed', value: String(adminStats?.total_users ?? '—'), color: BLU },
+          ].map((s, i) => (
+            <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4', textAlign: 'center' }}>
+              <div style={{ fontSize: '1rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+              <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </Card>
+    </div>
+  );
+
+  const accountSettingsSection = (
+    <Card>
+      <CardHead title="Account Settings" right={<Pill text="Admin" />} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        {[['Full Name', 'Himobanta Dutta'], ['Email Address', 'admin@miracle.com'], ['Role', 'Super Administrator'], ['Password', '••••••••••']].map(([label, value], i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 16px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4' }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</div>
+              <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#171433', marginTop: '3px' }}>{value}</div>
+            </div>
+            <button style={{ padding: '6px 14px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.76rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit' }}>Edit</button>
+          </div>
+        ))}
+      </div>
     </Card>
   );
 
@@ -454,9 +542,9 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
   const userManagement = (
     <Card>
       <CardHead title={`User Management (${filteredUsers.length}${filteredUsers.length !== users.length ? ` of ${users.length}` : ''})`} right={userTableRight} />
-      <div className="dash-scroll" style={{ overflowX: 'auto' }}>
+      <div className="dash-scroll" style={{ overflowX: 'auto', maxHeight: '380px', overflowY: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', minWidth: '860px', width: '100%' }}>
-          <thead>
+          <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
             <tr>
               {userCols.map((c, i) => (
                 <th key={i} style={{ textAlign: i === 4 ? 'center' : 'left', padding: '0 16px 14px', fontSize: '0.72rem', fontWeight: 600, color: '#a3a7bd', whiteSpace: 'nowrap' }}>
@@ -524,11 +612,16 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
             {activitySection}
           </div>
         );
+      case 'notifications':
+        return notificationsSection;
+      case 'settings':
+        return profileSection;
+      case 'account-settings':
+        return accountSettingsSection;
       case 'routine-management':
       case 'product-management':
       case 'ingredient-database':
       case 'content-management':
-      case 'notifications':
       case 'backup-&-restore':
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -543,8 +636,6 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
       default:
         return (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {headerStats}
-
             <div style={{ display: 'grid', gap: '12px', gridTemplateColumns: 'repeat(3,1fr)' }}>
               {userOverview}
               {apptOverview}
