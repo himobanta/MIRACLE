@@ -288,7 +288,7 @@ function AdminDashboardPage({ onSectionChange }: { onSectionChange?: (s: string)
 
       {/* Row 4: System health + Activity + Quick Actions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'stretch' }}>
-        <Card style={{ display: 'flex', flexDirection: 'column', height: '270px', boxSizing: 'border-box' }}>
+        <Card style={{ display: 'flex', flexDirection: 'column' }}>
           <CardHead title="System Health" right={<Pill text={sysHealth?.api ? 'Operational' : 'Checking…'} />} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', flex: 1 }}>
             {[
@@ -300,15 +300,15 @@ function AdminDashboardPage({ onSectionChange }: { onSectionChange?: (s: string)
               const col = h.ok === null || h.ok === undefined ? '#a3a7bd' : h.ok ? '#16a34a' : '#ef4444';
               const bg = h.ok === null || h.ok === undefined ? 'rgba(163,167,189,0.12)' : h.ok ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)';
               return (
-                <div key={i} style={{ padding: '12px 14px', borderRadius: '12px', background: bg, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div key={i} style={{ padding: '14px', borderRadius: '12px', background: bg, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <DashIcon d={PATHS[h.icon] || PATHS.grid} s={16} stroke={col} />
                       <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#171433' }}>{h.label}</span>
                     </div>
-                    <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '3px' }}>{h.detail}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#6b7280', marginTop: '4px' }}>{h.detail}</div>
                   </div>
-                  <div style={{ fontSize: '0.74rem', fontWeight: 700, color: col, marginTop: '4px' }}>
+                  <div style={{ fontSize: '0.74rem', fontWeight: 700, color: col, marginTop: '8px' }}>
                     {h.ok === null || h.ok === undefined ? 'Checking…' : h.ok ? '● Healthy' : '● Degraded'}
                   </div>
                 </div>
@@ -316,38 +316,38 @@ function AdminDashboardPage({ onSectionChange }: { onSectionChange?: (s: string)
             })}
           </div>
         </Card>
-        <Card style={{ display: 'flex', flexDirection: 'column', height: '270px', boxSizing: 'border-box' }}>
+        <Card style={{ display: 'flex', flexDirection: 'column' }}>
           <CardHead title="Recent Activity" right={<Pill text="Live" />} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, overflowY: 'auto', paddingRight: '4px' }}>
-            {activity.length === 0 ? <EmptyState icon="📋" message="No activity yet." /> : activity.slice(0, 15).map((evt: any, i: number) => {
+          <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', flex: 1, gap: '4px' }}>
+            {activity.length === 0 ? <EmptyState icon="📋" message="No activity yet." /> : activity.slice(0, 4).map((evt: any, i: number) => {
               const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
               return (
-                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '6px 8px', borderRadius: '8px', background: '#fafbfe', border: '1px solid #f1f2f7', flexShrink: 0 }}>
-                  <span style={{ display: 'grid', placeItems: 'center', width: '28px', height: '28px', flexShrink: 0, borderRadius: '8px', background: ib }}>
-                    <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={13} stroke={icl} />
+                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '10px 12px', borderRadius: '10px', background: '#fafbfe', border: '1px solid #f1f2f7' }}>
+                  <span style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', flexShrink: 0, borderRadius: '10px', background: ib }}>
+                    <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={15} stroke={icl} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.76rem', fontWeight: 700, color: '#171433', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.title}</div>
-                    <div style={{ fontSize: '0.67rem', color: '#8b8fa3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.detail}</div>
+                    <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#171433', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.title}</div>
+                    <div style={{ fontSize: '0.7rem', color: '#8b8fa3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.detail}</div>
                   </div>
-                  <div style={{ fontSize: '0.65rem', color: '#a3a7bd', whiteSpace: 'nowrap', flexShrink: 0 }}>{evt.timestamp?.split(' ')[0]}</div>
+                  <div style={{ fontSize: '0.68rem', color: '#a3a7bd', whiteSpace: 'nowrap', flexShrink: 0 }}>{evt.timestamp?.split(' ')[0]}</div>
                 </div>
               );
             })}
           </div>
         </Card>
-        <Card style={{ display: 'flex', flexDirection: 'column', height: '270px', boxSizing: 'border-box' }}>
+        <Card style={{ display: 'flex', flexDirection: 'column' }}>
           <CardHead title="Quick Actions" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', flex: 1 }}>
             {quickActions.map((a, i) => (
               <div key={i} onClick={() => onSectionChange && onSectionChange(a.section)}
-                style={{ padding: '10px 8px', borderRadius: '12px', border: '1px solid #edeef4', background: '#fafbfe', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.2s, background 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+                style={{ padding: '12px 10px', borderRadius: '12px', border: '1px solid #edeef4', background: '#fafbfe', cursor: 'pointer', textAlign: 'center', transition: 'border-color 0.2s, background 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
                 onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = a.color; (e.currentTarget as HTMLElement).style.background = `${a.color}08`; }}
                 onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#edeef4'; (e.currentTarget as HTMLElement).style.background = '#fafbfe'; }}>
-                <span style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', margin: '0 auto 4px', borderRadius: '10px', background: `${a.color}20` }}>
-                  <DashIcon d={PATHS[a.icon] || PATHS.grid} s={16} stroke={a.color} />
+                <span style={{ display: 'grid', placeItems: 'center', width: '34px', height: '34px', margin: '0 auto 6px', borderRadius: '10px', background: `${a.color}20` }}>
+                  <DashIcon d={PATHS[a.icon] || PATHS.grid} s={17} stroke={a.color} />
                 </span>
-                <div style={{ fontSize: '0.73rem', fontWeight: 600, color: '#3f4a5a' }}>{a.label}</div>
+                <div style={{ fontSize: '0.74rem', fontWeight: 600, color: '#3f4a5a' }}>{a.label}</div>
               </div>
             ))}
           </div>
