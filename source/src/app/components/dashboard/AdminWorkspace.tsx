@@ -2577,39 +2577,236 @@ function BackupRestorePage() {
   );
 }
 
-// ══════════════════════════════════════════════════════════════════════════════
-// PROFILE & ACCOUNT SETTINGS
-// ══════════════════════════════════════════════════════════════════════════════
-function ProfilePage({ stats }: { stats: any }) {
+// ── Inline crop modal using HTML5 Canvas ─────────────────────────────────────
+function CropModal({ src, onSave, onCancel }: { src: string; onSave: (cropped: string) => void; onCancel: () => void }) {
+  const canvasRef = React.useRef<HTMLCanvasElement>(null);
+  const imgRef = React.useRef<HTMLImageElement>(null);
+  const [crop, setCrop] = React.useState({ x: 0, y: 0, size: 0 });
+  const [dragging, setDragging] = React.useState(false);
+  const [dragStart, setDragStart] = React.useState({ mx: 0, cx: 0, cy: 0 });
+  const previewSize = 280;
+
+  React.useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.naturalWidth, img.naturalHeight);
+      setCrop({ x: (img.naturalWidth - s) / 2, y: (img.naturalHeight - s) / 2, size: s });
+    };
+    img.src = src;
+  }, [src]);
+
+  React.useEffect(() => {
+    const img = imgRef.current;
+    const canvas = canvasRef.current;
+    if (!img || !canvas || !crop.size) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = previewSize;
+    canvas.height = previewSize;
+    ctx.clearRect(0, 0, previewSize, previewSize);
+    // Draw cropped region scaled to preview
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    const displaySize = Math.min(img.width, img.height);
+    const cropDisplaySize = crop.size / scaleX;
+    const cropDisplayX = crop.x / scaleX;
+    const cropDisplayY = crop.y / scaleY;
+    ctx.drawImage(img, cropDisplayX, cropDisplayY, cropDisplaySize, cropDisplaySize, 0, 0, previewSize, previewSize);
+  }, [crop, src]);
+
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    setDragging(true);
+    setDragStart({ mx: e.clientX, cx: crop.x, cy: crop.y });
+  };
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!dragging) return;
+    const img = imgRef.current;
+    if (!img) return;
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    const dx = (e.clientX - dragStart.mx) * scaleX;
+    const dy = (e.clientY - dragStart.mx) * scaleY;
+    const newX = Math.max(0, Math.min(dragStart.cx + dx, img.naturalWidth - crop.size));
+    const newY = Math.max(0, Math.min(dragStart.cy + dy, img.naturalHeight - crop.size));
+    setCrop(c => ({ ...c, x: newX, y: newY }));
+  };
+
+  const handleSave = () => {
+    const img = imgRef.current;
+    if (!img || !crop.size) return;
+    const out = document.createElement('canvas');
+    out.width = 300;
+    out.height = 300;
+    const ctx = out.getContext('2d');
+    if (!ctx) return;
+    ctx.drawImage(img, crop.x / (img.naturalWidth / img.width), crop.y / (img.naturalHeight / img.height),
+      crop.size / (img.naturalWidth / img.width), crop.size / (img.naturalHeight / img.height), 0, 0, 300, 300);
+    onSave(out.toDataURL('image/jpeg', 0.92));
+  };
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      <Card>
-        <CardHead title="Administrator Profile" right={<Pill text="Super Administrator" />} />
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', padding: '8px 0 20px', borderBottom: '1px solid #f1f2f7' }}>
-          <span style={{ display: 'grid', placeItems: 'center', width: '72px', height: '72px', borderRadius: '20px', background: `${PUR}20`, color: PUR, fontSize: '2rem', flexShrink: 0 }}>👤</span>
-          <div>
-            <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#171433' }}>Himobanta Dutta</div>
-            <div style={{ fontSize: '0.84rem', color: PUR, fontWeight: 600, marginTop: '3px' }}>Super Administrator</div>
-            <div style={{ fontSize: '0.8rem', color: '#a3a7bd', marginTop: '2px' }}>admin@miracle.com</div>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(10,8,30,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', padding: '28px', width: '380px', maxWidth: '96vw', boxShadow: '0 32px 80px -20px rgba(0,0,0,0.5)' }}>
+        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#171433', marginBottom: '4px' }}>Crop your photo</div>
+        <div style={{ fontSize: '0.78rem', color: '#8b8fa3', marginBottom: '16px' }}>Drag to reposition · Square crop applied</div>
+
+        {/* Image with overlay */}
+        <div style={{ position: 'relative', width: '100%', background: '#0a0820', borderRadius: '14px', overflow: 'hidden', cursor: 'move', userSelect: 'none' }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={() => setDragging(false)}
+          onMouseLeave={() => setDragging(false)}
+        >
+          <img ref={imgRef} src={src} alt="crop-source"
+            style={{ width: '100%', display: 'block', opacity: 0.45, pointerEvents: 'none' }}
+            draggable={false}
+          />
+          {/* Bright crop square overlay */}
+          {crop.size > 0 && imgRef.current && (() => {
+            const img = imgRef.current!;
+            const scaleX = img.naturalWidth / img.width;
+            const scaleY = img.naturalHeight / img.height;
+            const displayX = crop.x / scaleX;
+            const displayY = crop.y / scaleY;
+            const displaySize = crop.size / scaleX;
+            return (
+              <div style={{ position: 'absolute', left: displayX, top: displayY, width: displaySize, height: displaySize, outline: `2px solid ${PUR}`, boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.08)' }}>
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                  <img src={src} alt="" style={{ position: 'absolute', left: -displayX, top: -displayY, width: img.width, pointerEvents: 'none', opacity: 1 }} draggable={false} />
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Live preview */}
+        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <canvas ref={canvasRef} width={previewSize} height={previewSize} style={{ width: '64px', height: '64px', borderRadius: '14px', border: `2px solid ${PUR}40`, objectFit: 'cover' }} />
+          <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>
+            This is how your<br />profile photo will look
           </div>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '16px' }}>
-          {[
-            { label: 'Platform Role', value: 'Super Administrator', color: PUR },
-            { label: 'Account Status', value: 'Active', color: GRN },
-            { label: 'Users Managed', value: String(stats?.total_users ?? '—'), color: BLU },
-            { label: 'Platform Assessments', value: String(stats?.total_assessments ?? '—'), color: ORA },
-          ].map((s, i) => (
-            <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4', textAlign: 'center' }}>
-              <div style={{ fontSize: '1.05rem', fontWeight: 800, color: s.color }}>{s.value}</div>
-              <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
-            </div>
-          ))}
+
+        <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid #edeef4', background: '#f6f7fb', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} style={{ flex: 2, padding: '11px', borderRadius: '12px', border: 'none', background: PUR, color: '#fff', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 700, cursor: 'pointer' }}>Save Photo</button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
+
+function ProfilePage({ stats }: { stats: any }) {
+  const dpKey = 'miracle_dp_admin@miracle.com';
+  const [customDp, setCustomDp] = React.useState<string | null>(() => localStorage.getItem(dpKey) || null);
+  const [showDpMenu, setShowDpMenu] = React.useState(false);
+  const [cropSrc, setCropSrc] = React.useState<string | null>(null);
+  const dpMenuRef = React.useRef<HTMLDivElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  React.useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dpMenuRef.current && !dpMenuRef.current.contains(e.target as Node)) setShowDpMenu(false);
+    };
+    if (showDpMenu) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showDpMenu]);
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setCropSrc(reader.result as string);
+    reader.readAsDataURL(file);
+    setShowDpMenu(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleCropSave = (cropped: string) => {
+    setCustomDp(cropped);
+    localStorage.setItem(dpKey, cropped);
+    window.dispatchEvent(new CustomEvent('miracle_user_updated'));
+    setCropSrc(null);
+  };
+
+  const handleRemoveDp = () => {
+    setCustomDp(null);
+    localStorage.removeItem(dpKey);
+    setShowDpMenu(false);
+    window.dispatchEvent(new CustomEvent('miracle_user_updated'));
+  };
+
+  const dpMenuItems = [
+    { label: '📤 Upload photo', action: () => { setShowDpMenu(false); setTimeout(() => fileInputRef.current?.click(), 50); }, danger: false },
+    ...(customDp ? [
+      { label: '🔄 Change photo', action: () => { setShowDpMenu(false); setTimeout(() => fileInputRef.current?.click(), 50); }, danger: false },
+      { label: '🗑️ Remove photo', action: handleRemoveDp, danger: true },
+    ] : []),
+  ];
+
+  return (
+    <>
+      {cropSrc && <CropModal src={cropSrc} onSave={handleCropSave} onCancel={() => setCropSrc(null)} />}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <Card>
+          <CardHead title="Administrator Profile" right={<Pill text="Super Administrator" />} />
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center', padding: '8px 0 20px', borderBottom: '1px solid #f1f2f7' }}>
+            {/* Avatar with camera dropdown */}
+            <div ref={dpMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
+              {customDp ? (
+                <img src={customDp} alt="Himobanta Dutta" style={{ width: '80px', height: '80px', borderRadius: '20px', objectFit: 'cover', border: `2px solid ${PUR}30`, display: 'block' }} />
+              ) : (
+                <span style={{ display: 'grid', placeItems: 'center', width: '80px', height: '80px', borderRadius: '20px', background: `${PUR}20`, color: PUR, fontSize: '2.2rem', flexShrink: 0 }}>👤</span>
+              )}
+
+              {/* Camera icon button */}
+              <button
+                type="button"
+                onClick={() => setShowDpMenu(v => !v)}
+                style={{ position: 'absolute', bottom: '-6px', right: '-6px', width: '28px', height: '28px', borderRadius: '50%', background: PUR, border: '2px solid #fff', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: '0.75rem', boxShadow: '0 2px 10px rgba(0,0,0,0.18)', padding: 0 }}
+                title="Profile photo options"
+              >📷</button>
+
+              {/* Dropdown menu */}
+              {showDpMenu && (
+                <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 500, background: '#fff', borderRadius: '14px', border: '1px solid #e8eaf2', boxShadow: '0 14px 40px -8px rgba(23,20,51,0.22)', minWidth: '180px', overflow: 'hidden' }}>
+                  {dpMenuItems.map((item, i) => (
+                    <button key={i} onClick={item.action}
+                      style={{ display: 'block', width: '100%', padding: '11px 16px', border: 'none', background: 'transparent', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 500, color: item.danger ? '#e11d48' : '#2d3748', cursor: 'pointer', transition: 'background 0.12s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = item.danger ? 'rgba(225,29,72,0.07)' : '#f6f7fb')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >{item.label}</button>
+                  ))}
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} style={{ display: 'none' }} />
+            </div>
+
+            <div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#171433' }}>Himobanta Dutta</div>
+              <div style={{ fontSize: '0.84rem', color: PUR, fontWeight: 600, marginTop: '3px' }}>Super Administrator</div>
+              <div style={{ fontSize: '0.8rem', color: '#a3a7bd', marginTop: '2px' }}>admin@miracle.com</div>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '16px' }}>
+            {[
+              { label: 'Platform Role', value: 'Super Administrator', color: PUR },
+              { label: 'Account Status', value: 'Active', color: GRN },
+              { label: 'Users Managed', value: String(stats?.total_users ?? '—'), color: BLU },
+              { label: 'Platform Assessments', value: String(stats?.total_assessments ?? '—'), color: ORA },
+            ].map((s, i) => (
+              <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+    </>
+  );
+}
+
 
 function AccountSettingsPage() {
   const [toast, setToast] = useState<{ msg: string; ok: boolean } | null>(null);

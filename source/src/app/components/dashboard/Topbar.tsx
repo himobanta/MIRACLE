@@ -14,6 +14,95 @@ const TOPBAR_MAP: Record<RoleType, { subtitle: string; showSearch: boolean; sear
   user:       { subtitle: "Here's your skin summary and personalized recommendations.", showSearch: false,                                                            notif: 3, avatarPhoto: true, avatarBg: FACE.ananyaUser, avatarIcon: false, fallbackName: 'there',           role: 'Premium User'           },
 };
 
+// ── Inline crop modal ────────────────────────────────────────────────────────
+function TopbarCropModal({ src, onSave, onCancel }: { src: string; onSave: (cropped: string) => void; onCancel: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imgRef = useRef<HTMLImageElement>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0, size: 0 });
+  const [dragging, setDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ mx: 0, cx: 0, cy: 0 });
+  const previewSize = 280;
+
+  useEffect(() => {
+    const img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.naturalWidth, img.naturalHeight);
+      setCrop({ x: (img.naturalWidth - s) / 2, y: (img.naturalHeight - s) / 2, size: s });
+    };
+    img.src = src;
+  }, [src]);
+
+  useEffect(() => {
+    const img = imgRef.current;
+    const canvas = canvasRef.current;
+    if (!img || !canvas || !crop.size) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = previewSize; canvas.height = previewSize;
+    ctx.clearRect(0, 0, previewSize, previewSize);
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    const cropDisplaySize = crop.size / scaleX;
+    const cropDisplayX = crop.x / scaleX;
+    const cropDisplayY = crop.y / scaleY;
+    ctx.drawImage(img, cropDisplayX, cropDisplayY, cropDisplaySize, cropDisplaySize, 0, 0, previewSize, previewSize);
+  }, [crop, src]);
+
+  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => { setDragging(true); setDragStart({ mx: e.clientX, cx: crop.x, cy: crop.y }); };
+  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!dragging) return;
+    const img = imgRef.current; if (!img) return;
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    const newX = Math.max(0, Math.min(dragStart.cx + (e.clientX - dragStart.mx) * scaleX, img.naturalWidth - crop.size));
+    const newY = Math.max(0, Math.min(dragStart.cy + (e.clientX - dragStart.mx) * scaleY, img.naturalHeight - crop.size));
+    setCrop(c => ({ ...c, x: newX, y: newY }));
+  };
+
+  const handleSave = () => {
+    const img = imgRef.current; if (!img || !crop.size) return;
+    const out = document.createElement('canvas'); out.width = 300; out.height = 300;
+    const ctx = out.getContext('2d'); if (!ctx) return;
+    const sX = img.naturalWidth / img.width; const sY = img.naturalHeight / img.height;
+    ctx.drawImage(img, crop.x / sX, crop.y / sY, crop.size / sX, crop.size / sY, 0, 0, 300, 300);
+    onSave(out.toDataURL('image/jpeg', 0.92));
+  };
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(10,8,30,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', padding: '28px', width: '380px', maxWidth: '96vw', boxShadow: '0 32px 80px -20px rgba(0,0,0,0.5)' }}>
+        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#171433', marginBottom: '4px' }}>Crop your photo</div>
+        <div style={{ fontSize: '0.78rem', color: '#8b8fa3', marginBottom: '16px' }}>Drag to reposition · Square crop applied</div>
+        <div style={{ position: 'relative', background: '#0a0820', borderRadius: '14px', overflow: 'hidden', cursor: 'move', userSelect: 'none' }}
+          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={() => setDragging(false)} onMouseLeave={() => setDragging(false)}>
+          <img ref={imgRef} src={src} alt="crop" style={{ width: '100%', display: 'block', opacity: 0.42, pointerEvents: 'none' }} draggable={false} />
+          {crop.size > 0 && imgRef.current && (() => {
+            const img = imgRef.current!;
+            const sX = img.naturalWidth / img.width;
+            const sY = img.naturalHeight / img.height;
+            const dx = crop.x / sX, dy = crop.y / sY, ds = crop.size / sX;
+            return (
+              <div style={{ position: 'absolute', left: dx, top: dy, width: ds, height: ds, outline: `2px solid ${PUR}`, background: 'rgba(255,255,255,0.06)' }}>
+                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
+                  <img src={src} alt="" style={{ position: 'absolute', left: -dx, top: -dy, width: img.width, opacity: 1, pointerEvents: 'none' }} draggable={false} />
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <canvas ref={canvasRef} width={previewSize} height={previewSize} style={{ width: '60px', height: '60px', borderRadius: '14px', border: `2px solid ${PUR}40` }} />
+          <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>This is how your<br />profile photo will look</div>
+        </div>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid #edeef4', background: '#f6f7fb', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} style={{ flex: 2, padding: '11px', borderRadius: '12px', border: 'none', background: PUR, color: '#fff', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 700, cursor: 'pointer' }}>Save Photo</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function Topbar({ role, onSectionChange }: TopbarProps) {
   const topbar = TOPBAR_MAP[role];
   const [showProfile, setShowProfile] = useState(false);
@@ -21,6 +110,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
   const [adherencePct, setAdherencePct] = useState<number | null>(null);
   const [unreadNotifs, setUnreadNotifs] = useState<number>(0);
   const [showDpMenu, setShowDpMenu] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
   const dpMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -86,16 +176,18 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setCustomDp(base64);
-        localStorage.setItem(dpKey, base64);
-        window.dispatchEvent(new CustomEvent('miracle_user_updated'));
-      };
+      reader.onloadend = () => setCropSrc(reader.result as string);
       reader.readAsDataURL(file);
     }
     setShowDpMenu(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleCropSave = (cropped: string) => {
+    setCustomDp(cropped);
+    localStorage.setItem(dpKey, cropped);
+    window.dispatchEvent(new CustomEvent('miracle_user_updated'));
+    setCropSrc(null);
   };
 
   const handleRemoveDp = () => {
@@ -217,6 +309,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
 
   return (
     <>
+      {cropSrc && <TopbarCropModal src={cropSrc} onSave={handleCropSave} onCancel={() => setCropSrc(null)} />}
       {profileModal}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600;1,700&display=swap');
