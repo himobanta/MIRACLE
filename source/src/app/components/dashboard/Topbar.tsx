@@ -19,6 +19,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
   const [showProfile, setShowProfile] = useState(false);
   const [liveScore, setLiveScore] = useState<number | null>(null);
   const [adherencePct, setAdherencePct] = useState<number | null>(null);
+  const [unreadNotifs, setUnreadNotifs] = useState<number>(0);
 
   // Read user from localStorage with reactive updates — applies to ALL roles
   const [storedUser, setStoredUser] = useState(() => {
@@ -188,9 +189,11 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
             style={{ position: 'relative', display: 'grid', placeItems: 'center', width: '46px', height: '46px', borderRadius: '14px', border: '1px solid #edeef4', background: '#fff', cursor: 'pointer', color: '#3f4a5a', boxShadow: '0 2px 10px -6px rgba(23,20,51,0.2)' }}
           >
             <DashIcon d={PATHS.bell} s={19} stroke="#3f4a5a" />
-            <span style={{ position: 'absolute', top: '8px', right: '9px', minWidth: '16px', height: '16px', padding: '0 4px', display: 'grid', placeItems: 'center', borderRadius: '999px', background: '#f43f5e', color: '#fff', fontSize: '0.62rem', fontWeight: 700, boxShadow: '0 0 0 2px #fff' }}>
-              {topbar.notif}
-            </span>
+            {unreadNotifs > 0 && (
+              <span style={{ position: 'absolute', top: '8px', right: '9px', minWidth: '16px', height: '16px', padding: '0 4px', display: 'grid', placeItems: 'center', borderRadius: '999px', background: '#f43f5e', color: '#fff', fontSize: '0.62rem', fontWeight: 700, boxShadow: '0 0 0 2px #fff' }}>
+                {unreadNotifs}
+              </span>
+            )}
           </button>
 
           <button
