@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { DashIcon, PATHS, PUR, FACE } from './dashboardUtils';
 import type { RoleType } from './Sidebar';
 
@@ -20,6 +20,9 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
   const [liveScore, setLiveScore] = useState<number | null>(null);
   const [adherencePct, setAdherencePct] = useState<number | null>(null);
   const [unreadNotifs, setUnreadNotifs] = useState<number>(0);
+  const [showDpMenu, setShowDpMenu] = useState(false);
+  const dpMenuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Read user from localStorage with reactive updates — applies to ALL roles
   const [storedUser, setStoredUser] = useState(() => {
@@ -41,6 +44,17 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
       window.removeEventListener('storage', handleUpdate);
     };
   }, []);
+
+  // Close DP menu on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (dpMenuRef.current && !dpMenuRef.current.contains(e.target as Node)) {
+        setShowDpMenu(false);
+      }
+    };
+    if (showDpMenu) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showDpMenu]);
 
   // Load score + live adherence for user profile modal
   useEffect(() => {
@@ -64,10 +78,9 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
 
   const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
-  // Custom DP uploaded by user or default
-  const [customDp, setCustomDp] = useState<string | null>(() => {
-    return localStorage.getItem(`miracle_dp_${storedUser.id || storedUser.email || role}`) || null;
-  });
+  // Custom DP
+  const dpKey = `miracle_dp_${storedUser.id || storedUser.email || role}`;
+  const [customDp, setCustomDp] = useState<string | null>(() => localStorage.getItem(dpKey) || null);
 
   const handleDpUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -76,11 +89,20 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
       reader.onloadend = () => {
         const base64 = reader.result as string;
         setCustomDp(base64);
-        localStorage.setItem(`miracle_dp_${storedUser.id || storedUser.email || role}`, base64);
+        localStorage.setItem(dpKey, base64);
         window.dispatchEvent(new CustomEvent('miracle_user_updated'));
       };
       reader.readAsDataURL(file);
     }
+    setShowDpMenu(false);
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRemoveDp = () => {
+    setCustomDp(null);
+    localStorage.removeItem(dpKey);
+    setShowDpMenu(false);
+    window.dispatchEvent(new CustomEvent('miracle_user_updated'));
   };
 
   // Always use actual stored user name — for ALL roles, not just user
@@ -88,8 +110,15 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
   const displayName = role === 'admin' ? (storedUser.name || 'Himobanta Dutta') : (storedUser.name || topbar.fallbackName);
   const displayEmail = role === 'admin' ? (storedUser.email || 'admin@miracle.com') : (storedUser.email || '');
   const firstName = role === 'admin' ? 'Himobanta' : (displayName ? displayName.split(' ')[0] : 'there');
-  
   const currentAvatar = customDp || (topbar.avatarPhoto ? topbar.avatarBg : null);
+
+  const dpMenuItems = [
+    { label: '📤 Upload photo', action: () => { setShowDpMenu(false); setTimeout(() => fileInputRef.current?.click(), 50); } },
+    ...(customDp ? [
+      { label: '🔄 Change photo', action: () => { setShowDpMenu(false); setTimeout(() => fileInputRef.current?.click(), 50); }, danger: false },
+      { label: '🗑️ Remove photo', action: handleRemoveDp, danger: true },
+    ] : []),
+  ];
 
   const handleLogout = () => {
     localStorage.removeItem('miracle_token');
@@ -102,19 +131,36 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
       <div style={{ width: '330px', borderRadius: '20px', background: '#fff', border: '1px solid #edeef4', boxShadow: '0 24px 60px -16px rgba(23,20,51,0.32)', padding: '24px', animation: 'fadeUp 0.2s ease both' }}>
         <style>{`@keyframes fadeUp { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }`}</style>
 
-        {/* Header with DP upload */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '18px' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-            <div style={{ position: 'relative' }}>
+            {/* Avatar with camera dropdown */}
+            <div ref={dpMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
               {currentAvatar ? (
-                <img src={currentAvatar} alt={displayName} style={{ width: '56px', height: '56px', borderRadius: '16px', objectFit: 'cover', flexShrink: 0, border: `2px solid ${PUR}30` }} />
+                <img src={currentAvatar} alt={displayName} style={{ width: '60px', height: '60px', borderRadius: '16px', objectFit: 'cover', border: `2px solid ${PUR}30`, display: 'block' }} />
               ) : (
-                <span style={{ display: 'grid', placeItems: 'center', width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(47,107,76,0.12)', color: PUR, fontSize: '1.5rem', flexShrink: 0 }}>👤</span>
+                <span style={{ display: 'grid', placeItems: 'center', width: '60px', height: '60px', borderRadius: '16px', background: 'rgba(47,107,76,0.12)', color: PUR, fontSize: '1.6rem' }}>👤</span>
               )}
-              <label htmlFor="dp-upload-input" style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: PUR, color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: '0.68rem', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }} title="Change Profile Photo">
-                📷
-              </label>
-              <input id="dp-upload-input" type="file" accept="image/*" onChange={handleDpUpload} style={{ display: 'none' }} />
+              <button
+                type="button"
+                onClick={() => setShowDpMenu(v => !v)}
+                style={{ position: 'absolute', bottom: '-5px', right: '-5px', width: '24px', height: '24px', borderRadius: '50%', background: PUR, border: '2px solid #fff', color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: '0.68rem', boxShadow: '0 2px 8px rgba(0,0,0,0.2)', padding: 0 }}
+                title="Profile photo options"
+              >📷</button>
+              {showDpMenu && (
+                <div style={{ position: 'absolute', top: '105%', left: 0, zIndex: 2000, background: '#fff', borderRadius: '12px', border: '1px solid #e8eaf2', boxShadow: '0 12px 36px -8px rgba(23,20,51,0.22)', minWidth: '172px', overflow: 'hidden', animation: 'fadeUp 0.15s ease both' }}>
+                  {dpMenuItems.map((item, i) => (
+                    <button
+                      key={i}
+                      onClick={item.action}
+                      style={{ display: 'block', width: '100%', padding: '10px 14px', border: 'none', background: 'transparent', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.84rem', color: item.danger ? '#e11d48' : '#2d3748', cursor: 'pointer', transition: 'background 0.12s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = item.danger ? 'rgba(225,29,72,0.07)' : '#f6f7fb')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >{item.label}</button>
+                  ))}
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleDpUpload} style={{ display: 'none' }} />
             </div>
             <div>
               <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#171433' }}>{displayName}</div>
@@ -123,14 +169,6 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
             </div>
           </div>
           <button onClick={() => setShowProfile(false)} style={{ display: 'grid', placeItems: 'center', width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #edeef4', background: '#f6f7fb', cursor: 'pointer', fontSize: '0.95rem', color: '#8b8fa3', flexShrink: 0 }}>×</button>
-        </div>
-
-        {/* Change DP button banner */}
-        <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '10px', background: `${PUR}08`, border: `1px dashed ${PUR}33`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.72rem', color: '#374151', fontWeight: 600 }}>Profile Display Photo</span>
-          <label htmlFor="dp-upload-input" style={{ fontSize: '0.72rem', fontWeight: 700, color: PUR, cursor: 'pointer', textDecoration: 'underline' }}>
-            {customDp ? 'Change DP' : 'Upload DP'}
-          </label>
         </div>
 
         {/* Stats for user */}
@@ -180,16 +218,28 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
   return (
     <>
       {profileModal}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600;1,700&display=swap');
+        .miracle-topbar-heading {
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 2.1rem;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+          color: #1a1a2e;
+          margin: 0;
+          line-height: 1.18;
+        }
+        .miracle-topbar-heading .wb-name {
+          color: ${PUR};
+          font-style: italic;
+          font-weight: 700;
+        }
+      `}</style>
       <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', padding: '30px 24px 6px', background: '#f4efe4' }}>
         <div style={{ minWidth: '220px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 850, letterSpacing: '-0.03em', color: '#171433', lineHeight: 1.2 }}>
-              Welcome back, <span style={{ color: PUR }}>{firstName}</span>
-            </h1>
-            <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: '8px', background: `${PUR}15`, color: PUR, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
-              {role === 'admin' ? 'Admin' : role === 'derma' ? 'Doctor' : role === 'consultant' ? 'Consultant' : 'Member'}
-            </span>
-          </div>
+          <h1 className="miracle-topbar-heading">
+            Welcome back, <span className="wb-name">{firstName}</span> 👋
+          </h1>
           <p style={{ margin: '5px 0 0', fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>{topbar.subtitle}</p>
         </div>
 
