@@ -64,12 +64,32 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
 
   const todayDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
+  // Custom DP uploaded by user or default
+  const [customDp, setCustomDp] = useState<string | null>(() => {
+    return localStorage.getItem(`miracle_dp_${storedUser.id || storedUser.email || role}`) || null;
+  });
+
+  const handleDpUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setCustomDp(base64);
+        localStorage.setItem(`miracle_dp_${storedUser.id || storedUser.email || role}`, base64);
+        window.dispatchEvent(new CustomEvent('miracle_user_updated'));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   // Always use actual stored user name — for ALL roles, not just user
   // Admin role always shows Himobanta Dutta
   const displayName = role === 'admin' ? (storedUser.name || 'Himobanta Dutta') : (storedUser.name || topbar.fallbackName);
   const displayEmail = role === 'admin' ? (storedUser.email || 'admin@miracle.com') : (storedUser.email || '');
   const firstName = role === 'admin' ? 'Himobanta' : (displayName ? displayName.split(' ')[0] : 'there');
-  const welcomeTitle = `Welcome back, ${firstName} 👋`;
+  
+  const currentAvatar = customDp || (topbar.avatarPhoto ? topbar.avatarBg : null);
 
   const handleLogout = () => {
     localStorage.removeItem('miracle_token');
@@ -79,24 +99,38 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
 
   const profileModal = showProfile && (
     <div style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', paddingTop: '80px', paddingRight: '24px', background: 'rgba(23,20,51,0.18)', backdropFilter: 'blur(3px)' }} onClick={e => { if (e.target === e.currentTarget) setShowProfile(false); }}>
-      <div style={{ width: '320px', borderRadius: '20px', background: '#fff', border: '1px solid #edeef4', boxShadow: '0 24px 60px -16px rgba(23,20,51,0.32)', padding: '24px', animation: 'fadeUp 0.2s ease both' }}>
+      <div style={{ width: '330px', borderRadius: '20px', background: '#fff', border: '1px solid #edeef4', boxShadow: '0 24px 60px -16px rgba(23,20,51,0.32)', padding: '24px', animation: 'fadeUp 0.2s ease both' }}>
         <style>{`@keyframes fadeUp { from { opacity:0; transform:translateY(-10px); } to { opacity:1; transform:translateY(0); } }`}</style>
 
-        {/* Header */}
+        {/* Header with DP upload */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '18px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            {topbar.avatarPhoto && topbar.avatarBg ? (
-              <img src={topbar.avatarBg} alt={displayName} style={{ width: '52px', height: '52px', borderRadius: '14px', objectFit: 'cover', flexShrink: 0 }} />
-            ) : (
-              <span style={{ display: 'grid', placeItems: 'center', width: '52px', height: '52px', borderRadius: '14px', background: 'rgba(47,107,76,0.12)', color: PUR, fontSize: '1.4rem', flexShrink: 0 }}>👤</span>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ position: 'relative' }}>
+              {currentAvatar ? (
+                <img src={currentAvatar} alt={displayName} style={{ width: '56px', height: '56px', borderRadius: '16px', objectFit: 'cover', flexShrink: 0, border: `2px solid ${PUR}30` }} />
+              ) : (
+                <span style={{ display: 'grid', placeItems: 'center', width: '56px', height: '56px', borderRadius: '16px', background: 'rgba(47,107,76,0.12)', color: PUR, fontSize: '1.5rem', flexShrink: 0 }}>👤</span>
+              )}
+              <label htmlFor="dp-upload-input" style={{ position: 'absolute', bottom: '-4px', right: '-4px', width: '22px', height: '22px', borderRadius: '50%', background: PUR, color: '#fff', display: 'grid', placeItems: 'center', cursor: 'pointer', fontSize: '0.68rem', boxShadow: '0 2px 6px rgba(0,0,0,0.2)' }} title="Change Profile Photo">
+                📷
+              </label>
+              <input id="dp-upload-input" type="file" accept="image/*" onChange={handleDpUpload} style={{ display: 'none' }} />
+            </div>
             <div>
-              <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#171433' }}>{displayName}</div>
-              <div style={{ fontSize: '0.74rem', color: '#8b8fa3', marginTop: '2px' }}>{topbar.role}</div>
-              {displayEmail && <div style={{ fontSize: '0.72rem', color: '#a3a7bd', marginTop: '2px' }}>{displayEmail}</div>}
+              <div style={{ fontSize: '0.96rem', fontWeight: 800, color: '#171433' }}>{displayName}</div>
+              <div style={{ fontSize: '0.72rem', color: PUR, fontWeight: 700, marginTop: '2px' }}>{topbar.role}</div>
+              {displayEmail && <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '2px' }}>{displayEmail}</div>}
             </div>
           </div>
-          <button onClick={() => setShowProfile(false)} style={{ display: 'grid', placeItems: 'center', width: '30px', height: '30px', borderRadius: '50%', border: '1px solid #edeef4', background: '#f6f7fb', cursor: 'pointer', fontSize: '0.95rem', color: '#8b8fa3', flexShrink: 0 }}>×</button>
+          <button onClick={() => setShowProfile(false)} style={{ display: 'grid', placeItems: 'center', width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #edeef4', background: '#f6f7fb', cursor: 'pointer', fontSize: '0.95rem', color: '#8b8fa3', flexShrink: 0 }}>×</button>
+        </div>
+
+        {/* Change DP button banner */}
+        <div style={{ marginBottom: '14px', padding: '8px 12px', borderRadius: '10px', background: `${PUR}08`, border: `1px dashed ${PUR}33`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.72rem', color: '#374151', fontWeight: 600 }}>Profile Display Photo</span>
+          <label htmlFor="dp-upload-input" style={{ fontSize: '0.72rem', fontWeight: 700, color: PUR, cursor: 'pointer', textDecoration: 'underline' }}>
+            {customDp ? 'Change DP' : 'Upload DP'}
+          </label>
         </div>
 
         {/* Stats for user */}
@@ -148,8 +182,15 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
       {profileModal}
       <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', padding: '30px 24px 6px', background: '#f4efe4' }}>
         <div style={{ minWidth: '220px' }}>
-          <h1 style={{ margin: 0, fontSize: '1.72rem', fontWeight: 800, letterSpacing: '-0.02em', color: '#171433' }}>{welcomeTitle}</h1>
-          <p style={{ margin: '6px 0 0', fontSize: '0.92rem', color: '#7c8199' }}>{topbar.subtitle}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <h1 style={{ margin: 0, fontSize: '1.85rem', fontWeight: 850, letterSpacing: '-0.03em', color: '#171433', lineHeight: 1.2 }}>
+              Welcome back, <span style={{ color: PUR }}>{firstName}</span>
+            </h1>
+            <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: '8px', background: `${PUR}15`, color: PUR, letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              {role === 'admin' ? 'Admin' : role === 'derma' ? 'Doctor' : role === 'consultant' ? 'Consultant' : 'Member'}
+            </span>
+          </div>
+          <p style={{ margin: '5px 0 0', fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>{topbar.subtitle}</p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
@@ -214,12 +255,11 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = PUR; (e.currentTarget as HTMLElement).style.boxShadow = `0 0 0 3px ${PUR}22`; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#edeef4'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 10px -6px rgba(23,20,51,0.2)'; }}
           >
-            {topbar.avatarPhoto && topbar.avatarBg && (
-              <span style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '11px', overflow: 'hidden', flexShrink: 0, background: '#e9eaf5' }}>
-                <img src={topbar.avatarBg} alt={displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            {currentAvatar ? (
+              <span style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '11px', overflow: 'hidden', flexShrink: 0, background: '#e9eaf5', border: `1px solid ${PUR}30` }}>
+                <img src={currentAvatar} alt={displayName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </span>
-            )}
-            {topbar.avatarIcon && (
+            ) : (
               <span style={{ display: 'grid', placeItems: 'center', width: '38px', height: '38px', borderRadius: '11px', flexShrink: 0, background: 'rgba(47,107,76,0.14)', color: PUR }}>
                 <DashIcon d="<circle cx='12' cy='8' r='4'/><path d='M4 21a8 8 0 0 1 16 0'/>" s={19} stroke={PUR} />
               </span>
