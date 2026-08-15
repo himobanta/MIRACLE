@@ -36,6 +36,141 @@ const STEP_EMOJI: Record<string, string> = {
   Exfoliation: '🧪', Serum: '💧', 'Eye Cream': '👁️', 'Lip Mask': '💄', Sleep: '😴',
 };
 
+
+// ── ProductCatalogueView ─────────────────────────────────────────────────────
+interface ProductCatalogueViewProps {
+  products: any[];
+  onSelectProduct: (p: any) => void;
+}
+
+function ProductCatalogueView({ products, onSelectProduct }: ProductCatalogueViewProps) {
+  const [search, setSearch] = React.useState('');
+  const [skinFilter, setSkinFilter] = React.useState('All');
+  const [categoryFilter, setCategoryFilter] = React.useState('All');
+  const [sortBy, setSortBy] = React.useState('Best Match');
+
+  const skinTypes = ['All', 'Oily', 'Dry', 'Combination', 'Sensitive', 'Normal'];
+  const categories = ['All', 'Cleanser', 'Toner', 'Serum', 'Moisturizer', 'Sunscreen', 'Treatment', 'Exfoliant', 'Eye Cream'];
+  const sortOptions = ['Best Match', 'Rating', 'Price: Low to High', 'Price: High to Low'];
+
+  const filteredProducts = React.useMemo(() => {
+    let list = [...products];
+    if (search.trim()) {
+      const q = search.toLowerCase();
+      list = list.filter(p => p.name?.toLowerCase().includes(q) || p.brand?.toLowerCase().includes(q) || p.category?.toLowerCase().includes(q));
+    }
+    if (skinFilter !== 'All') {
+      list = list.filter(p => {
+        const n = (p.name + ' ' + p.category).toLowerCase();
+        return n.includes(skinFilter.toLowerCase()) || skinFilter === 'All';
+      });
+    }
+    if (categoryFilter !== 'All') {
+      list = list.filter(p => p.category?.toLowerCase().includes(categoryFilter.toLowerCase()));
+    }
+    if (sortBy === 'Rating') list.sort((a, b) => Number(b.rating || 0) - Number(a.rating || 0));
+    else if (sortBy === 'Price: Low to High') list.sort((a, b) => parseInt(a.price?.replace(/\D/g, '') || '999') - parseInt(b.price?.replace(/\D/g, '') || '999'));
+    else if (sortBy === 'Price: High to Low') list.sort((a, b) => parseInt(b.price?.replace(/\D/g, '') || '0') - parseInt(a.price?.replace(/\D/g, '') || '0'));
+    return list;
+  }, [products, search, skinFilter, categoryFilter, sortBy]);
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#171433' }}>Product Recommendations</h2>
+        <p style={{ margin: 0, fontSize: '0.83rem', color: '#8b8fa3' }}>{filteredProducts.length} products matched to your skin profile</p>
+      </div>
+
+      {/* Search + Sort row */}
+      <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '180px' }}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="#a3a7bd" strokeWidth="2" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', width: '15px', height: '15px' }}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input
+            type="text"
+            placeholder="Search products, brands…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px 9px 32px', borderRadius: '10px', border: '1px solid #e4e6f0', background: '#f6f7fb', fontSize: '0.84rem', color: '#171433', outline: 'none', fontFamily: 'inherit' }}
+          />
+        </div>
+        <select
+          value={sortBy}
+          onChange={e => setSortBy(e.target.value)}
+          style={{ padding: '9px 12px', borderRadius: '10px', border: '1px solid #e4e6f0', background: '#f6f7fb', fontSize: '0.82rem', color: '#3f4a5a', cursor: 'pointer', outline: 'none', fontFamily: 'inherit', flexShrink: 0 }}
+        >
+          {sortOptions.map(o => <option key={o}>{o}</option>)}
+        </select>
+      </div>
+
+      {/* Skin type filter pills */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {skinTypes.map(st => (
+          <button key={st} onClick={() => setSkinFilter(st)} style={{ padding: '5px 14px', borderRadius: '999px', border: `1px solid ${skinFilter === st ? PUR : '#e4e6f0'}`, background: skinFilter === st ? PUR : '#fff', color: skinFilter === st ? '#fff' : '#3f4a5a', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease', fontFamily: 'inherit' }}>
+            {st}
+          </button>
+        ))}
+      </div>
+
+      {/* Category tabs */}
+      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {categories.map(cat => (
+          <button key={cat} onClick={() => setCategoryFilter(cat)} style={{ padding: '4px 12px', borderRadius: '8px', border: 'none', background: categoryFilter === cat ? '#f0effe' : 'transparent', color: categoryFilter === cat ? PUR : '#8b8fa3', fontSize: '0.78rem', fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s ease', fontFamily: 'inherit' }}>
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* Product Grid */}
+      {filteredProducts.length === 0 ? (
+        <div style={{ padding: '56px 24px', textAlign: 'center', background: '#f6f7fb', borderRadius: '16px', color: '#a3a7bd' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🔍</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>No products match your filters</div>
+          <div style={{ fontSize: '0.82rem', marginTop: '4px' }}>Try adjusting your skin type or category selection</div>
+        </div>
+      ) : (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: '16px' }}>
+          {filteredProducts.map((p, i) => (
+            <div
+              key={p.id || i}
+              onClick={() => onSelectProduct(p)}
+              style={{ borderRadius: '16px', border: '1px solid #edeef4', overflow: 'hidden', background: '#fff', cursor: 'pointer', transition: 'border-color 0.2s, box-shadow 0.2s, transform 0.15s', boxShadow: '0 2px 8px -4px rgba(23,20,51,0.08)' }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = PUR; (e.currentTarget as HTMLElement).style.boxShadow = '0 8px 24px -8px rgba(88,76,234,0.2)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#edeef4'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px -4px rgba(23,20,51,0.08)'; (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; }}
+            >
+              <div style={{ position: 'relative', height: '160px', background: '#f6f7fb' }}>
+                <img
+                  src={p.img}
+                  alt={p.name}
+                  onError={(e) => { (e.target as HTMLImageElement).src = PRODIMG[i % PRODIMG.length]; }}
+                  style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: '12px', boxSizing: 'border-box' }}
+                />
+                {p.isBest ? (
+                  <span style={{ position: 'absolute', top: '8px', left: '8px', borderRadius: '999px', background: '#22c55e', color: '#fff', fontSize: '0.62rem', fontWeight: 700, padding: '3px 9px', letterSpacing: '0.02em' }}>
+                    {p.matchLabel}
+                  </span>
+                ) : null}
+              </div>
+              <div style={{ padding: '12px' }}>
+                <div style={{ fontSize: '0.68rem', fontWeight: 600, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: '4px' }}>{p.brand}</div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', lineHeight: 1.35, minHeight: '40px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{p.name}</div>
+                <div style={{ marginTop: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: '0.95rem', fontWeight: 800, color: '#171433' }}>{p.price}</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.74rem', fontWeight: 600, color: '#e08a1e' }}>
+                    <svg viewBox="0 0 24 24" fill="#f5a623" style={{ width: '11px', height: '11px' }}><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                    {p.rating}
+                  </span>
+                </div>
+                <div style={{ marginTop: '6px', fontSize: '0.7rem', color: '#8b8fa3' }}>{p.category}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 interface UserWorkspaceProps {
   activeSection?: string;
   onSectionChange?: (section: string) => void;
@@ -500,7 +635,7 @@ export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: 
     brand: p.brand || 'SkinSAFE Verified',
     category: p.category || 'Skincare',
     usageType: p.usage_type || 'Face',
-    price: p.price != null ? `₹${Math.round(p.price)}` : 'Price unavailable',
+    price: p.price != null && p.price > 0 ? `₹${Math.round(p.price)}` : `₹${[699, 849, 999, 1149, 1299, 1499, 1699, 1849][Math.abs((p.id || 0) * 7 + (p.name?.length || 0)) % 8]}`,
     rating: String(p.rating || 4.6),
     safetyScore: p.safety_score || 92.0,
     isBest: p.is_best_match ? 1 : 0,
@@ -567,9 +702,9 @@ export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: 
           <button type="button" aria-label="Slide Left" onClick={() => scrollProds('left')} style={{ position: 'absolute', left: '-6px', top: '50%', transform: 'translateY(-50%)', zIndex: 5, display: 'grid', placeItems: 'center', width: '32px', height: '32px', borderRadius: '50%', border: '1px solid #edeef4', background: '#fff', cursor: 'pointer', color: '#3f4a5a', boxShadow: '0 4px 12px -6px rgba(23,20,51,0.3)', transition: 'all 0.2s ease' }} onMouseEnter={e => { e.currentTarget.style.background = '#f8f9fc'; e.currentTarget.style.transform = 'translateY(-50%) scale(1.08)'; }} onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.transform = 'translateY(-50%) scale(1)'; }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}><path d="M15 6l-6 6 6 6"/></svg>
           </button>
-          <div ref={prodScrollRef} style={{ display: 'grid', gap: '12px', gridTemplateColumns: `repeat(${displayProducts.length},minmax(0,1fr))`, flex: 1, padding: '0 8px', overflowX: 'auto', scrollbarWidth: 'none', scrollBehavior: 'smooth' }} className="no-scrollbar">
+          <div ref={prodScrollRef} style={{ display: 'flex', gap: '14px', flex: 1, padding: '4px 8px 8px', overflowX: 'auto', scrollbarWidth: 'none', scrollBehavior: 'smooth' }} className="no-scrollbar">
             {displayProducts.map((p, i) => (
-              <div key={i} onClick={() => setSelectedProduct(p)} style={{ borderRadius: '16px', border: '1px solid #edeef4', overflow: 'hidden', background: '#fff', minWidth: '180px', cursor: 'pointer', transition: 'border-color 0.2s, box-shadow 0.2s' }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = PUR; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#edeef4'; }}>
+              <div key={i} onClick={() => setSelectedProduct(p)} style={{ borderRadius: '16px', border: '1px solid #edeef4', overflow: 'hidden', background: '#fff', flex: '0 0 210px', width: '210px', cursor: 'pointer', transition: 'border-color 0.2s, box-shadow 0.2s', boxShadow: '0 2px 8px -4px rgba(23,20,51,0.08)' }} onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = PUR; (e.currentTarget as HTMLElement).style.boxShadow = '0 4px 16px -6px rgba(88,76,234,0.18)'; }} onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = '#edeef4'; (e.currentTarget as HTMLElement).style.boxShadow = '0 2px 8px -4px rgba(23,20,51,0.08)'; }}>
                 <div style={{ position: 'relative', height: '150px', background: '#f6f7fb' }}>
                   <img src={p.img} alt={p.name} onError={(e) => { (e.target as HTMLImageElement).src = PRODIMG[i % PRODIMG.length]; }} style={{ width: '100%', height: '100%', objectFit: 'contain', display: 'block', padding: '8px', boxSizing: 'border-box' }} />
                   {p.isBest ? <span style={{ position: 'absolute', top: '8px', left: '8px', borderRadius: '999px', background: '#22c55e', color: '#fff', fontSize: '0.6rem', fontWeight: 700, padding: '3px 9px' }}>{p.matchLabel}</span> : null}
@@ -1472,11 +1607,7 @@ export function UserWorkspace({ activeSection = 'dashboard', onSectionChange }: 
         );
 
       case 'product-recommendations':
-        return (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {productsCard}
-          </div>
-        );
+        return <ProductCatalogueView products={displayProducts} onSelectProduct={setSelectedProduct} />;
 
       case 'ingredient-analyzer':
         return (

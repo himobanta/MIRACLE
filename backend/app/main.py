@@ -34,6 +34,13 @@ Base.metadata.create_all(bind=engine)
 def _seed_demo_users():
     """Seed development-only demo accounts if they don't already exist.
     NEVER runs in production or staging environments.
+
+    Demo credentials:
+      user@miracle.com         / password123   (User)
+      consultant@miracle.com   / password123   (Skincare Consultant)
+      dermatologist@miracle.com/ password123   (Dermatologist)
+      admin@miracle.com        / password123   (Administrator)
+      derma@miracle.com        / doctor123     (Dermatologist — legacy alias)
     """
     log_startup_summary()
     if ENVIRONMENT in ["production", "prod", "staging", "stage"]:
@@ -41,6 +48,7 @@ def _seed_demo_users():
         return
     db = SessionLocal()
     try:
+        # ── Demo User ─────────────────────────────────────────────────────────
         if not db.query(User).filter(User.email == "user@miracle.com").first():
             user = User(
                 name="Ananya Sharma",
@@ -51,10 +59,64 @@ def _seed_demo_users():
             db.add(user)
             db.commit()
             db.refresh(user)
-            profile = UserProfile(user_id=user.id, skin_type="Oily", concerns=["Acne", "Pigmentation"])
+            profile = UserProfile(
+                user_id=user.id,
+                skin_type="Oily",
+                concerns=["Acne", "Pigmentation"]
+            )
             db.add(profile)
             db.commit()
+            logger.info("Seeded demo User: user@miracle.com")
 
+        # ── Demo Skincare Consultant ───────────────────────────────────────────
+        if not db.query(User).filter(User.email == "consultant@miracle.com").first():
+            consultant = User(
+                name="Priya Sharma",
+                email="consultant@miracle.com",
+                hashed_password=hash_password("password123"),
+                role="Skincare Consultant"
+            )
+            db.add(consultant)
+            db.commit()
+            db.refresh(consultant)
+            profile = UserProfile(user_id=consultant.id)
+            db.add(profile)
+            db.commit()
+            logger.info("Seeded demo Skincare Consultant: consultant@miracle.com")
+
+        # ── Demo Dermatologist (canonical) ────────────────────────────────────
+        if not db.query(User).filter(User.email == "dermatologist@miracle.com").first():
+            dermatologist = User(
+                name="Dr. Kavita Nair",
+                email="dermatologist@miracle.com",
+                hashed_password=hash_password("password123"),
+                role="Dermatologist"
+            )
+            db.add(dermatologist)
+            db.commit()
+            db.refresh(dermatologist)
+            profile = UserProfile(user_id=dermatologist.id)
+            db.add(profile)
+            db.commit()
+            logger.info("Seeded demo Dermatologist: dermatologist@miracle.com")
+
+        # ── Demo Administrator ────────────────────────────────────────────────
+        if not db.query(User).filter(User.email == "admin@miracle.com").first():
+            admin = User(
+                name="Rohan Mehta",
+                email="admin@miracle.com",
+                hashed_password=hash_password("password123"),
+                role="Administrator"
+            )
+            db.add(admin)
+            db.commit()
+            db.refresh(admin)
+            profile = UserProfile(user_id=admin.id)
+            db.add(profile)
+            db.commit()
+            logger.info("Seeded demo Administrator: admin@miracle.com")
+
+        # ── Legacy Dermatologist alias (backward compatibility) ───────────────
         if not db.query(User).filter(User.email == "derma@miracle.com").first():
             doctor = User(
                 name="Dr. Meera Vasudevan",
@@ -64,6 +126,7 @@ def _seed_demo_users():
             )
             db.add(doctor)
             db.commit()
+            logger.info("Seeded legacy Dermatologist alias: derma@miracle.com")
     finally:
         db.close()
 
