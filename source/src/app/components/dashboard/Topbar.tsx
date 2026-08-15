@@ -14,88 +14,165 @@ const TOPBAR_MAP: Record<RoleType, { subtitle: string; showSearch: boolean; sear
   user:       { subtitle: "Here's your skin summary and personalized recommendations.", showSearch: false,                                                            notif: 3, avatarPhoto: true, avatarBg: FACE.ananyaUser, avatarIcon: false, fallbackName: 'there',           role: 'Premium User'           },
 };
 
-// ── Inline crop modal ────────────────────────────────────────────────────────
+// ── Photo viewer lightbox ────────────────────────────────────────────────────
+function PhotoViewer({ src, name, onClose }: { src: string; name: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+  return (
+    <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 4000, background: 'rgba(5,4,20,0.9)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'zoom-out' }}>
+      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+        <img src={src} alt={name} style={{ maxWidth: '80vw', maxHeight: '80vh', borderRadius: '20px', objectFit: 'contain', boxShadow: '0 40px 100px rgba(0,0,0,0.6)', display: 'block' }} />
+        <button onClick={onClose} style={{ position: 'absolute', top: -12, right: -12, width: '34px', height: '34px', borderRadius: '50%', background: '#fff', border: 'none', fontSize: '1.1rem', cursor: 'pointer', display: 'grid', placeItems: 'center', boxShadow: '0 4px 14px rgba(0,0,0,0.3)' }}>×</button>
+        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', marginTop: '12px', fontWeight: 500 }}>{name} · Press Esc to close</div>
+      </div>
+    </div>
+  );
+}
+
+// ── Professional crop modal — display-pixel-based, drag crop box over image ──
 function TopbarCropModal({ src, onSave, onCancel }: { src: string; onSave: (cropped: string) => void; onCancel: () => void }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const CROP_BOX = 220; // fixed crop box size in display pixels
   const imgRef = useRef<HTMLImageElement>(null);
-  const [crop, setCrop] = useState({ x: 0, y: 0, size: 0 });
-  const [dragging, setDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ mx: 0, cx: 0, cy: 0 });
-  const previewSize = 280;
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const img = new Image();
-    img.onload = () => {
-      const s = Math.min(img.naturalWidth, img.naturalHeight);
-      setCrop({ x: (img.naturalWidth - s) / 2, y: (img.naturalHeight - s) / 2, size: s });
-    };
-    img.src = src;
-  }, [src]);
+  // Display dimensions of rendered image (set after img loads)
+  const [disp, setDisp] = useState({ w: 0, h: 0 });
+  // Crop box position in display pixels (top-left corner)
+  const [pos, setPos] = useState({ x: 0, y: 0 });
+  const [loaded, setLoaded] = useState(false);
+  const dragging = useRef(false);
+  const dragOrigin = useRef({ mx: 0, my: 0, px: 0, py: 0 });
 
-  useEffect(() => {
-    const img = imgRef.current;
-    const canvas = canvasRef.current;
-    if (!img || !canvas || !crop.size) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    canvas.width = previewSize; canvas.height = previewSize;
-    ctx.clearRect(0, 0, previewSize, previewSize);
-    const scaleX = img.naturalWidth / img.width;
-    const scaleY = img.naturalHeight / img.height;
-    const cropDisplaySize = crop.size / scaleX;
-    const cropDisplayX = crop.x / scaleX;
-    const cropDisplayY = crop.y / scaleY;
-    ctx.drawImage(img, cropDisplayX, cropDisplayY, cropDisplaySize, cropDisplaySize, 0, 0, previewSize, previewSize);
-  }, [crop, src]);
-
-  const onMouseDown = (e: React.MouseEvent<HTMLDivElement>) => { setDragging(true); setDragStart({ mx: e.clientX, cx: crop.x, cy: crop.y }); };
-  const onMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!dragging) return;
-    const img = imgRef.current; if (!img) return;
-    const scaleX = img.naturalWidth / img.width;
-    const scaleY = img.naturalHeight / img.height;
-    const newX = Math.max(0, Math.min(dragStart.cx + (e.clientX - dragStart.mx) * scaleX, img.naturalWidth - crop.size));
-    const newY = Math.max(0, Math.min(dragStart.cy + (e.clientX - dragStart.mx) * scaleY, img.naturalHeight - crop.size));
-    setCrop(c => ({ ...c, x: newX, y: newY }));
+  const onImgLoad = () => {
+    const el = imgRef.current!;
+    const rect = el.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+    setDisp({ w, h });
+    setPos({ x: (w - CROP_BOX) / 2, y: (h - CROP_BOX) / 2 });
+    setLoaded(true);
   };
 
+  // Redraw canvas preview whenever pos changes
+  useEffect(() => {
+    if (!loaded || !canvasRef.current || !imgRef.current) return;
+    const img = imgRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d')!;
+    canvas.width = 200; canvas.height = 200;
+    const scaleX = img.naturalWidth / disp.w;
+    const scaleY = img.naturalHeight / disp.h;
+    ctx.clearRect(0, 0, 200, 200);
+    ctx.drawImage(img, pos.x * scaleX, pos.y * scaleY, CROP_BOX * scaleX, CROP_BOX * scaleY, 0, 0, 200, 200);
+  }, [pos, loaded, disp]);
+
+  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    dragging.current = true;
+    dragOrigin.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y };
+    e.preventDefault();
+  };
+  const onMouseMove = (e: React.MouseEvent) => {
+    if (!dragging.current) return;
+    const dx = e.clientX - dragOrigin.current.mx;
+    const dy = e.clientY - dragOrigin.current.my;
+    setPos({
+      x: clamp(dragOrigin.current.px + dx, 0, disp.w - CROP_BOX),
+      y: clamp(dragOrigin.current.py + dy, 0, disp.h - CROP_BOX),
+    });
+  };
+  const onMouseUp = () => { dragging.current = false; };
+
   const handleSave = () => {
-    const img = imgRef.current; if (!img || !crop.size) return;
-    const out = document.createElement('canvas'); out.width = 300; out.height = 300;
-    const ctx = out.getContext('2d'); if (!ctx) return;
-    const sX = img.naturalWidth / img.width; const sY = img.naturalHeight / img.height;
-    ctx.drawImage(img, crop.x / sX, crop.y / sY, crop.size / sX, crop.size / sY, 0, 0, 300, 300);
-    onSave(out.toDataURL('image/jpeg', 0.92));
+    if (!imgRef.current || !loaded) return;
+    const img = imgRef.current;
+    const scaleX = img.naturalWidth / disp.w;
+    const scaleY = img.naturalHeight / disp.h;
+    const out = document.createElement('canvas');
+    out.width = 400; out.height = 400;
+    const ctx = out.getContext('2d')!;
+    ctx.drawImage(img, pos.x * scaleX, pos.y * scaleY, CROP_BOX * scaleX, CROP_BOX * scaleY, 0, 0, 400, 400);
+    onSave(out.toDataURL('image/jpeg', 0.94));
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(10,8,30,0.75)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#fff', borderRadius: '24px', padding: '28px', width: '380px', maxWidth: '96vw', boxShadow: '0 32px 80px -20px rgba(0,0,0,0.5)' }}>
-        <div style={{ fontSize: '1.05rem', fontWeight: 800, color: '#171433', marginBottom: '4px' }}>Crop your photo</div>
-        <div style={{ fontSize: '0.78rem', color: '#8b8fa3', marginBottom: '16px' }}>Drag to reposition · Square crop applied</div>
-        <div style={{ position: 'relative', background: '#0a0820', borderRadius: '14px', overflow: 'hidden', cursor: 'move', userSelect: 'none' }}
-          onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={() => setDragging(false)} onMouseLeave={() => setDragging(false)}>
-          <img ref={imgRef} src={src} alt="crop" style={{ width: '100%', display: 'block', opacity: 0.42, pointerEvents: 'none' }} draggable={false} />
-          {crop.size > 0 && imgRef.current && (() => {
-            const img = imgRef.current!;
-            const sX = img.naturalWidth / img.width;
-            const sY = img.naturalHeight / img.height;
-            const dx = crop.x / sX, dy = crop.y / sY, ds = crop.size / sX;
-            return (
-              <div style={{ position: 'absolute', left: dx, top: dy, width: ds, height: ds, outline: `2px solid ${PUR}`, background: 'rgba(255,255,255,0.06)' }}>
-                <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
-                  <img src={src} alt="" style={{ position: 'absolute', left: -dx, top: -dy, width: img.width, opacity: 1, pointerEvents: 'none' }} draggable={false} />
-                </div>
-              </div>
-            );
-          })()}
+    <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(5,4,20,0.82)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#fff', borderRadius: '24px', padding: '26px', width: '420px', maxWidth: '96vw', boxShadow: '0 40px 90px -20px rgba(0,0,0,0.55)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <div style={{ fontSize: '1.08rem', fontWeight: 800, color: '#171433' }}>Crop your photo</div>
+          <button onClick={onCancel} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #edeef4', background: '#f6f7fb', cursor: 'pointer', fontSize: '1rem', color: '#8b8fa3', display: 'grid', placeItems: 'center' }}>×</button>
         </div>
-        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <canvas ref={canvasRef} width={previewSize} height={previewSize} style={{ width: '60px', height: '60px', borderRadius: '14px', border: `2px solid ${PUR}40` }} />
-          <div style={{ fontSize: '0.78rem', color: '#64748b', lineHeight: 1.5 }}>This is how your<br />profile photo will look</div>
+        <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginBottom: '14px' }}>Drag the crop box to reposition · Square crop</div>
+
+        {/* Image container with crop overlay */}
+        <div
+          ref={containerRef}
+          onMouseDown={onMouseDown}
+          onMouseMove={onMouseMove}
+          onMouseUp={onMouseUp}
+          onMouseLeave={onMouseUp}
+          style={{ position: 'relative', background: '#0d0b22', borderRadius: '14px', overflow: 'hidden', cursor: 'crosshair', userSelect: 'none', lineHeight: 0 }}
+        >
+          {/* Dimmed full image */}
+          <img
+            ref={imgRef}
+            src={src}
+            alt="crop-source"
+            onLoad={onImgLoad}
+            style={{ width: '100%', display: 'block', opacity: 0.35, pointerEvents: 'none' }}
+            draggable={false}
+          />
+
+          {/* Crop box — bright, shows real image */}
+          {loaded && (
+            <div style={{
+              position: 'absolute',
+              left: pos.x, top: pos.y,
+              width: CROP_BOX, height: CROP_BOX,
+              cursor: 'move',
+              boxShadow: `0 0 0 9999px rgba(5,4,20,0.55)`,
+              border: `2px solid ${PUR}`,
+              overflow: 'hidden',
+            }}>
+              {/* Shows real-brightness image in crop region */}
+              <img
+                src={src}
+                alt=""
+                style={{
+                  position: 'absolute',
+                  left: -pos.x, top: -pos.y,
+                  width: disp.w, height: disp.h,
+                  pointerEvents: 'none',
+                  opacity: 1,
+                  display: 'block',
+                }}
+                draggable={false}
+              />
+              {/* Corner guides */}
+              {[{ t: 0, l: 0 }, { t: 0, r: 0 }, { b: 0, l: 0 }, { b: 0, r: 0 }].map((s, i) => (
+                <div key={i} style={{ position: 'absolute', width: 14, height: 14, ...s as any, borderTop: (s as any).t === 0 ? `3px solid #fff` : undefined, borderBottom: (s as any).b === 0 ? `3px solid #fff` : undefined, borderLeft: (s as any).l === 0 ? `3px solid #fff` : undefined, borderRight: (s as any).r === 0 ? `3px solid #fff` : undefined }} />
+              ))}
+            </div>
+          )}
         </div>
-        <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
-          <button onClick={onCancel} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid #edeef4', background: '#f6f7fb', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Cancel</button>
+
+        {/* Live preview + hint */}
+        <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <canvas ref={canvasRef} style={{ width: '56px', height: '56px', borderRadius: '12px', border: `2px solid ${PUR}40`, display: 'block' }} />
+            <div style={{ fontSize: '0.6rem', color: '#94a3b8', textAlign: 'center', marginTop: '3px' }}>Preview</div>
+          </div>
+          <div style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.6 }}>
+            <strong style={{ color: '#374151' }}>Drag the crop box</strong> over your<br />photo to choose what to show.
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Cancel</button>
           <button onClick={handleSave} style={{ flex: 2, padding: '11px', borderRadius: '12px', border: 'none', background: PUR, color: '#fff', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 700, cursor: 'pointer' }}>Save Photo</button>
         </div>
       </div>
@@ -204,10 +281,14 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
   const firstName = role === 'admin' ? 'Himobanta' : (displayName ? displayName.split(' ')[0] : 'there');
   const currentAvatar = customDp || (topbar.avatarPhoto ? topbar.avatarBg : null);
 
+  const [viewPhoto, setViewPhoto] = useState(false);
+
   const dpMenuItems = [
-    { label: '📤 Upload photo', action: () => { setShowDpMenu(false); setTimeout(() => fileInputRef.current?.click(), 50); } },
     ...(customDp ? [
-      { label: '🔄 Change photo', action: () => { setShowDpMenu(false); setTimeout(() => fileInputRef.current?.click(), 50); }, danger: false },
+      { label: '👁️ View photo', action: () => { setShowDpMenu(false); setViewPhoto(true); }, danger: false },
+    ] : []),
+    { label: customDp ? '🔄 Change photo' : '📤 Upload photo', action: () => { setShowDpMenu(false); setTimeout(() => fileInputRef.current?.click(), 50); }, danger: false },
+    ...(customDp ? [
       { label: '🗑️ Remove photo', action: handleRemoveDp, danger: true },
     ] : []),
   ];
@@ -229,7 +310,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
             {/* Avatar with camera dropdown */}
             <div ref={dpMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
               {currentAvatar ? (
-                <img src={currentAvatar} alt={displayName} style={{ width: '60px', height: '60px', borderRadius: '16px', objectFit: 'cover', border: `2px solid ${PUR}30`, display: 'block' }} />
+                <img src={currentAvatar} alt={displayName} onClick={() => setViewPhoto(true)} style={{ width: '60px', height: '60px', borderRadius: '16px', objectFit: 'cover', border: `2px solid ${PUR}30`, display: 'block', cursor: 'pointer' }} title="Click to view full photo" />
               ) : (
                 <span style={{ display: 'grid', placeItems: 'center', width: '60px', height: '60px', borderRadius: '16px', background: 'rgba(47,107,76,0.12)', color: PUR, fontSize: '1.6rem' }}>👤</span>
               )}
@@ -309,6 +390,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
 
   return (
     <>
+      {viewPhoto && currentAvatar && <PhotoViewer src={currentAvatar} name={displayName} onClose={() => setViewPhoto(false)} />}
       {cropSrc && <TopbarCropModal src={cropSrc} onSave={handleCropSave} onCancel={() => setCropSrc(null)} />}
       {profileModal}
       <style>{`
