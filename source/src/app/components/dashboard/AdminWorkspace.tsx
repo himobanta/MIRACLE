@@ -288,7 +288,7 @@ function AdminDashboardPage({ onSectionChange }: { onSectionChange?: (s: string)
 
       {/* Row 4: System health + Activity + Quick Actions */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', alignItems: 'stretch' }}>
-        <Card style={{ display: 'flex', flexDirection: 'column' }}>
+        <Card style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
           <CardHead title="System Health" right={<Pill text={sysHealth?.api ? 'Operational' : 'Checking…'} />} />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', flex: 1 }}>
             {[
@@ -316,27 +316,27 @@ function AdminDashboardPage({ onSectionChange }: { onSectionChange?: (s: string)
             })}
           </div>
         </Card>
-        <Card style={{ display: 'flex', flexDirection: 'column' }}>
+        <Card style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
           <CardHead title="Recent Activity" right={<Pill text="Live" />} />
-          <div style={{ maxHeight: '200px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px', flex: 1, paddingRight: '4px' }}>
-            {activity.length === 0 ? <EmptyState icon="📋" message="No activity yet." /> : activity.slice(0, 8).map((evt: any, i: number) => {
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, overflowY: 'auto', maxHeight: '235px', paddingRight: '4px' }}>
+            {activity.length === 0 ? <EmptyState icon="📋" message="No activity yet." /> : activity.slice(0, 10).map((evt: any, i: number) => {
               const [ib, icl] = ACTIVITY_TINTS[evt.icon] || ACTIVITY_TINTS.users;
               return (
-                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #f8f9fc' }}>
-                  <span style={{ display: 'grid', placeItems: 'center', width: '32px', height: '32px', flexShrink: 0, borderRadius: '10px', background: ib }}>
-                    <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={15} stroke={icl} />
+                <div key={i} style={{ display: 'flex', gap: '10px', alignItems: 'center', padding: '7px 8px', borderRadius: '8px', background: '#fafbfe', border: '1px solid #f1f2f7' }}>
+                  <span style={{ display: 'grid', placeItems: 'center', width: '30px', height: '30px', flexShrink: 0, borderRadius: '8px', background: ib }}>
+                    <DashIcon d={PATHS[evt.icon] || PATHS.grid} s={14} stroke={icl} />
                   </span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.8rem', fontWeight: 600, color: '#171433', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.title}</div>
-                    <div style={{ fontSize: '0.7rem', color: '#8b8fa3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.detail}</div>
+                    <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#171433', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.title}</div>
+                    <div style={{ fontSize: '0.68rem', color: '#8b8fa3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.detail}</div>
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: '#a3a7bd', whiteSpace: 'nowrap', flexShrink: 0 }}>{evt.timestamp?.split(' ')[0]}</div>
+                  <div style={{ fontSize: '0.66rem', color: '#a3a7bd', whiteSpace: 'nowrap', flexShrink: 0 }}>{evt.timestamp?.split(' ')[0]}</div>
                 </div>
               );
             })}
           </div>
         </Card>
-        <Card style={{ display: 'flex', flexDirection: 'column' }}>
+        <Card style={{ display: 'flex', flexDirection: 'column', height: '100%', boxSizing: 'border-box' }}>
           <CardHead title="Quick Actions" />
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', flex: 1 }}>
             {quickActions.map((a, i) => (
