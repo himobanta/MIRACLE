@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/v1/recommendations", tags=["Product Recommendati
 def get_recommendations(
     skin_type: Optional[str] = Query(None),
     max_budget: Optional[float] = Query(None),
+    limit: Optional[int] = Query(60),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -38,7 +39,8 @@ def get_recommendations(
         skin_type=resolved_skin_type,
         concerns=concerns,
         user_allergies=allergies,
-        max_budget=max_budget
+        max_budget=max_budget,
+        limit=limit or 60
     )
 
     return {
