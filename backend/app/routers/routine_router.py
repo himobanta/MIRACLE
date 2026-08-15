@@ -10,6 +10,7 @@ from ..auth import get_current_user
 router = APIRouter(prefix="/api/v1/routine", tags=["Routine"])
 
 @router.get("", response_model=List[RoutineStepSchema])
+@router.post("/generate", response_model=List[RoutineStepSchema])
 def get_user_routine(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     routines = db.query(SkincareRoutine).filter(
         SkincareRoutine.user_id == current_user.id,

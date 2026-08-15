@@ -13,6 +13,7 @@ router = APIRouter(prefix="/api/v1/assessment", tags=["Assessment"])
 VALID_SKIN_TYPES = {"Normal", "Oily", "Dry", "Sensitive", "Combination"}
 
 @router.post("/evaluate", response_model=AssessmentResponse)
+@router.post("/submit", response_model=AssessmentResponse)
 def evaluate_skin(req: AssessmentRequest, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
     # Validate skin_type
     clean_skin_type = (req.skin_type or "").strip()
