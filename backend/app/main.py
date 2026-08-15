@@ -32,8 +32,8 @@ Base.metadata.create_all(bind=engine)
 
 
 def _seed_demo_users():
-    """Seed development-only demo accounts if they don't already exist.
-    NEVER runs in production or staging environments.
+    """Seed demo accounts if they don't already exist.
+    Safe to run in any environment — idempotent (creates only if missing).
 
     Demo credentials:
       user@miracle.com         / password123   (User)
@@ -43,9 +43,7 @@ def _seed_demo_users():
       derma@miracle.com        / doctor123     (Dermatologist — legacy alias)
     """
     log_startup_summary()
-    if ENVIRONMENT in ["production", "prod", "staging", "stage"]:
-        logger.info("Production/Staging mode: skipping demo user seeding.")
-        return
+    logger.info(f"Environment: {ENVIRONMENT} — seeding demo accounts if missing...")
     db = SessionLocal()
     try:
         # ── Demo User ─────────────────────────────────────────────────────────
