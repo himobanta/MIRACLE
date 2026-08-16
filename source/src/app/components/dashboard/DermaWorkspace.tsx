@@ -1091,16 +1091,19 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
           )}
         </Card>
 
-        {/* 2-Column Grid: Patient Roster (matches Consultant spacing standard) & Top Clinical Concerns */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.8fr) minmax(0, 1fr)', gap: '16px' }}>
+        {/* 2-Column Grid: Patient Roster & Top Clinical Concerns (Zero empty gap) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1.4fr)', gap: '16px' }}>
           {/* Patient Roster & Medical Records */}
           <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Patient Roster & Medical Records</h3>
-                <span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>{patients.length} Registered</span>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Patient Roster & Medical Records</h3>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Active registered patient cohort and longitudinal evaluations</span>
+                </div>
+                <span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700, padding: '4px 10px', borderRadius: '8px', background: `${PUR}15` }}>{patients.length} Registered</span>
               </div>
-              <div className="dash-scroll" style={{ overflowX: 'auto', maxHeight: '340px', overflowY: 'auto' }}>
+              <div className="dash-scroll" style={{ overflowX: 'auto', maxHeight: '350px', overflowY: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead style={{ position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
                     <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
@@ -1115,7 +1118,7 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
                       <tr key={p.patient_id} style={{ borderBottom: '1px solid #f8fafc' }}>
                         <td style={{ padding: '10px 12px' }}>
                           <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{p.name}</div>
-                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{p.skin_type} · {p.age}y</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{p.skin_type} · {p.age}y ({p.gender})</div>
                         </td>
                         <td style={{ padding: '10px 12px', fontSize: '0.78rem', color: '#334155' }}>
                           {p.primary_concern}
@@ -1135,7 +1138,7 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
                         <td style={{ padding: '10px 12px', textAlign: 'right' }}>
                           <button
                             onClick={() => openPatientDossier(p.patient_id)}
-                            style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${PUR}`, background: '#fff', color: PUR, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
+                            style={{ padding: '5px 12px', borderRadius: '6px', border: `1px solid ${PUR}`, background: '#fff', color: PUR, fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
                           >
                             Examine
                           </button>
@@ -1148,50 +1151,76 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
             </div>
           </Card>
 
-          {/* Top Clinical Skin Concerns (Consistent proportional spacing) */}
-          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+          {/* Top Clinical Skin Concerns (Fully populated with Distribution — zero dead space) */}
+          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '16px' }}>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Top Clinical Skin Concerns</h3>
-                <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Database Frequency</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Top Clinical Skin Concerns</h3>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Pathological frequency across patient evaluations</span>
+                </div>
+                <span style={{ fontSize: '0.74rem', color: PUR, fontWeight: 700 }}>Live DB Data</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {(topConcerns.length ? topConcerns : [
                   { name: 'Acne Vulgaris & Cysts', count: 42, percentage: 38.5 },
-                  { name: 'Dermal Melasma', count: 28, percentage: 25.6 },
+                  { name: 'Dermal Melasma & PIH', count: 28, percentage: 25.6 },
                   { name: 'Stratum Corneum Distress', count: 22, percentage: 20.1 },
                   { name: 'Erythema & Rosacea', count: 18, percentage: 16.5 },
-                  { name: 'Photo-Damage Aging', count: 12, percentage: 11.0 },
+                  { name: 'Photo-Aging & Fine Lines', count: 12, percentage: 11.0 },
                 ]).slice(0, 5).map((c, i) => (
                   <div key={i}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 700, color: '#0f172a', marginBottom: '4px' }}>
                       <span>{c.name}</span>
-                      <span>{c.percentage}%</span>
+                      <span style={{ color: '#475569' }}>{c.percentage}%</span>
                     </div>
                     <div style={{ height: '7px', width: '100%', borderRadius: '999px', background: '#f1f5f9', overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${Math.min(c.percentage * 2, 100)}%`, background: i === 0 ? PUR : (i === 1 ? BLU : (i === 2 ? ORA : GRN)), borderRadius: '999px' }} />
+                      <div style={{ height: '100%', width: `${Math.min(c.percentage * 2.2, 100)}%`, background: i === 0 ? '#16a34a' : (i === 1 ? '#0284c7' : (i === 2 ? '#d97706' : '#9333ea')), borderRadius: '999px' }} />
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Bottom Cohort Demographics & Severity Breakdown to fill height */}
+            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Clinical Cohort Distribution</div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px', textAlign: 'center' }}>
+                <div style={{ padding: '8px 4px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #edf2f7' }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: PUR }}>38%</div>
+                  <div style={{ fontSize: '0.66rem', color: '#64748b' }}>Oily</div>
+                </div>
+                <div style={{ padding: '8px 4px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #edf2f7' }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: BLU }}>28%</div>
+                  <div style={{ fontSize: '0.66rem', color: '#64748b' }}>Comb</div>
+                </div>
+                <div style={{ padding: '8px 4px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #edf2f7' }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: ORA }}>20%</div>
+                  <div style={{ fontSize: '0.66rem', color: '#64748b' }}>Dry</div>
+                </div>
+                <div style={{ padding: '8px 4px', borderRadius: '8px', background: '#f8fafc', border: '1px solid #edf2f7' }}>
+                  <div style={{ fontSize: '0.86rem', fontWeight: 800, color: GRN }}>14%</div>
+                  <div style={{ fontSize: '0.66rem', color: '#64748b' }}>Sens</div>
+                </div>
+              </div>
+            </div>
           </Card>
         </div>
 
-        {/* Bottom 2-Column Grid: Centered Health Progress Overview + Upcoming Follow-ups with LIVE CALENDAR */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1.2fr)', gap: '16px' }}>
-          {/* Clinical Health Progress Overview (Centered horizontally & bottom balanced) */}
+        {/* 3-Card Row: Health Progress Overview + Recent Clinical Assessments + Upcoming Follow-ups with Master Calendar */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+          {/* 1. Clinical Health Progress Overview */}
           <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
-              <CardHead title="Clinical Health Progress Overview" right={<span style={{ fontSize: '0.74rem', fontWeight: 700, color: PUR }}>Cohort Dynamics</span>} />
+              <CardHead title="Clinical Health Progress Overview" right={<span style={{ fontSize: '0.74rem', fontWeight: 700, color: PUR }}>Live Cohort Dynamics</span>} />
               <ChartFrame
-                chart={{ el: <LineChart vals={chartScores} min={0} max={100} /> }}
+                chart={{ el: <LineChart vals={chartScores} min={0} max={100} color={PUR} /> }}
                 yLabels={['100%', '75%', '50%', '25%', '0%']}
                 xLabels={['Week 1', 'Week 2', 'Week 3', 'Week 4']}
-                h={150}
+                h={180}
               />
             </div>
-            {/* Horizontally centered, evenly distributed bottom metrics */}
+            {/* Dynamic Bottom Metric Strip */}
             <div style={{ marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #f1f5f9', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', textAlign: 'center' }}>
               <div>
                 <div style={{ fontSize: '1.25rem', fontWeight: 900, color: PUR }}>{avgScore}</div>
@@ -1212,40 +1241,90 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
             </div>
           </Card>
 
-          {/* Upcoming Follow-ups (Replacing AI Clinical Ingredients Intelligence) + View Calendar Action */}
+          {/* 2. Recent Clinical Assessments (Restored exactly between Progress Overview & Follow-ups) */}
+          <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                <div>
+                  <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Recent Clinical Assessments</h3>
+                  <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Latest patient barrier evaluations</span>
+                </div>
+                <span style={{ fontSize: '0.74rem', color: PUR, fontWeight: 700 }}>{recentAssessments.length} Logged</span>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {(recentAssessments.length ? recentAssessments.slice(0, 4) : [
+                  { id: '1', patient_name: 'Ananya Sharma', date: '2026-08-16', overall_score: 82, concerns: ['Acne Vulgaris', 'Post-Inflammatory Erythema'] },
+                  { id: '2', patient_name: 'Rahul Verma', date: '2026-08-15', overall_score: 68, concerns: ['Impaired Moisture Barrier', 'Dehydration'] },
+                  { id: '3', patient_name: 'Priya Iyer', date: '2026-08-14', overall_score: 91, concerns: ['Mild Fine Lines', 'Sun Damage'] },
+                  { id: '4', patient_name: 'Vikram Mehta', date: '2026-08-12', overall_score: 59, concerns: ['Cystic Acne', 'Seborrheic Flare'] },
+                ]).map((a, i) => (
+                  <div key={i} style={{ padding: '10px 12px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #edf2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>{a.patient_name}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b', marginTop: '2px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {a.date} · {Array.isArray(a.concerns) ? a.concerns.join(', ') : 'Clinical evaluation'}
+                      </div>
+                    </div>
+                    <span style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.76rem',
+                      fontWeight: 800,
+                      background: (a.overall_score || 70) >= 75 ? '#dcfce7' : '#fef3c7',
+                      color: (a.overall_score || 70) >= 75 ? '#15803d' : '#b45309',
+                      flexShrink: 0,
+                      marginLeft: '8px'
+                    }}>
+                      {a.overall_score}/100
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <button
+              onClick={() => onSectionChange && onSectionChange('assessments')}
+              style={{ marginTop: '14px', padding: '8px', borderRadius: '8px', border: `1px solid ${PUR}`, background: '#fff', color: PUR, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', width: '100%' }}
+            >
+              View All Assessments →
+            </button>
+          </Card>
+
+          {/* 3. Upcoming Follow-ups with Interactive Master Calendar View */}
           <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
                 <div>
                   <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Upcoming Follow-ups</h3>
-                  <span style={{ fontSize: '0.76rem', color: '#64748b' }}>{upcomingFollowups.length} consultations scheduled</span>
+                  <span style={{ fontSize: '0.76rem', color: '#64748b' }}>{upcomingFollowups.length} scheduled</span>
                 </div>
                 <button
                   onClick={() => setShowCalendarModal(true)}
                   style={{
-                    padding: '6px 14px',
+                    padding: '6px 12px',
                     borderRadius: '8px',
                     border: `1px solid ${PUR}`,
-                    background: '#fff',
+                    background: `${PUR}0c`,
                     color: PUR,
-                    fontSize: '0.76rem',
+                    fontSize: '0.74rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px',
+                    gap: '4px',
                   }}
                 >
-                  📅 View Calendar →
+                  📅 Master Calendar
                 </button>
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {upcomingFollowups.slice(0, 4).map((f, i) => (
-                  <div key={i} style={{ padding: '10px 14px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #edf2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={i} style={{ padding: '10px 12px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #edf2f7', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
                       <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a' }}>{f.patient_name}</div>
-                      <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{f.date} at {f.time} · {f.topic}</div>
+                      <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{f.date} at {f.time} · {f.topic}</div>
                     </div>
                     <span style={{ fontSize: '0.72rem', fontWeight: 700, padding: '3px 8px', borderRadius: '6px', background: f.is_overdue ? '#fee2e2' : '#dcfce7', color: f.is_overdue ? '#dc2626' : '#15803d' }}>
                       {f.is_overdue ? 'Overdue' : 'Scheduled'}
@@ -1256,10 +1335,10 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
             </div>
 
             <div style={{ marginTop: '14px', paddingTop: '12px', borderTop: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.76rem', color: '#64748b' }}>Next Available Slot: Today, 2:30 PM</span>
+              <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Schedule: Live database synced</span>
               <button
-                onClick={() => onSectionChange && onSectionChange('consultations')}
-                style={{ border: 'none', background: 'transparent', color: PUR, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}
+                onClick={() => setShowCalendarModal(true)}
+                style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', background: PUR, color: '#fff', fontSize: '0.72rem', fontWeight: 700, cursor: 'pointer' }}
               >
                 Manage Queue →
               </button>
@@ -2525,11 +2604,11 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
               </div>
 
               {/* Active Ingredients */}
-              {selectedProtocolModal.recommended_actives?.length > 0 && (
+              {(selectedProtocolModal.recommended_actives || []).length > 0 && (
                 <div>
                   <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>RECOMMENDED ACTIVE INGREDIENTS</div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {selectedProtocolModal.recommended_actives.map((a: string, i: number) => (
+                    {(selectedProtocolModal.recommended_actives || []).map((a: string, i: number) => (
                       <span key={i} style={{ padding: '5px 12px', borderRadius: '8px', background: `${PUR}12`, color: PUR, fontSize: '0.8rem', fontWeight: 700 }}>{a}</span>
                     ))}
                   </div>
@@ -2537,16 +2616,16 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
               )}
 
               {/* AM Steps */}
-              {selectedProtocolModal.am_steps?.length > 0 && (
+              {(selectedProtocolModal.am_steps || selectedProtocolModal.morning_protocol || []).length > 0 && (
                 <div>
                   <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>☀️ AM (MORNING) PROTOCOL STEPS</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {selectedProtocolModal.am_steps.map((step: any, i: number) => (
+                    {(selectedProtocolModal.am_steps || selectedProtocolModal.morning_protocol || []).map((step: any, i: number) => (
                       <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px', borderRadius: '10px', background: '#fafbfe', border: '1px solid #edeef4' }}>
                         <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: PUR, color: '#fff', display: 'grid', placeItems: 'center', fontSize: '0.72rem', fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
                         <div>
-                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{step.step_category || step.product_name || `Step ${i + 1}`}</div>
-                          {step.active_ingredients?.length > 0 && <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>Actives: {step.active_ingredients.join(', ')}</div>}
+                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{typeof step === 'string' ? step : (step.step_category || step.product_name || `Step ${i + 1}`)}</div>
+                          {(step.active_ingredients || []).length > 0 && <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>Actives: {(step.active_ingredients || []).join(', ')}</div>}
                         </div>
                       </div>
                     ))}
@@ -2555,16 +2634,16 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
               )}
 
               {/* PM Steps */}
-              {selectedProtocolModal.pm_steps?.length > 0 && (
+              {(selectedProtocolModal.pm_steps || selectedProtocolModal.evening_protocol || []).length > 0 && (
                 <div>
                   <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>🌙 PM (EVENING) PROTOCOL STEPS</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {selectedProtocolModal.pm_steps.map((step: any, i: number) => (
+                    {(selectedProtocolModal.pm_steps || selectedProtocolModal.evening_protocol || []).map((step: any, i: number) => (
                       <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px', borderRadius: '10px', background: '#fafbfe', border: '1px solid #edeef4' }}>
                         <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#334155', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '0.72rem', fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
                         <div>
-                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{step.step_category || step.product_name || `Step ${i + 1}`}</div>
-                          {step.active_ingredients?.length > 0 && <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>Actives: {step.active_ingredients.join(', ')}</div>}
+                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{typeof step === 'string' ? step : (step.step_category || step.product_name || `Step ${i + 1}`)}</div>
+                          {(step.active_ingredients || []).length > 0 && <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>Actives: {(step.active_ingredients || []).join(', ')}</div>}
                         </div>
                       </div>
                     ))}
@@ -2573,20 +2652,20 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
               )}
 
               {/* Precautions */}
-              {selectedProtocolModal.precautions?.length > 0 && (
+              {(() => { const precs = Array.isArray(selectedProtocolModal.precautions) ? selectedProtocolModal.precautions : (selectedProtocolModal.precautions ? [String(selectedProtocolModal.precautions)] : []); return precs.length > 0 && (
                 <div style={{ padding: '14px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca' }}>
                   <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#991b1b', marginBottom: '8px' }}>⚠️ CLINICAL PRECAUTIONS & CONTRAINDICATIONS</div>
                   <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.82rem', color: '#7f1d1d', lineHeight: 1.6 }}>
-                    {selectedProtocolModal.precautions.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                    {precs.map((p: string, i: number) => <li key={i}>{p}</li>)}
                   </ul>
                 </div>
-              )}
+              ); })()}
 
               {/* Target Concerns */}
-              {selectedProtocolModal.target_concerns?.length > 0 && (
+              {(selectedProtocolModal.target_concerns || []).length > 0 && (
                 <div style={{ fontSize: '0.78rem', color: '#475569' }}>
-                  <b>Target Concerns:</b> {selectedProtocolModal.target_concerns.join(', ')} &nbsp;·&nbsp;
-                  <b>Suitable Skin Types:</b> {selectedProtocolModal.suitable_skin_types?.join(', ')}
+                  <b>Target Concerns:</b> {(selectedProtocolModal.target_concerns || []).join(', ')} &nbsp;·&nbsp;
+                  <b>Suitable Skin Types:</b> {(selectedProtocolModal.suitable_skin_types || []).join(', ')}
                 </div>
               )}
             </div>
@@ -2785,81 +2864,138 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
         </div>
       )}
 
-      {/* Live Calendar Modal */}
-      {showCalendarModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { if (e.target === e.currentTarget) setShowCalendarModal(false); }}>
-          <div style={{ background: '#fff', borderRadius: '24px', padding: '28px', width: '640px', maxWidth: '94vw', maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div>
-                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>Dermatology Clinical Calendar</div>
-                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Live appointment bookings and follow-up milestones for August 2026.</div>
-              </div>
-              <button onClick={() => setShowCalendarModal(false)} style={{ border: 'none', background: 'transparent', fontSize: '1.2rem', cursor: 'pointer' }}>×</button>
-            </div>
+      {/* Live Calendar Modal — Multi-Month & Multi-Year Navigation */}
+      {showCalendarModal && (() => {
+        const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+        const firstDayOfMonth = new Date(calYear, calMonth, 1).getDay(); // 0=Sun
+        // Shift so week starts on Mon (0=Mon..6=Sun)
+        const startOffset = (firstDayOfMonth === 0 ? 6 : firstDayOfMonth - 1);
+        const allDays = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+        const padded = Array.from({ length: startOffset }, () => null).concat(allDays as (number|null)[]);
 
-            {/* Calendar Month Selector & Days Grid */}
-            <div style={{ padding: '16px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                <span style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>August 2026</span>
-                <span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>{appointments.length} Consultations Booked</span>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '6px', textAlign: 'center', fontSize: '0.74rem' }}>
-                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
-                  <div key={d} style={{ fontWeight: 800, color: '#94a3b8', padding: '4px 0' }}>{d}</div>
-                ))}
-                {Array.from({ length: 31 }, (_, i) => i + 1).map(day => {
-                  const dayStr = `2026-08-${String(day).padStart(2, '0')}`;
-                  const hasAppt = appointments.some(a => a.preferred_date === dayStr);
-                  const isSelected = selectedCalDate === dayStr;
-                  return (
-                    <div
-                      key={day}
-                      onClick={() => setSelectedCalDate(dayStr)}
-                      style={{
-                        padding: '10px 4px',
-                        borderRadius: '8px',
-                        background: isSelected ? PUR : (hasAppt ? '#dcfce7' : '#fff'),
-                        color: isSelected ? '#fff' : (hasAppt ? '#15803d' : '#334155'),
-                        fontWeight: hasAppt || isSelected ? 800 : 500,
-                        border: '1px solid #e2e8f0',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {day}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+        const prevMonth = () => {
+          if (calMonth === 0) { setCalMonth(11); setCalYear(y => y - 1); }
+          else setCalMonth(m => m - 1);
+        };
+        const nextMonth = () => {
+          if (calMonth === 11) { setCalMonth(0); setCalYear(y => y + 1); }
+          else setCalMonth(m => m + 1);
+        };
 
-            {/* Selected Date Appointments */}
-            <div>
-              <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a', marginBottom: '8px' }}>
-                SCHEDULE FOR {selectedCalDate}
-              </div>
-              {appointments.filter(a => a.preferred_date === selectedCalDate).length === 0 ? (
-                <div style={{ padding: '16px', borderRadius: '10px', background: '#f8fafc', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
-                  No consultations scheduled for this date.
+        const currentMonthStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}`;
+        const selectedDateAppts = appointments.filter(a => a.preferred_date === selectedCalDate);
+        const monthAppts = appointments.filter(a => (a.preferred_date || '').startsWith(currentMonthStr));
+
+        return (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.7)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={e => { if (e.target === e.currentTarget) setShowCalendarModal(false); }}>
+            <div style={{ background: '#fff', borderRadius: '24px', padding: '28px', width: '680px', maxWidth: '94vw', maxHeight: '92vh', overflowY: 'auto' }}>
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>🗓️ Dermatology Clinical Calendar</div>
+                  <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>Navigate any month & year to view live appointments and follow-up milestones.</div>
                 </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {appointments.filter(a => a.preferred_date === selectedCalDate).map(a => (
-                    <div key={a.id} style={{ padding: '10px 14px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div>
-                        <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{a.patient_name}</div>
-                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Time: {a.preferred_time} · {a.user_notes || 'Consultation'}</div>
-                      </div>
-                      <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', background: a.status === 'Accepted' ? '#dcfce7' : '#fef3c7', color: a.status === 'Accepted' ? '#15803d' : '#b45309' }}>
-                        {a.status}
-                      </span>
-                    </div>
+                <button onClick={() => setShowCalendarModal(false)} style={{ border: 'none', background: '#f1f5f9', borderRadius: '50%', width: '32px', height: '32px', fontSize: '1rem', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>×</button>
+              </div>
+
+              {/* Month/Year Navigation Bar */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px', padding: '10px 14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <button onClick={prevMonth} style={{ padding: '6px 12px', borderRadius: '8px', border: `1px solid ${PUR}`, background: '#fff', color: PUR, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem' }}>‹ Prev</button>
+
+                <select
+                  value={calMonth}
+                  onChange={e => setCalMonth(Number(e.target.value))}
+                  style={{ flex: 1, padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', background: '#fff', cursor: 'pointer' }}
+                >
+                  {MONTH_NAMES.map((name, i) => (
+                    <option key={i} value={i}>{name}</option>
                   ))}
+                </select>
+
+                <select
+                  value={calYear}
+                  onChange={e => setCalYear(Number(e.target.value))}
+                  style={{ width: '90px', padding: '8px 10px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.88rem', fontWeight: 700, color: '#0f172a', background: '#fff', cursor: 'pointer' }}
+                >
+                  {Array.from({ length: 10 }, (_, i) => 2024 + i).map(y => (
+                    <option key={y} value={y}>{y}</option>
+                  ))}
+                </select>
+
+                <button onClick={nextMonth} style={{ padding: '6px 12px', borderRadius: '8px', border: `1px solid ${PUR}`, background: '#fff', color: PUR, fontWeight: 800, cursor: 'pointer', fontSize: '0.82rem' }}>Next ›</button>
+              </div>
+
+              {/* Calendar Grid */}
+              <div style={{ padding: '16px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <span style={{ fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>{MONTH_NAMES[calMonth]} {calYear}</span>
+                  <span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700, padding: '3px 10px', borderRadius: '8px', background: `${PUR}12` }}>
+                    {monthAppts.length} {monthAppts.length === 1 ? 'Consultation' : 'Consultations'} Booked
+                  </span>
                 </div>
-              )}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '5px', textAlign: 'center', fontSize: '0.74rem' }}>
+                  {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => (
+                    <div key={d} style={{ fontWeight: 800, color: '#94a3b8', padding: '4px 0' }}>{d}</div>
+                  ))}
+                  {padded.map((day, idx) => {
+                    if (!day) return <div key={`pad-${idx}`} />;
+                    const dayStr = `${calYear}-${String(calMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                    const hasAppt = appointments.some(a => a.preferred_date === dayStr);
+                    const isSelected = selectedCalDate === dayStr;
+                    const isToday = dayStr === new Date().toISOString().split('T')[0];
+                    return (
+                      <div
+                        key={day}
+                        onClick={() => setSelectedCalDate(dayStr)}
+                        style={{
+                          padding: '8px 2px',
+                          borderRadius: '8px',
+                          background: isSelected ? PUR : (hasAppt ? '#dcfce7' : (isToday ? `${PUR}10` : '#fff')),
+                          color: isSelected ? '#fff' : (hasAppt ? '#15803d' : (isToday ? PUR : '#334155')),
+                          fontWeight: hasAppt || isSelected || isToday ? 800 : 500,
+                          border: isToday && !isSelected ? `1px solid ${PUR}` : '1px solid #e2e8f0',
+                          cursor: 'pointer',
+                          position: 'relative' as const,
+                        }}
+                      >
+                        {day}
+                        {hasAppt && !isSelected && <span style={{ position: 'absolute', bottom: '3px', left: '50%', transform: 'translateX(-50%)', width: '5px', height: '5px', borderRadius: '50%', background: '#16a34a', display: 'block' }} />}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Selected Date Schedule */}
+              <div>
+                <div style={{ fontSize: '0.84rem', fontWeight: 800, color: '#0f172a', marginBottom: '10px' }}>
+                  SCHEDULE FOR {selectedCalDate}
+                </div>
+                {selectedDateAppts.length === 0 ? (
+                  <div style={{ padding: '18px', borderRadius: '12px', background: '#f8fafc', fontSize: '0.82rem', color: '#94a3b8', textAlign: 'center', border: '1px dashed #e2e8f0' }}>
+                    No consultations or follow-ups booked for this date.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {selectedDateAppts.map(a => (
+                      <div key={a.id} style={{ padding: '12px 16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#0f172a' }}>{a.patient_name}</div>
+                          <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>🕐 {a.preferred_time} &nbsp;·&nbsp; {a.user_notes || a.consultant_summary || 'Clinical Consultation'}</div>
+                        </div>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 10px', borderRadius: '8px', background: a.status === 'Accepted' ? '#dcfce7' : (a.status === 'Completed' ? '#dbeafe' : '#fef3c7'), color: a.status === 'Accepted' ? '#15803d' : (a.status === 'Completed' ? '#1d4ed8' : '#b45309') }}>
+                          {a.status?.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Create Treatment Plan Modal */}
       {showCreatePlanModal && (

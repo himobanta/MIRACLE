@@ -107,8 +107,8 @@ export function Dashboard() {
 
             {/* Main Content Area */}
             <div style={{ position: 'relative', zIndex: 1, padding: '10px 24px 16px' }}>
-              {/* Stat Cards (Consultant only — removed for derma, admin, and user) */}
-              {role === 'consultant' && activeSection === 'dashboard' && (
+              {/* Stat Cards (Consultant and Dermatologist live top metrics) */}
+              {(role === 'consultant' || role === 'derma') && activeSection === 'dashboard' && (
                 <div>
                   <StatCards role={role} />
                 </div>

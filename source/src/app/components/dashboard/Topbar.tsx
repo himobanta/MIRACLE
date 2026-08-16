@@ -566,7 +566,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
         )}
 
         {/* Menu */}
-        {([['👤', 'My Profile', 'settings'], ['⚙️', 'Account Settings', 'account-settings'], ['🔔', 'Notifications', 'notifications']] as [string, string, string][]).map(([icon, label, section], i) => (
+        {([['👤', 'My Profile', 'my-profile'], ['⚙️', 'Account Settings', 'account-settings'], ['🔔', 'Notifications', 'notifications']] as [string, string, string][]).map(([icon, label, section], i) => (
           <button key={i} onClick={() => { if (section && onSectionChange) { onSectionChange(section); setShowProfile(false); } }} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px 12px', borderRadius: '10px', border: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: '0.86rem', color: '#3f4a5a', cursor: 'pointer', textAlign: 'left', transition: 'background 0.15s' }} onMouseEnter={e => (e.currentTarget.style.background = '#f6f7fb')} onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
             <span style={{ fontSize: '1rem' }}>{icon}</span>{label}
           </button>

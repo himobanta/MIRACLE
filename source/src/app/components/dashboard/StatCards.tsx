@@ -50,11 +50,19 @@ export function StatCards({ role }: StatCardsProps) {
     upcoming_followups: number;
   } | null>(null);
 
+  const [dermaStats, setDermaStats] = React.useState<any>(null);
+
   React.useEffect(() => {
     if (role === 'consultant') {
       import('../../services/api').then(({ api }) => {
         api.getConsultantDashboard().then(d => {
           setConsultantStats(d);
+        }).catch(() => {});
+      });
+    } else if (role === 'derma') {
+      import('../../services/api').then(({ api }) => {
+        api.getDermaDashboardOverview().then(d => {
+          setDermaStats(d);
         }).catch(() => {});
       });
     }
@@ -70,12 +78,13 @@ export function StatCards({ role }: StatCardsProps) {
       makeStat('System Uptime', '99.9%', 'db', 'tea', <span style={{ color: '#8b8fa3' }}>All systems healthy</span>),
     ];
   } else if (role === 'derma') {
+    const m = dermaStats?.metrics;
     stats = [
-      makeStat('Total Patients', '156', 'users', 'pur', <UpEl text="14% this month" color="#16a34a" />),
-      makeStat('Assessments Done', '203', 'clip', 'grn', <UpEl text="18% this month" color="#16a34a" />),
-      makeStat('Active Treatment Plans', '128', 'trend', 'blu', <UpEl text="16% this month" color="#16a34a" />),
-      makeStat('Patients Improving', '68%', 'star', 'ora', <UpEl text="8% this month" color="#16a34a" />),
-      makeStat('Follow-ups Due', '23', 'cal', 'red', <span style={{ color: PUR, fontWeight: 600 }}>View all follow-ups →</span>),
+      makeStat('Total Patients', m ? String(m.total_patients || 0) : '—', 'users', 'pur', <UpEl text="Live Patient Roster" color="#16a34a" />),
+      makeStat('Total Assessments', m ? String(m.total_assessments || 0) : '—', 'clip', 'grn', <UpEl text="Clinical Evaluations" color="#16a34a" />),
+      makeStat('Active Prescriptions (Rx)', m ? String(m.active_prescriptions || 0) : '—', 'trend', 'blu', <UpEl text="Regulated Medical Rx" color="#16a34a" />),
+      makeStat('Avg. Health Score', m ? `${m.avg_health_score || '—'}` : '—', 'star', 'ora', <UpEl text="Cohort Average Score" color="#16a34a" />),
+      makeStat('Referrals & Consults', m ? String(m.pending_referrals || 0) : '—', 'cal', 'red', <span style={{ color: PUR, fontWeight: 600 }}>Action Required →</span>),
     ];
   } else if (role === 'consultant') {
     const c = consultantStats;
