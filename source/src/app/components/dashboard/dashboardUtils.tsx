@@ -177,10 +177,10 @@ export function DonutChart({
           pointerEvents: 'none',
         }}
       >
-        <div style={{ fontSize: `${Math.max(1.1, size * 0.16)}rem`, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+        <div style={{ fontSize: '1.35rem', fontWeight: 800, color: '#0f172a', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
           {center}
         </div>
-        <div style={{ fontSize: `${Math.max(0.68, size * 0.08)}rem`, color: '#64748b', fontWeight: 600, marginTop: '2px' }}>
+        <div style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600, marginTop: '2px', textTransform: 'capitalize' }}>
           {sub}
         </div>
       </div>
