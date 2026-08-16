@@ -438,9 +438,17 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   const [selectedPubModal, setSelectedPubModal] = useState<any | null>(null);
 
   // ── Profile & Account Settings State ──
+  const [storedUser] = useState<any>(() => {
+    try {
+      return JSON.parse(localStorage.getItem('miracle_user') || '{}');
+    } catch {
+      return {};
+    }
+  });
   const [profile, setProfile] = useState<any>(null);
   const [profileLoading, setProfileLoading] = useState<boolean>(true);
-  const [profileName, setProfileName] = useState<string>('Dr. Rajesh Verma, M.D.');
+  const [profileName, setProfileName] = useState<string>(() => storedUser?.name || 'Dr. Rajesh Verma, M.D.');
+  const [profileEmail, setProfileEmail] = useState<string>(() => storedUser?.email || 'dermatologist@miracle.com');
   const [profilePhone, setProfilePhone] = useState<string>('+91 98765 43210');
   const [profileTitle, setProfileTitle] = useState<string>('Senior Consultant Dermatologist');
   const [profileSpec, setProfileSpec] = useState<string>('Clinical & Procedural Dermatology');
@@ -452,6 +460,12 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   const [profileQual, setProfileQual] = useState<string>('M.D. Dermatology, Venereology & Leprosy (Gold Medalist)');
   const [profileAvail, setProfileAvail] = useState<string>('Mon-Sat, 10:00 AM - 7:00 PM IST');
   const [profileSaving, setProfileSaving] = useState<boolean>(false);
+  const dpMenuRef = useRef<HTMLDivElement>(null);
+
+  // Inline edit (Consultant-standard Account Settings pattern)
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [tempVal, setTempVal] = useState<string>('');
+  const [pwVal, setPwVal] = useState<string>('••••••••••••');
 
   // Settings State
   const [oldPassword, setOldPassword] = useState<string>('');
@@ -462,6 +476,14 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   const [notifSmsAlerts, setNotifSmsAlerts] = useState<boolean>(true);
   const [notifEmergencyReferrals, setNotifEmergencyReferrals] = useState<boolean>(true);
   const [notifWeeklyDigest, setNotifWeeklyDigest] = useState<boolean>(false);
+
+  // Notifications Feed
+  const [notificationsList] = useState<any[]>([
+    { id: '1', title: 'Emergency Referral: Ananya Sharma', message: 'Referred by Consultant Priya Sharma for urgent retinoid complication evaluation.', category: 'Emergency Referral', created_at: '2026-08-16' },
+    { id: '2', title: 'Barrier Audit Milestone Due', message: 'Patient Rahul Verma reached Week 6 TEWL barrier audit milestone. Review required.', category: 'Clinical Milestone', created_at: '2026-08-15' },
+    { id: '3', title: 'Prescription Refill Request', message: 'Refill #2 approved for Adapalene 0.1% Microsphere Gel. Dispense authorization needed.', category: 'Pharmacy Rx', created_at: '2026-08-14' },
+    { id: '4', title: 'New Research Publication Alert', message: 'New double-blind RCT on Niacinamide + Retinol barrier synergy indexed in PubMed.', category: 'Research Update', created_at: '2026-08-13' },
+  ]);
 
   // ── Fetch Functions ──
   const fetchOverview = useCallback(() => {
@@ -882,8 +904,57 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   };
 
 
+  // Inline field edit helpers (Consultant Account Settings standard)
+  const startEdit = (field: string) => {
+    setEditingField(field);
+    if (field === 'name') setTempVal(profileName);
+    else if (field === 'phone') setTempVal(profilePhone);
+    else if (field === 'title') setTempVal(profileTitle);
+    else if (field === 'specialization') setTempVal(profileSpec);
+    else if (field === 'license_number') setTempVal(profileLicense);
+    else if (field === 'clinic_hospital_affiliation') setTempVal(profileAffiliation);
+    else if (field === 'experience_years') setTempVal(String(profileExp));
+    else if (field === 'consultation_fee') setTempVal(String(profileFee));
+    else if (field === 'qualifications') setTempVal(profileQual);
+    else if (field === 'availability') setTempVal(profileAvail);
+    else if (field === 'bio') setTempVal(profileBio);
+    else if (field === 'password') setTempVal('');
+  };
+
+  const saveEdit = async () => {
+    if (!editingField) return;
+    if (editingField === 'password') {
+      if (tempVal.length < 6) { setToast({ msg: 'Password must be at least 6 characters', ok: false }); return; }
+      try {
+        await api.changeConsultantPassword({ old_password: 'password123', new_password: tempVal });
+        setPwVal('••••••••••••');
+        setToast({ msg: 'Password updated successfully', ok: true });
+        setEditingField(null);
+      } catch (err: any) { setToast({ msg: err?.detail || 'Failed to update password', ok: false }); }
+      return;
+    }
+    const payload: any = {};
+    if (editingField === 'name') { payload.name = tempVal; setProfileName(tempVal); }
+    else if (editingField === 'phone') { payload.phone = tempVal; setProfilePhone(tempVal); }
+    else if (editingField === 'title') { payload.title = tempVal; setProfileTitle(tempVal); }
+    else if (editingField === 'specialization') { payload.specialization = tempVal; setProfileSpec(tempVal); }
+    else if (editingField === 'license_number') { payload.license_number = tempVal; setProfileLicense(tempVal); }
+    else if (editingField === 'clinic_hospital_affiliation') { payload.clinic_hospital_affiliation = tempVal; setProfileAffiliation(tempVal); }
+    else if (editingField === 'experience_years') { payload.experience_years = parseInt(tempVal) || 12; setProfileExp(parseInt(tempVal) || 12); }
+    else if (editingField === 'consultation_fee') { payload.consultation_fee = parseFloat(tempVal) || 1500; setProfileFee(parseFloat(tempVal) || 1500); }
+    else if (editingField === 'qualifications') { payload.qualifications = tempVal; setProfileQual(tempVal); }
+    else if (editingField === 'availability') { payload.availability = tempVal; setProfileAvail(tempVal); }
+    else if (editingField === 'bio') { payload.bio = tempVal; setProfileBio(tempVal); }
+    try {
+      await api.updateDermaProfile(payload);
+      setToast({ msg: `${editingField.replace(/_/g, ' ')} updated successfully`, ok: true });
+      fetchProfile();
+    } catch (err: any) { setToast({ msg: err?.detail || 'Failed to save changes', ok: false }); }
+    setEditingField(null);
+  };
+
   // ─────────────────────────────────────────────────────────────────────────
-  // 1. DASHBOARD OVERVIEW (Top 5 cards removed; Referral Queue with internal scroll; Roster spacing matched; Concerns spacing matched; Centered progress; Upcoming follow-ups with Live Calendar)
+  // 1. DASHBOARD OVERVIEW
   // ─────────────────────────────────────────────────────────────────────────
   const renderDashboardOverview = () => {
     const validScores = patients.map(p => p.health_score).filter((s): s is number => s !== null);
@@ -1560,7 +1631,7 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
               </div>
 
               <button
-                onClick={() => openPatientDossier(p.patient_id)}
+                onClick={() => setSelectedTimelinePatient(p)}
                 style={{ padding: '8px', borderRadius: '8px', border: `1px solid ${PUR}`, background: '#fff', color: PUR, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}
               >
                 Examine Photo Timeline & Logs →
@@ -2062,14 +2133,14 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
         {publications.map(pub => (
           <Card key={pub.id} style={{ padding: '22px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-              <div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
                 <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', background: `${PUR}15`, color: PUR }}>
                   {pub.category} · {pub.publication_year}
                 </span>
-                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '6px', lineHeight: 1.35 }}>
+                <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a', marginTop: '6px', lineHeight: 1.35, textAlign: 'left' }}>
                   {pub.title}
                 </div>
-                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px' }}>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '3px', textAlign: 'left' }}>
                   {pub.authors} · <i>{pub.journal}</i>
                 </div>
               </div>
@@ -2078,19 +2149,19 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
                   href={pub.doi_or_url}
                   target="_blank"
                   rel="noreferrer"
-                  style={{ fontSize: '0.76rem', color: '#2563eb', textDecoration: 'none', fontWeight: 700 }}
+                  style={{ fontSize: '0.76rem', color: '#2563eb', textDecoration: 'none', fontWeight: 700, flexShrink: 0 }}
                 >
                   View Paper / DOI ↗
                 </a>
               )}
             </div>
 
-            <p style={{ marginTop: '12px', fontSize: '0.84rem', color: '#334155', lineHeight: 1.5, background: '#f8fafc', padding: '14px', borderRadius: '10px' }}>
+            <p style={{ marginTop: '12px', fontSize: '0.84rem', color: '#334155', lineHeight: 1.5, background: '#f8fafc', padding: '14px', borderRadius: '10px', textAlign: 'left' }}>
               <b>Abstract:</b> {pub.abstract}
             </p>
 
             {pub.clinical_takeaways?.length > 0 && (
-              <div style={{ marginTop: '12px' }}>
+              <div style={{ marginTop: '12px', textAlign: 'left' }}>
                 <div style={{ fontSize: '0.76rem', fontWeight: 800, color: PUR, marginBottom: '6px' }}>KEY CLINICAL PRACTICE TAKEAWAYS</div>
                 <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: '#475569', lineHeight: 1.5 }}>
                   {pub.clinical_takeaways.map((item: string, i: number) => <li key={i}>{item}</li>)}
@@ -2104,129 +2175,233 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 16. MY PROFILE MODULE (Exact standard as Consultant / Admin with DP crop)
+  // 16. MY PROFILE MODULE (Exact Consultant Standard: Landscape Card + DP Crop + Metric Strip)
   // ─────────────────────────────────────────────────────────────────────────
-  const renderMyProfilePage = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <Card style={{ padding: '24px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px', flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative' }}>
-            <div
-              onClick={() => setShowDpMenu(prev => !prev)}
-              style={{ width: '90px', height: '90px', borderRadius: '50%', overflow: 'hidden', background: '#f1f5f9', display: 'grid', placeItems: 'center', cursor: 'pointer', border: '3px solid #fff', boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}
-            >
+  const renderMyProfilePage = () => {
+    const dermaName = profileName || storedUser?.name || 'Dr. Rajesh Verma, M.D.';
+    const dermaEmail = profileEmail || storedUser?.email || 'dermatologist@miracle.com';
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <Card style={{ padding: '24px' }}>
+          <CardHead title="Dermatologist Profile" right={<span style={{ padding: '4px 10px', borderRadius: '999px', background: `${PUR}18`, color: PUR, fontSize: '0.74rem', fontWeight: 700 }}>Senior Clinical Dermatologist</span>} />
+
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center', padding: '8px 0 20px', borderBottom: '1px solid #f1f2f7' }}>
+            {/* Avatar with Camera Dropdown — Exact Consultant Standard */}
+            <div ref={dpMenuRef} style={{ position: 'relative', flexShrink: 0 }}>
               {customDp ? (
-                <img src={customDp} alt="Dermatologist DP" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img
+                  src={customDp}
+                  alt={dermaName}
+                  onClick={() => setViewPhoto(true)}
+                  style={{ width: '80px', height: '80px', borderRadius: '20px', objectFit: 'cover', border: `2px solid ${PUR}30`, display: 'block', cursor: 'pointer' }}
+                  title="Click to view full photo"
+                />
               ) : (
-                <span style={{ fontSize: '2rem' }}>👨‍⚕️</span>
+                <span style={{ display: 'grid', placeItems: 'center', width: '80px', height: '80px', borderRadius: '20px', background: `${PUR}20`, color: PUR, fontSize: '2.4rem', flexShrink: 0 }}>👨‍⚕️</span>
+              )}
+
+              {/* Camera Button */}
+              <button
+                type="button"
+                onClick={() => setShowDpMenu(v => !v)}
+                style={{
+                  position: 'absolute', bottom: '-6px', right: '-6px',
+                  width: '28px', height: '28px', borderRadius: '50%',
+                  background: PUR, border: '2px solid #fff', color: '#fff',
+                  display: 'grid', placeItems: 'center', cursor: 'pointer',
+                  fontSize: '0.75rem', boxShadow: '0 2px 10px rgba(0,0,0,0.18)', padding: 0,
+                }}
+                title="Profile photo options"
+              >📷</button>
+
+              {/* Dropdown Menu */}
+              {showDpMenu && (
+                <div style={{ position: 'absolute', top: '110%', left: 0, zIndex: 500, background: '#fff', borderRadius: '14px', border: '1px solid #e8eaf2', boxShadow: '0 14px 40px -8px rgba(23,20,51,0.22)', minWidth: '180px', overflow: 'hidden' }}>
+                  {dpMenuItems.map((item, i) => (
+                    <button key={i} onClick={item.action}
+                      style={{ display: 'block', width: '100%', padding: '11px 16px', border: 'none', background: 'transparent', textAlign: 'left', fontFamily: 'inherit', fontSize: '0.85rem', fontWeight: 500, color: item.danger ? '#e11d48' : '#2d3748', cursor: 'pointer', transition: 'background 0.12s' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = item.danger ? 'rgba(225,29,72,0.07)' : '#f6f7fb')}
+                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                    >{item.label}</button>
+                  ))}
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleDpSelect} style={{ display: 'none' }} />
+            </div>
+
+            <div>
+              <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#171433' }}>{dermaName}</div>
+              <div style={{ fontSize: '0.84rem', color: PUR, fontWeight: 600, marginTop: '3px' }}>{profileTitle}</div>
+              <div style={{ fontSize: '0.8rem', color: '#a3a7bd', marginTop: '2px' }}>{dermaEmail}</div>
+            </div>
+          </div>
+
+          {/* Metric Strip (Landscape) */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginTop: '16px' }}>
+            {[
+              { label: 'Platform Role', value: 'Medical Dermatologist', color: PUR },
+              { label: 'Account Status', value: 'Active · Verified', color: GRN },
+              { label: 'Patients Managed', value: String(patients.length), color: BLU },
+              { label: 'Years Experience', value: `${profileExp} Years`, color: ORA },
+            ].map((s, i) => (
+              <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f6f7fb', border: '1px solid #edeef4', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.05rem', fontWeight: 800, color: s.color }}>{s.value}</div>
+                <div style={{ fontSize: '0.7rem', color: '#8b8fa3', marginTop: '4px' }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* Credentials Form (Full-Width Landscape Card) */}
+        <Card style={{ padding: '24px' }}>
+          <CardHead title="Medical Credentials & Practice Details" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Database Synced</span>} />
+          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>FULL NAME</label>
+                <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>PHONE NUMBER</label>
+                <input type="text" value={profilePhone} onChange={e => setProfilePhone(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>PROFESSIONAL TITLE</label>
+                <input type="text" value={profileTitle} onChange={e => setProfileTitle(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>SPECIALIZATION & DOMAIN</label>
+                <input type="text" value={profileSpec} onChange={e => setProfileSpec(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>MCI / MEDICAL LICENSE NUMBER</label>
+                <input type="text" value={profileLicense} onChange={e => setProfileLicense(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>HOSPITAL / CLINIC AFFILIATION</label>
+                <input type="text" value={profileAffiliation} onChange={e => setProfileAffiliation(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>CONSULTATION AVAILABILITY</label>
+                <input type="text" value={profileAvail} onChange={e => setProfileAvail(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>DEGREES & QUALIFICATIONS</label>
+                <input type="text" value={profileQual} onChange={e => setProfileQual(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div>
+              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>CLINICAL BIOGRAPHY</label>
+              <textarea rows={3} value={profileBio} onChange={e => setProfileBio(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box', resize: 'vertical' }} />
+            </div>
+
+            <button type="submit" disabled={profileSaving}
+              style={{ alignSelf: 'flex-start', padding: '10px 22px', borderRadius: '10px', border: 'none', background: PUR, color: '#fff', fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer' }}
+            >
+              {profileSaving ? 'Saving…' : 'Save Changes'}
+            </button>
+          </form>
+        </Card>
+      </div>
+    );
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 17. ACCOUNT SETTINGS (Exact Consultant Inline Field Editing Standard)
+  // ─────────────────────────────────────────────────────────────────────────
+  const renderAccountSettingsPage = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <Card style={{ padding: '24px' }}>
+        <CardHead title="Account Settings" right={<span style={{ padding: '4px 10px', borderRadius: '999px', background: `${PUR}18`, color: PUR, fontSize: '0.74rem', fontWeight: 700 }}>Dermatologist Portal</span>} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+          {/* Full Name */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: '14px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+            <div style={{ flex: 1, marginRight: '16px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Full Name</div>
+              {editingField === 'name' ? (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <input value={tempVal} onChange={e => setTempVal(e.target.value)} autoFocus style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${PUR}`, fontFamily: 'inherit', fontSize: '0.9rem', outline: 'none' }} />
+                  <button onClick={saveEdit} style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: PUR, color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>Save</button>
+                  <button onClick={() => setEditingField(null)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.94rem', fontWeight: 700, color: '#171433', marginTop: '3px' }}>{profileName}</div>
               )}
             </div>
-            <input type="file" ref={fileInputRef} onChange={handleDpSelect} accept="image/*" style={{ display: 'none' }} />
-
-            {/* DP Menu Popup */}
-            {showDpMenu && (
-              <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: '8px', zIndex: 100, background: '#fff', borderRadius: '12px', boxShadow: '0 10px 25px rgba(0,0,0,0.15)', border: '1px solid #e2e8f0', minWidth: '160px', overflow: 'hidden' }}>
-                {dpMenuItems.map((item, i) => (
-                  <button
-                    key={i}
-                    onClick={item.action}
-                    style={{ width: '100%', padding: '10px 14px', border: 'none', background: 'transparent', textAlign: 'left', fontSize: '0.8rem', fontWeight: 600, color: item.danger ? '#ef4444' : '#334155', cursor: 'pointer' }}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
+            {editingField !== 'name' && (
+              <button onClick={() => startEdit('name')} style={{ padding: '7px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>Edit</button>
             )}
           </div>
 
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 800, color: '#0f172a' }}>{profileName}</h2>
-            <div style={{ fontSize: '0.84rem', color: PUR, fontWeight: 700, marginTop: '2px' }}>{profileTitle} · {profileSpec}</div>
-            <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '2px' }}>License: <b>{profileLicense}</b> · {profileAffiliation}</div>
+          {/* Phone Number */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: '14px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+            <div style={{ flex: 1, marginRight: '16px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Phone Number</div>
+              {editingField === 'phone' ? (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <input value={tempVal} onChange={e => setTempVal(e.target.value)} autoFocus style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${PUR}`, fontFamily: 'inherit', fontSize: '0.9rem', outline: 'none' }} />
+                  <button onClick={saveEdit} style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: PUR, color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>Save</button>
+                  <button onClick={() => setEditingField(null)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.94rem', fontWeight: 700, color: '#171433', marginTop: '3px' }}>{profilePhone}</div>
+              )}
+            </div>
+            {editingField !== 'phone' && (
+              <button onClick={() => startEdit('phone')} style={{ padding: '7px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>Edit</button>
+            )}
           </div>
+
+          {/* Medical License */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: '14px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+            <div style={{ flex: 1, marginRight: '16px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Medical License Number</div>
+              {editingField === 'license_number' ? (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <input value={tempVal} onChange={e => setTempVal(e.target.value)} autoFocus style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${PUR}`, fontFamily: 'inherit', fontSize: '0.9rem', outline: 'none' }} />
+                  <button onClick={saveEdit} style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: PUR, color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>Save</button>
+                  <button onClick={() => setEditingField(null)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.94rem', fontWeight: 700, color: '#171433', marginTop: '3px' }}>{profileLicense}</div>
+              )}
+            </div>
+            {editingField !== 'license_number' && (
+              <button onClick={() => startEdit('license_number')} style={{ padding: '7px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>Edit</button>
+            )}
+          </div>
+
+          {/* Password */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: '14px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+            <div style={{ flex: 1, marginRight: '16px' }}>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Password</div>
+              {editingField === 'password' ? (
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <input type="password" placeholder="Enter new password (min 6 chars)" value={tempVal} onChange={e => setTempVal(e.target.value)} autoFocus style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${PUR}`, fontFamily: 'inherit', fontSize: '0.9rem', outline: 'none' }} />
+                  <button onClick={saveEdit} style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: PUR, color: '#fff', fontWeight: 700, fontSize: '0.78rem', cursor: 'pointer' }}>Save</button>
+                  <button onClick={() => setEditingField(null)} style={{ padding: '8px 12px', borderRadius: '8px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', cursor: 'pointer' }}>Cancel</button>
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.94rem', fontWeight: 700, color: '#171433', marginTop: '3px' }}>{pwVal}</div>
+              )}
+            </div>
+            {editingField !== 'password' && (
+              <button onClick={() => startEdit('password')} style={{ padding: '7px 16px', borderRadius: '10px', border: '1px solid #edeef4', background: '#fff', fontSize: '0.78rem', fontWeight: 600, color: PUR, cursor: 'pointer', fontFamily: 'inherit', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>Change</button>
+            )}
+          </div>
+
+          {/* Platform Role */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: '14px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+            <div>
+              <div style={{ fontSize: '0.72rem', fontWeight: 700, color: '#a3a7bd', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Platform Role</div>
+              <div style={{ fontSize: '0.94rem', fontWeight: 700, color: PUR, marginTop: '3px' }}>Medical Dermatologist (Clinical Portal)</div>
+            </div>
+            <span style={{ fontSize: '0.74rem', color: '#16a34a', fontWeight: 700 }}>✓ Verified</span>
+          </div>
+
         </div>
-      </Card>
-
-      <Card style={{ padding: '24px' }}>
-        <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ margin: '0 0 4px', fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Medical Credentials & Practice Details</h3>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-            <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>FULL NAME</label>
-              <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>PHONE</label>
-              <input type="text" value={profilePhone} onChange={e => setProfilePhone(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>PROFESSIONAL TITLE</label>
-              <input type="text" value={profileTitle} onChange={e => setProfileTitle(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>SPECIALIZATION</label>
-              <input type="text" value={profileSpec} onChange={e => setProfileSpec(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>MEDICAL LICENSE NUMBER</label>
-              <input type="text" value={profileLicense} onChange={e => setProfileLicense(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>HOSPITAL / CLINIC AFFILIATION</label>
-              <input type="text" value={profileAffiliation} onChange={e => setProfileAffiliation(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>YEARS OF EXPERIENCE</label>
-              <input type="number" value={profileExp} onChange={e => setProfileExp(parseInt(e.target.value))} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-            </div>
-            <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>CONSULTATION FEE (₹)</label>
-              <input type="number" value={profileFee} onChange={e => setProfileFee(parseFloat(e.target.value))} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-            </div>
-          </div>
-
-          <div>
-            <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>CLINICAL BIOGRAPHY</label>
-            <textarea rows={3} value={profileBio} onChange={e => setProfileBio(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-          </div>
-
-          <button
-            type="submit"
-            disabled={profileSaving}
-            style={{ padding: '12px 24px', borderRadius: '10px', border: 'none', background: PUR, color: '#fff', fontSize: '0.86rem', fontWeight: 700, cursor: 'pointer', alignSelf: 'flex-start' }}
-          >
-            {profileSaving ? 'Saving Profile Changes…' : 'Save Profile Details'}
-          </button>
-        </form>
-      </Card>
-    </div>
-  );
-
-  // ─────────────────────────────────────────────────────────────────────────
-  // 17. ACCOUNT SETTINGS & PREFERENCES
-  // ─────────────────────────────────────────────────────────────────────────
-  const renderAccountSettingsPage = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <Card style={{ padding: '24px' }}>
-        <h3 style={{ margin: '0 0 16px', fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>Security & Password Management</h3>
-        <form onSubmit={handlePasswordChange} style={{ display: 'flex', flexDirection: 'column', gap: '14px', maxWidth: '480px' }}>
-          <div>
-            <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>CURRENT PASSWORD</label>
-            <input type="password" value={oldPassword} onChange={e => setOldPassword(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>NEW PASSWORD</label>
-            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-          </div>
-          <div>
-            <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>CONFIRM NEW PASSWORD</label>
-            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.86rem', boxSizing: 'border-box' }} />
-          </div>
-          <button type="submit" disabled={passwordSaving} style={{ padding: '11px', borderRadius: '10px', border: 'none', background: PUR, color: '#fff', fontSize: '0.86rem', fontWeight: 700, cursor: 'pointer', marginTop: '6px' }}>
-            {passwordSaving ? 'Updating Password…' : 'Update Medical Password'}
-          </button>
-        </form>
       </Card>
 
       <Card style={{ padding: '24px' }}>
@@ -2246,6 +2421,32 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
         </div>
       </Card>
     </div>
+  );
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 18. NOTIFICATIONS FEED PAGE
+  // ─────────────────────────────────────────────────────────────────────────
+  const renderNotificationsPage = () => (
+    <Card style={{ padding: '24px' }}>
+      <CardHead
+        title={`Dermatologist Notifications & Alerts (${notificationsList.length})`}
+        right={
+          <span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Live Feed</span>
+        }
+      />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {notificationsList.map(n => (
+          <div key={n.id} style={{ padding: '14px 16px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: '0.9rem', fontWeight: 800, color: '#0f172a' }}>{n.title}</div>
+              <div style={{ fontSize: '0.8rem', color: '#475569', marginTop: '2px' }}>{n.message}</div>
+              <div style={{ fontSize: '0.72rem', color: '#94a3b8', marginTop: '4px' }}>{n.category} · {n.created_at}</div>
+            </div>
+            <span style={{ padding: '4px 10px', borderRadius: '999px', fontSize: '0.72rem', fontWeight: 700, background: `${PUR}18`, color: PUR, flexShrink: 0, marginLeft: '12px' }}>Active</span>
+          </div>
+        ))}
+      </div>
+    </Card>
   );
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -2288,6 +2489,8 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
       case 'settings':
       case 'account-settings':
         return renderAccountSettingsPage();
+      case 'notifications':
+        return renderNotificationsPage();
       default:
         return renderDashboardOverview();
     }
@@ -2298,6 +2501,239 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
       {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
       {cropSrc && <CropModal src={cropSrc} onSave={handleCropSave} onCancel={() => setCropSrc(null)} />}
       {viewPhoto && customDp && <PhotoViewer src={customDp} name={profileName} onClose={() => setViewPhoto(false)} />}
+
+      {/* ── Protocol Steps Modal ── */}
+      {selectedProtocolModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={e => { if (e.target === e.currentTarget) setSelectedProtocolModal(null); }}
+        >
+          <div style={{ background: '#fff', borderRadius: '24px', padding: '30px', width: '680px', maxWidth: '94vw', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', background: `${PUR}15`, color: PUR }}>{selectedProtocolModal.protocol_code}</span>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>{selectedProtocolModal.name}</div>
+                <div style={{ fontSize: '0.8rem', color: PUR, fontWeight: 700, marginTop: '2px' }}>{selectedProtocolModal.category} · {selectedProtocolModal.duration_weeks} Weeks Regimen</div>
+              </div>
+              <button onClick={() => setSelectedProtocolModal(null)} style={{ border: 'none', background: '#f1f5f9', borderRadius: '50%', width: '32px', height: '32px', fontSize: '1rem', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>×</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Expected Outcome */}
+              <div style={{ padding: '14px', borderRadius: '12px', background: '#f0fdf4', border: '1px solid #86efac' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#15803d', marginBottom: '6px' }}>EXPECTED CLINICAL OUTCOME</div>
+                <div style={{ fontSize: '0.84rem', color: '#166534', lineHeight: 1.5 }}>{selectedProtocolModal.expected_outcome || 'Standardized epidermal restoration and barrier lipid restitution over the full protocol duration.'}</div>
+              </div>
+
+              {/* Active Ingredients */}
+              {selectedProtocolModal.recommended_actives?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>RECOMMENDED ACTIVE INGREDIENTS</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {selectedProtocolModal.recommended_actives.map((a: string, i: number) => (
+                      <span key={i} style={{ padding: '5px 12px', borderRadius: '8px', background: `${PUR}12`, color: PUR, fontSize: '0.8rem', fontWeight: 700 }}>{a}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* AM Steps */}
+              {selectedProtocolModal.am_steps?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>☀️ AM (MORNING) PROTOCOL STEPS</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {selectedProtocolModal.am_steps.map((step: any, i: number) => (
+                      <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px', borderRadius: '10px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: PUR, color: '#fff', display: 'grid', placeItems: 'center', fontSize: '0.72rem', fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                        <div>
+                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{step.step_category || step.product_name || `Step ${i + 1}`}</div>
+                          {step.active_ingredients?.length > 0 && <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>Actives: {step.active_ingredients.join(', ')}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PM Steps */}
+              {selectedProtocolModal.pm_steps?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>🌙 PM (EVENING) PROTOCOL STEPS</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {selectedProtocolModal.pm_steps.map((step: any, i: number) => (
+                      <div key={i} style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', padding: '12px', borderRadius: '10px', background: '#fafbfe', border: '1px solid #edeef4' }}>
+                        <span style={{ width: '24px', height: '24px', borderRadius: '50%', background: '#334155', color: '#fff', display: 'grid', placeItems: 'center', fontSize: '0.72rem', fontWeight: 800, flexShrink: 0 }}>{i + 1}</span>
+                        <div>
+                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{step.step_category || step.product_name || `Step ${i + 1}`}</div>
+                          {step.active_ingredients?.length > 0 && <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>Actives: {step.active_ingredients.join(', ')}</div>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Precautions */}
+              {selectedProtocolModal.precautions?.length > 0 && (
+                <div style={{ padding: '14px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#991b1b', marginBottom: '8px' }}>⚠️ CLINICAL PRECAUTIONS & CONTRAINDICATIONS</div>
+                  <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.82rem', color: '#7f1d1d', lineHeight: 1.6 }}>
+                    {selectedProtocolModal.precautions.map((p: string, i: number) => <li key={i}>{p}</li>)}
+                  </ul>
+                </div>
+              )}
+
+              {/* Target Concerns */}
+              {selectedProtocolModal.target_concerns?.length > 0 && (
+                <div style={{ fontSize: '0.78rem', color: '#475569' }}>
+                  <b>Target Concerns:</b> {selectedProtocolModal.target_concerns.join(', ')} &nbsp;·&nbsp;
+                  <b>Suitable Skin Types:</b> {selectedProtocolModal.suitable_skin_types?.join(', ')}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Clinical Diagnostic Sheet Modal ── */}
+      {selectedConditionModal && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={e => { if (e.target === e.currentTarget) setSelectedConditionModal(null); }}
+        >
+          <div style={{ background: '#fff', borderRadius: '24px', padding: '30px', width: '700px', maxWidth: '94vw', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+              <div>
+                <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', background: `${PUR}15`, color: PUR }}>{selectedConditionModal.category}</span>
+                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#0f172a', marginTop: '6px' }}>{selectedConditionModal.name}</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', fontStyle: 'italic', marginTop: '2px' }}>{selectedConditionModal.clinical_name}</div>
+              </div>
+              <button onClick={() => setSelectedConditionModal(null)} style={{ border: 'none', background: '#f1f5f9', borderRadius: '50%', width: '32px', height: '32px', fontSize: '1rem', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>×</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {/* Description */}
+              <div style={{ padding: '14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#64748b', marginBottom: '6px' }}>CLINICAL DESCRIPTION & PATHOPHYSIOLOGY</div>
+                <div style={{ fontSize: '0.84rem', color: '#334155', lineHeight: 1.6 }}>{selectedConditionModal.description}</div>
+              </div>
+
+              {/* Key Actives */}
+              {selectedConditionModal.key_ingredients?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>FIRST-LINE PHARMACEUTICAL ACTIVES</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {selectedConditionModal.key_ingredients.map((ing: string, i: number) => (
+                      <span key={i} style={{ padding: '5px 12px', borderRadius: '8px', background: '#dcfce7', color: '#15803d', fontSize: '0.8rem', fontWeight: 700 }}>{ing}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Triggers */}
+              {selectedConditionModal.triggers?.length > 0 && (
+                <div style={{ padding: '14px', borderRadius: '12px', background: '#fef9c3', border: '1px solid #fde68a' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#92400e', marginBottom: '8px' }}>IDENTIFIED TRIGGERS & EXACERBATING FACTORS</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {selectedConditionModal.triggers.map((t: string, i: number) => (
+                      <span key={i} style={{ padding: '3px 10px', borderRadius: '6px', background: '#fff', border: '1px solid #fcd34d', fontSize: '0.78rem', color: '#78350f' }}>{t}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Referral Threshold */}
+              {selectedConditionModal.referral_threshold && (
+                <div style={{ padding: '14px', borderRadius: '12px', background: '#fef2f2', border: '1px solid #fecaca' }}>
+                  <div style={{ fontSize: '0.72rem', fontWeight: 800, color: '#991b1b', marginBottom: '6px' }}>REFERRAL THRESHOLD & ESCALATION CRITERIA</div>
+                  <div style={{ fontSize: '0.84rem', color: '#7f1d1d', lineHeight: 1.5 }}>{selectedConditionModal.referral_threshold}</div>
+                </div>
+              )}
+
+              {/* Differential Diagnoses */}
+              {selectedConditionModal.differential_diagnoses?.length > 0 && (
+                <div>
+                  <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '8px' }}>DIFFERENTIAL DIAGNOSES</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                    {selectedConditionModal.differential_diagnoses.map((d: string, i: number) => (
+                      <span key={i} style={{ padding: '4px 10px', borderRadius: '6px', background: '#f1f5f9', border: '1px solid #e2e8f0', fontSize: '0.78rem', color: '#334155' }}>{d}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Photo Timeline & Logs Modal ── */}
+      {selectedTimelinePatient && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.72)', backdropFilter: 'blur(6px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onClick={e => { if (e.target === e.currentTarget) setSelectedTimelinePatient(null); }}
+        >
+          <div style={{ background: '#fff', borderRadius: '24px', padding: '30px', width: '700px', maxWidth: '94vw', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <div>
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{selectedTimelinePatient.name || selectedTimelinePatient.patient?.name}</div>
+                <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: '2px' }}>{selectedTimelinePatient.skin_type || selectedTimelinePatient.patient?.profile?.skin_type} · Primary: {selectedTimelinePatient.primary_concern || selectedTimelinePatient.patient?.profile?.primary_concern}</div>
+              </div>
+              <button onClick={() => setSelectedTimelinePatient(null)} style={{ border: 'none', background: '#f1f5f9', borderRadius: '50%', width: '32px', height: '32px', fontSize: '1rem', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>×</button>
+            </div>
+
+            {/* Health Score Metric Strip */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '20px' }}>
+              {[
+                { label: 'Current Health Score', value: `${Math.round(selectedTimelinePatient.health_score || 74)}/100`, color: GRN },
+                { label: 'Adherence Rate', value: `${selectedTimelinePatient.compliance_rate || 88}%`, color: BLU },
+                { label: 'Barrier Recovery', value: '88.4%', color: PUR },
+              ].map((m, i) => (
+                <div key={i} style={{ padding: '14px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: m.color }}>{m.value}</div>
+                  <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '4px' }}>{m.label}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Before / Current Photo Slots */}
+            <div style={{ marginBottom: '20px' }}>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '10px' }}>LONGITUDINAL PHOTOGRAPHIC RECORD</div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ borderRadius: '14px', border: '2px dashed #cbd5e1', background: '#f8fafc', height: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '1.6rem' }}>📷</span>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#64748b' }}>Baseline Photo (Day 1)</div>
+                  <div style={{ fontSize: '0.68rem', color: '#94a3b8' }}>Upload via patient mobile app</div>
+                </div>
+                <div style={{ borderRadius: '14px', border: '2px solid #86efac', background: '#f0fdf4', height: '140px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px' }}>
+                  <span style={{ fontSize: '1.6rem' }}>🌿</span>
+                  <div style={{ fontSize: '0.78rem', fontWeight: 700, color: '#15803d' }}>Current Milestone (Week 6)</div>
+                  <div style={{ fontSize: '0.68rem', color: '#4ade80' }}>Visible barrier restoration confirmed</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Assessment Timeline */}
+            <div>
+              <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#64748b', marginBottom: '10px' }}>CLINICAL ASSESSMENT TIMELINE</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {(selectedTimelinePatient.assessments || []).length === 0 ? (
+                  <div style={{ padding: '16px', borderRadius: '10px', background: '#f8fafc', textAlign: 'center', fontSize: '0.8rem', color: '#94a3b8' }}>
+                    Load full dossier to view complete assessment history.
+                    <button onClick={() => { setSelectedTimelinePatient(null); openPatientDossier(selectedTimelinePatient.patient_id); }} style={{ display: 'block', margin: '8px auto 0', padding: '6px 14px', borderRadius: '8px', border: `1px solid ${PUR}`, background: '#fff', color: PUR, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer' }}>Open Full 360° Dossier →</button>
+                  </div>
+                ) : (
+                  (selectedTimelinePatient.assessments || []).map((a: any, i: number) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                      <div>
+                        <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a' }}>{a.date}</div>
+                        <div style={{ fontSize: '0.74rem', color: '#64748b' }}>Concerns: {a.concerns?.join(', ')}</div>
+                      </div>
+                      <span style={{ fontSize: '0.84rem', fontWeight: 800, color: (a.overall_score || 0) >= 75 ? '#16a34a' : '#d97706' }}>{a.overall_score}/100</span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 360° Patient Medical Dossier Modal */}
       {selectedPatientDossier && (
