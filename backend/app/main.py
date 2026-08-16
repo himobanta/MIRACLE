@@ -153,8 +153,106 @@ def _seed_demo_users():
             db.add(profile2)
             db.commit()
             logger.info("Seeded second Skincare Consultant: consultant2@miracle.com")
+
+        # ── At-Risk Patient 1: Vikram Mehta ──────────────────────────────────
+        if not db.query(User).filter(User.email == "vikram@miracle.com").first():
+            from .models import SkinAssessment
+            import uuid
+            p1 = User(
+                name="Vikram Mehta",
+                email="vikram@miracle.com",
+                hashed_password=hash_password("Patient@123"),
+                role="User"
+            )
+            db.add(p1)
+            db.commit()
+            db.refresh(p1)
+            db.add(UserProfile(
+                user_id=p1.id,
+                skin_type="Oily",
+                concerns=["Cystic Acne", "Barrier Sensitivity"]
+            ))
+            db.add(SkinAssessment(
+                id=str(uuid.uuid4()),
+                user_id=p1.id,
+                overall_score=59.0,
+                condition_subscore=52.0,
+                lifestyle_subscore=61.0,
+                sleep_subscore=58.0,
+                consistency_subscore=49.0,
+                hydration_subscore=55.0,
+                detected_concerns=["Cystic Acne", "Impaired Stratum Corneum", "Elevated TEWL"]
+            ))
+            db.commit()
+            logger.info("Seeded at-risk patient: vikram@miracle.com (score 59)")
+
+        # ── At-Risk Patient 2: Karan Malhotra ────────────────────────────────
+        if not db.query(User).filter(User.email == "karan@miracle.com").first():
+            from .models import SkinAssessment
+            import uuid
+            p2 = User(
+                name="Karan Malhotra",
+                email="karan@miracle.com",
+                hashed_password=hash_password("Patient@123"),
+                role="User"
+            )
+            db.add(p2)
+            db.commit()
+            db.refresh(p2)
+            db.add(UserProfile(
+                user_id=p2.id,
+                skin_type="Dry",
+                concerns=["Severe Moisture Barrier Loss", "Eczema"]
+            ))
+            db.add(SkinAssessment(
+                id=str(uuid.uuid4()),
+                user_id=p2.id,
+                overall_score=62.0,
+                condition_subscore=58.0,
+                lifestyle_subscore=60.0,
+                sleep_subscore=63.0,
+                consistency_subscore=55.0,
+                hydration_subscore=44.0,
+                detected_concerns=["Severe Moisture Barrier Loss", "High TEWL Distress", "Dry Eczema"]
+            ))
+            db.commit()
+            logger.info("Seeded at-risk patient: karan@miracle.com (score 62)")
+
+        # ── At-Risk Patient 3: Preethi Subramaniam ───────────────────────────
+        if not db.query(User).filter(User.email == "preethi@miracle.com").first():
+            from .models import SkinAssessment
+            import uuid
+            p3 = User(
+                name="Preethi Subramaniam",
+                email="preethi@miracle.com",
+                hashed_password=hash_password("Patient@123"),
+                role="User"
+            )
+            db.add(p3)
+            db.commit()
+            db.refresh(p3)
+            db.add(UserProfile(
+                user_id=p3.id,
+                skin_type="Sensitive",
+                concerns=["Rosacea", "Perioral Dermatitis"]
+            ))
+            db.add(SkinAssessment(
+                id=str(uuid.uuid4()),
+                user_id=p3.id,
+                overall_score=47.0,
+                condition_subscore=41.0,
+                lifestyle_subscore=52.0,
+                sleep_subscore=48.0,
+                consistency_subscore=43.0,
+                hydration_subscore=50.0,
+                detected_concerns=["Erythematotelangiectatic Rosacea", "Demodex Flare", "Perioral Dermatitis"]
+            ))
+            db.commit()
+            logger.info("Seeded at-risk patient: preethi@miracle.com (score 47)")
+
     finally:
         db.close()
+
 
 
 def _seed_demo_content():

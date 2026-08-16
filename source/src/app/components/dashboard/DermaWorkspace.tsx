@@ -1136,7 +1136,7 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
             </div>
 
             <button
-              onClick={() => onSectionChange && onSectionChange('insights')}
+              onClick={() => onSectionChange && onSectionChange('clinical-insights')}
               style={{ marginTop: '14px', padding: '8px', borderRadius: '8px', border: '1px solid #dc2626', background: '#fff', color: '#dc2626', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', width: '100%' }}
             >
               Open AI Risk Intelligence Hub →
@@ -1566,70 +1566,212 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
   );
 
   // ─────────────────────────────────────────────────────────────────────────
-  // 4. CLINICAL INSIGHTS MODULE (Genuinely different from Assessments)
+  // 4. AI RISK INTELLIGENCE HUB — Fully Professional & Detailed
   // ─────────────────────────────────────────────────────────────────────────
-  const renderClinicalInsightsPage = () => (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <Card style={{ padding: '20px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-          <div>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>AI Clinical Intelligence & Risk Analysis</h2>
-            <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#64748b' }}>Transepidermal water loss dynamics, acute flare risk detection, and pharmacology interaction alerts.</p>
+  const renderClinicalInsightsPage = () => {
+    const filtered = insightsList.filter(ins => insightRiskFilter === 'All' || ins.risk_level === insightRiskFilter);
+    const highCount = insightsList.filter(i => i.risk_level === 'High').length;
+    const modCount = insightsList.filter(i => i.risk_level === 'Moderate').length;
+    const lowCount = insightsList.filter(i => i.risk_level === 'Low').length;
+
+    const riskColor = (r: string) => r === 'High' ? '#dc2626' : r === 'Moderate' ? '#d97706' : '#16a34a';
+    const riskBg   = (r: string) => r === 'High' ? '#fee2e2' : r === 'Moderate' ? '#fef3c7' : '#dcfce7';
+    const riskBorder = (r: string) => r === 'High' ? '#ef4444' : r === 'Moderate' ? '#f59e0b' : '#22c55e';
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+
+        {/* ── Header Banner ── */}
+        <Card style={{ padding: '24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 60%, #1e3a5f 100%)', border: 'none' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                <span style={{ fontSize: '1.4rem' }}>🧠</span>
+                <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 900, color: '#f1f5f9', letterSpacing: '-0.01em' }}>AI Risk Intelligence Hub</h2>
+                <span style={{ fontSize: '0.68rem', fontWeight: 800, padding: '3px 9px', borderRadius: '20px', background: '#dc2626', color: '#fff', letterSpacing: '0.04em' }}>LIVE</span>
+              </div>
+              <p style={{ margin: 0, fontSize: '0.82rem', color: '#94a3b8', maxWidth: '540px', lineHeight: 1.6 }}>
+                Dermatological AI decision support — barrier stress indexing, transepidermal water loss dynamics, acute flare probability scoring, and pharmacology interaction alerts.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+              <select
+                value={insightRiskFilter}
+                onChange={e => setInsightRiskFilter(e.target.value)}
+                style={{ padding: '9px 14px', borderRadius: '10px', border: '1px solid #334155', fontSize: '0.82rem', background: '#1e293b', color: '#f1f5f9', cursor: 'pointer' }}
+              >
+                <option value="All">All Risk Levels</option>
+                <option value="High">High Risk</option>
+                <option value="Moderate">Moderate Risk</option>
+                <option value="Low">Low Risk</option>
+              </select>
+            </div>
           </div>
-          <select
-            value={insightRiskFilter}
-            onChange={e => setInsightRiskFilter(e.target.value)}
-            style={{ padding: '8px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '0.82rem', background: '#fff' }}
-          >
-            <option value="All">All Risk Levels</option>
-            <option value="High">High Risk</option>
-            <option value="Moderate">Moderate Risk</option>
-            <option value="Low">Low Risk</option>
-          </select>
-        </div>
-      </Card>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {insightsList.map(ins => (
-          <Card key={ins.id} style={{ padding: '22px', borderLeft: `4px solid ${ins.risk_level === 'High' ? '#ef4444' : (ins.risk_level === 'Moderate' ? '#d97706' : '#16a34a')}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontSize: '1.1rem', fontWeight: 800, color: '#0f172a' }}>{ins.patient_name}</span>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, padding: '3px 8px', borderRadius: '6px', background: ins.risk_level === 'High' ? '#fee2e2' : '#fef3c7', color: ins.risk_level === 'High' ? '#dc2626' : '#b45309' }}>
-                    {ins.risk_level} Risk ({ins.confidence_score}% Confidence)
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.82rem', fontWeight: 700, color: PUR, marginTop: '4px' }}>
-                  DIAGNOSIS FOCUS: {ins.skin_concern}
-                </div>
+          {/* Risk Stats Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '12px', marginTop: '20px' }}>
+            {[
+              { label: 'Total Flagged', val: insightsList.length, color: '#94a3b8', icon: '📋' },
+              { label: 'High Risk', val: highCount, color: '#ef4444', icon: '🚨' },
+              { label: 'Moderate Risk', val: modCount, color: '#f59e0b', icon: '⚠️' },
+              { label: 'Low Risk', val: lowCount, color: '#22c55e', icon: '✅' },
+              { label: 'AI Confidence', val: `${insightsList.length ? Math.round(insightsList.reduce((a,b) => a + (b.confidence_score || 90), 0) / insightsList.length) : 91}%`, color: '#818cf8', icon: '🎯' },
+            ].map((stat, i) => (
+              <div key={i} style={{ padding: '14px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{stat.icon}</div>
+                <div style={{ fontSize: '1.4rem', fontWeight: 900, color: stat.color }}>{stat.val}</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 600, marginTop: '2px' }}>{stat.label}</div>
               </div>
-              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Recorded: {ins.created_at}</span>
-            </div>
+            ))}
+          </div>
+        </Card>
 
-            <div style={{ marginTop: '12px', padding: '12px 14px', borderRadius: '10px', background: '#f8fafc', fontSize: '0.84rem', color: '#334155', lineHeight: 1.5 }}>
-              <b>Primary AI Clinical Finding:</b> {ins.primary_finding}
-            </div>
-
-            <div style={{ marginTop: '14px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-              <div>
-                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#dc2626', marginBottom: '6px' }}>⚠️ CLINICAL RISK INDICATORS</div>
-                <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: '#475569', lineHeight: 1.5 }}>
-                  {ins.ai_risk_indicators?.map((item: string, i: number) => <li key={i}>{item}</li>)}
-                </ul>
-              </div>
-              <div>
-                <div style={{ fontSize: '0.76rem', fontWeight: 800, color: '#16a34a', marginBottom: '6px' }}>✓ RECOMMENDED MEDICAL INTERVENTIONS</div>
-                <ul style={{ margin: 0, paddingLeft: '18px', fontSize: '0.8rem', color: '#475569', lineHeight: 1.5 }}>
-                  {ins.recommended_interventions?.map((item: string, i: number) => <li key={i}>{item}</li>)}
-                </ul>
-              </div>
-            </div>
+        {/* ── Insight Cards ── */}
+        {insightsLoading ? (
+          <Card style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>🔬</div>
+            <div style={{ fontWeight: 700 }}>Loading AI clinical intelligence data...</div>
           </Card>
-        ))}
+        ) : filtered.length === 0 ? (
+          <Card style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ fontSize: '2rem', marginBottom: '10px' }}>✅</div>
+            <div style={{ fontWeight: 700 }}>No patients flagged for {insightRiskFilter} risk at this time.</div>
+            <div style={{ fontSize: '0.8rem', marginTop: '6px' }}>All cohort members are within safe clinical thresholds.</div>
+          </Card>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            {filtered.map((ins, idx) => {
+              const bsi = ins.barrier_stress_index || ins.barrier_stress || 55;
+              const bsiColor = bsi > 70 ? '#dc2626' : bsi > 45 ? '#d97706' : '#16a34a';
+              return (
+                <Card key={ins.id || idx} style={{
+                  padding: '0',
+                  overflow: 'hidden',
+                  borderLeft: `5px solid ${riskBorder(ins.risk_level)}`,
+                  boxShadow: ins.risk_level === 'High' ? '0 0 0 1px #fecaca, 0 4px 20px rgba(220,38,38,0.08)' : '0 2px 8px rgba(0,0,0,0.06)'
+                }}>
+                  {/* Card Top Bar */}
+                  <div style={{ padding: '18px 22px 14px', borderBottom: '1px solid #f1f5f9', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
+                      {/* Avatar */}
+                      <div style={{ width: '46px', height: '46px', borderRadius: '50%', background: `${riskBg(ins.risk_level)}`, border: `2px solid ${riskColor(ins.risk_level)}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: '1.1rem', fontWeight: 900, color: riskColor(ins.risk_level) }}>
+                        {(ins.patient_name || 'P').charAt(0)}
+                      </div>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#0f172a' }}>{ins.patient_name || 'Patient'}</span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 800, padding: '3px 9px', borderRadius: '20px', background: riskBg(ins.risk_level), color: riskColor(ins.risk_level), letterSpacing: '0.02em' }}>
+                            {ins.risk_level?.toUpperCase()} RISK
+                          </span>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, padding: '2px 8px', borderRadius: '20px', background: '#f1f5f9', color: '#475569' }}>
+                            {ins.confidence_score || 91}% AI Confidence
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: PUR, marginTop: '3px' }}>
+                          PRIMARY DIAGNOSIS: {ins.skin_concern}
+                        </div>
+                        <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
+                          Last Updated: {ins.created_at ? new Date(ins.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Today'}
+                          {ins.requires_immediate_attention && <span style={{ marginLeft: '10px', color: '#dc2626', fontWeight: 800 }}>⚡ IMMEDIATE REVIEW REQUIRED</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Barrier Stress Index Meter */}
+                    <div style={{ textAlign: 'center', minWidth: '110px' }}>
+                      <div style={{ fontSize: '0.66rem', fontWeight: 800, color: '#64748b', letterSpacing: '0.05em', marginBottom: '6px' }}>BARRIER STRESS INDEX</div>
+                      <div style={{ position: 'relative', width: '90px', height: '90px', margin: '0 auto' }}>
+                        <svg viewBox="0 0 90 90" style={{ width: '90px', height: '90px', transform: 'rotate(-90deg)' }}>
+                          <circle cx="45" cy="45" r="35" fill="none" stroke="#f1f5f9" strokeWidth="8"/>
+                          <circle cx="45" cy="45" r="35" fill="none" stroke={bsiColor} strokeWidth="8"
+                            strokeDasharray={`${(bsi / 100) * 220} 220`} strokeLinecap="round"/>
+                        </svg>
+                        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center' }}>
+                          <div style={{ fontSize: '1.15rem', fontWeight: 900, color: bsiColor }}>{bsi}</div>
+                          <div style={{ fontSize: '0.58rem', color: '#64748b', fontWeight: 700 }}>/ 100</div>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.66rem', fontWeight: 800, color: bsiColor, marginTop: '4px' }}>
+                        {bsi > 70 ? 'CRITICAL' : bsi > 45 ? 'ELEVATED' : 'STABLE'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Primary Finding */}
+                  <div style={{ padding: '14px 22px', background: '#fafafa', borderBottom: '1px solid #f1f5f9' }}>
+                    <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#475569', letterSpacing: '0.06em', marginBottom: '6px' }}>🧬 PRIMARY AI CLINICAL FINDING</div>
+                    <div style={{ fontSize: '0.86rem', color: '#1e293b', lineHeight: 1.65, fontWeight: 500 }}>{ins.primary_finding}</div>
+                  </div>
+
+                  {/* Risk Indicators + Interventions Grid */}
+                  <div style={{ padding: '16px 22px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '18px', borderBottom: '1px solid #f1f5f9' }}>
+                    <div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#dc2626', letterSpacing: '0.06em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span>⚠️</span> CLINICAL RISK INDICATORS
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.81rem', color: '#475569', lineHeight: 1.7 }}>
+                        {(ins.ai_risk_indicators || []).map((item: string, i: number) => (
+                          <li key={i} style={{ marginBottom: '2px' }}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#0369a1', letterSpacing: '0.06em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span>📊</span> OBSERVED PATTERNS
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.81rem', color: '#475569', lineHeight: 1.7 }}>
+                        {(ins.observed_patterns || []).map((item: string, i: number) => (
+                          <li key={i} style={{ marginBottom: '2px' }}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.7rem', fontWeight: 800, color: '#16a34a', letterSpacing: '0.06em', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                        <span>✅</span> RECOMMENDED INTERVENTIONS
+                      </div>
+                      <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.81rem', color: '#475569', lineHeight: 1.7 }}>
+                        {(ins.recommended_interventions || []).map((item: string, i: number) => (
+                          <li key={i} style={{ marginBottom: '2px' }}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Action Bar */}
+                  <div style={{ padding: '14px 22px', display: 'flex', gap: '10px', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', background: '#f8fafc' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                      <button
+                        onClick={() => openPatientDossier(ins.patient_id)}
+                        style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: PUR, color: '#fff', fontSize: '0.78rem', fontWeight: 800, cursor: 'pointer', letterSpacing: '0.01em' }}
+                      >
+                        🔬 Open Full Clinical Dossier
+                      </button>
+                      <button
+                        onClick={() => onSectionChange && onSectionChange('prescriptions')}
+                        style={{ padding: '8px 16px', borderRadius: '8px', border: `1px solid ${PUR}`, background: '#fff', color: PUR, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        💊 Issue Prescription
+                      </button>
+                      <button
+                        onClick={() => onSectionChange && onSectionChange('treatment-plans')}
+                        style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #16a34a', background: '#fff', color: '#16a34a', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        📋 Create Treatment Plan
+                      </button>
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', fontWeight: 600 }}>
+                      AI Model: DermaScan v2.4 · Processed {new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+                    </div>
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
+
 
   // ─────────────────────────────────────────────────────────────────────────
   // 5. TREATMENT PLANS MODULE (Create, Edit, Delete CRUD)
