@@ -1227,7 +1227,10 @@ def consultant_product_catalog(
     """Browse the full product catalog so consultants can recommend any product to their clients."""
     verify_consultant_or_medical(current_user)
 
-    q = db.query(Product)
+    # Deduplicate products by selecting min(id) grouped by product_name and brand
+    subq = db.query(func.min(Product.id).label("min_id")).group_by(Product.product_name, Product.brand)
+
+    q = db.query(Product).filter(Product.id.in_(subq))
     if search:
         q = q.filter(or_(
             Product.product_name.ilike(f"%{search}%"),

@@ -273,7 +273,8 @@ def list_products_admin(
     current_user: User = Depends(get_current_user),
 ):
     verify_admin(current_user)
-    q = db.query(Product)
+    subq = db.query(func.min(Product.id).label("min_id")).group_by(Product.product_name, Product.brand)
+    q = db.query(Product).filter(Product.id.in_(subq))
     if search:
         q = q.filter(or_(
             Product.product_name.ilike(f"%{search}%"),

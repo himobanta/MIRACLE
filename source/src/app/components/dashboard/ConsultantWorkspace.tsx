@@ -409,14 +409,10 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [showRecModal, setShowRecModal] = useState(false);
+  const [selectedProductsForRec, setSelectedProductsForRec] = useState<any[]>([]);
   const [recTargetClient, setRecTargetClient] = useState('');
-  const [recProdName, setRecProdName] = useState('');
-  const [recProdBrand, setRecProdBrand] = useState('Miracle Formulations');
-  const [recCategory, setRecCategory] = useState('Treatment');
-  const [recConcern, setRecConcern] = useState('Barrier Repair');
-  const [recInstructions, setRecInstructions] = useState('Apply 3-4 drops in evening routine after gentle wash.');
-  const [recTimeOfDay, setRecTimeOfDay] = useState('PM');
-  const [recPrice, setRecPrice] = useState('1499');
+  const [recInstructions, setRecInstructions] = useState('Apply as prescribed in morning/evening routine.');
+  const [recTimeOfDay, setRecTimeOfDay] = useState('AM/PM');
 
   const [notesList, setNotesList] = useState<any[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
@@ -561,8 +557,17 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
     setProductsLoading(true);
     api.getConsultantProducts({ page, per_page: 24, search: search || undefined, category: cat || undefined })
       .then(d => {
-        setAllProducts(d.items || d.products || []);
-        setTotalProductsCount(d.total || 0);
+        const rawItems = d.items || d.products || [];
+        // Deduplicate by clean product_name + brand key
+        const seen = new Set<string>();
+        const uniqueItems = rawItems.filter((item: any) => {
+          const key = `${(item.product_name || item.name || '').trim().toLowerCase()}_${(item.brand || '').trim().toLowerCase()}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setAllProducts(uniqueItems);
+        setTotalProductsCount(d.total || uniqueItems.length);
         setTotalProductPages(d.total_pages || 1);
         setProductPage(d.page || page);
       })
@@ -932,26 +937,37 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
 
   const handleCreateRecommendation = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!recTargetClient || !recProdName) {
-      setToast({ msg: 'Please select a client and enter product name', ok: false });
+    if (!recTargetClient) {
+      setToast({ msg: 'Please select a client to assign recommendations', ok: false });
       return;
     }
+    if (selectedProductsForRec.length === 0) {
+      setToast({ msg: 'Please select at least 1 product to recommend', ok: false });
+      return;
+    }
+
     try {
-      await api.createConsultantRecommendation({
-        client_id: recTargetClient,
-        product_name: recProdName,
-        brand: recProdBrand,
-        category: recCategory,
-        target_concern: recConcern,
-        usage_instructions: recInstructions,
-        time_of_day: recTimeOfDay,
-        price: parseFloat(recPrice) || 999,
-      });
-      setToast({ msg: 'Product recommendation sent to client', ok: true });
+      // Send recommendations for all selected products
+      for (const prod of selectedProductsForRec) {
+        await api.createConsultantRecommendation({
+          client_id: recTargetClient,
+          product_id: prod.id,
+          product_name: prod.product_name || prod.name,
+          brand: prod.brand || 'Miracle Formulations',
+          category: prod.category || 'Treatment',
+          target_concern: prod.category || 'Barrier Repair',
+          usage_instructions: recInstructions,
+          time_of_day: recTimeOfDay,
+          price: parseFloat(prod.price) || 999,
+          image_url: prod.image_url || undefined,
+        });
+      }
+      setToast({ msg: `Successfully assigned ${selectedProductsForRec.length} product(s) to client`, ok: true });
       setShowRecModal(false);
+      setSelectedProductsForRec([]);
       fetchRecommendations();
     } catch (err: any) {
-      setToast({ msg: err?.detail || 'Failed to create recommendation', ok: false });
+      setToast({ msg: err?.detail || 'Failed to assign product recommendations', ok: false });
     }
   };
 
@@ -2147,37 +2163,124 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => {
-                        setRecProdName(prod.product_name || prod.name);
-                        setRecProdBrand(prod.brand || 'Miracle Formulations');
-                        setRecCategory(prod.category || 'Treatment');
-                        setRecPrice(String(prod.price || 999));
-                        setShowRecModal(true);
-                      }}
-                      style={{
-                        padding: '10px',
-                        borderRadius: '10px',
-                        border: 'none',
-                        background: PUR,
-                        color: '#fff',
-                        fontSize: '0.8rem',
-                        fontWeight: 700,
-                        cursor: 'pointer',
-                        width: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '6px',
-                        boxShadow: `0 4px 12px ${PUR}25`,
-                      }}
-                    >
-                      <span>+</span> Recommend to Client
-                    </button>
+                    {/* Multi-Product Recommendation Action */}
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => {
+                          const exists = selectedProductsForRec.some(p => p.id === prod.id);
+                          if (exists) {
+                            setSelectedProductsForRec(selectedProductsForRec.filter(p => p.id !== prod.id));
+                          } else {
+                            setSelectedProductsForRec([...selectedProductsForRec, prod]);
+                          }
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '10px',
+                          borderRadius: '10px',
+                          border: selectedProductsForRec.some(p => p.id === prod.id) ? `1px solid ${PUR}` : '1px solid #e2e8f0',
+                          background: selectedProductsForRec.some(p => p.id === prod.id) ? `${PUR}15` : '#fff',
+                          color: selectedProductsForRec.some(p => p.id === prod.id) ? PUR : '#334155',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '6px',
+                        }}
+                      >
+                        <span>{selectedProductsForRec.some(p => p.id === prod.id) ? '✓ Queued' : '+ Add to Batch'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedProductsForRec([prod]);
+                          setShowRecModal(true);
+                        }}
+                        style={{
+                          padding: '10px 14px',
+                          borderRadius: '10px',
+                          border: 'none',
+                          background: PUR,
+                          color: '#fff',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          cursor: 'pointer',
+                          boxShadow: `0 4px 12px ${PUR}25`,
+                        }}
+                      >
+                        Recommend Now
+                      </button>
+                    </div>
                   </div>
                 );
               })}
             </div>
+
+            {/* Sticky Multi-Product Recommendation Tray */}
+            {selectedProductsForRec.length > 0 && (
+              <div
+                style={{
+                  position: 'sticky',
+                  bottom: '16px',
+                  zIndex: 40,
+                  marginTop: '20px',
+                  padding: '16px 20px',
+                  borderRadius: '16px',
+                  background: '#0f172a',
+                  color: '#fff',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 800 }}>
+                    {selectedProductsForRec.length} Product(s) Selected for Client Regimen
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginTop: '2px' }}>
+                    {selectedProductsForRec.map(p => p.product_name || p.name).slice(0, 3).join(', ')}
+                    {selectedProductsForRec.length > 3 ? ` +${selectedProductsForRec.length - 3} more` : ''}
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setSelectedProductsForRec([])}
+                    style={{
+                      padding: '8px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255,255,255,0.2)',
+                      background: 'transparent',
+                      color: '#fff',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Clear All
+                  </button>
+                  <button
+                    onClick={() => setShowRecModal(true)}
+                    style={{
+                      padding: '8px 18px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      background: '#16a34a',
+                      color: '#fff',
+                      fontSize: '0.82rem',
+                      fontWeight: 800,
+                      cursor: 'pointer',
+                      boxShadow: '0 4px 12px rgba(22,163,74,0.4)',
+                    }}
+                  >
+                    Recommend All {selectedProductsForRec.length} to Client →
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Pagination Controls */}
             {totalProductPages > 1 && (
@@ -3662,7 +3765,7 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
         </div>
       )}
 
-      {/* Create Product Recommendation Modal */}
+      {/* Create Multi-Product Recommendation Modal */}
       {showRecModal && (
         <div
           style={{
@@ -3679,50 +3782,73 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
             if (e.target === e.currentTarget) setShowRecModal(false);
           }}
         >
-          <div style={{ width: '480px', maxWidth: '94vw', borderRadius: '24px', background: '#fff', padding: '28px' }}>
+          <div style={{ width: '540px', maxWidth: '94vw', borderRadius: '24px', background: '#fff', padding: '28px', maxHeight: '90vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>Recommend Skincare Product</div>
+              <div>
+                <div style={{ fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>Recommend Skincare Products</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b' }}>Assign single or multiple products to a client's profile.</div>
+              </div>
               <button onClick={() => setShowRecModal(false)} style={{ border: 'none', background: 'transparent', fontSize: '1.2rem', cursor: 'pointer' }}>×</button>
             </div>
 
-            <form onSubmit={handleCreateRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <form onSubmit={handleCreateRecommendation} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
               <div>
                 <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>TARGET CLIENT</label>
-                <select value={recTargetClient} onChange={e => setRecTargetClient(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem' }}>
-                  <option value="">Select a Client…</option>
+                <select value={recTargetClient} onChange={e => setRecTargetClient(e.target.value)} required style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.86rem' }}>
+                  <option value="">Select Target Client…</option>
                   {roster.map(p => (
-                    <option key={p.patient_id} value={p.patient_id}>{p.name} ({p.skin_type})</option>
+                    <option key={p.patient_id} value={p.patient_id}>{p.name} ({p.skin_type} · {p.primary_concern})</option>
                   ))}
                 </select>
               </div>
 
+              {/* Selected Products List in Modal */}
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>PRODUCT NAME</label>
-                <input type="text" value={recProdName} onChange={e => setRecProdName(e.target.value)} placeholder="e.g. Cica Barrier Repair Cream" style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
-                <div>
-                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>TIMING</label>
-                  <select value={recTimeOfDay} onChange={e => setRecTimeOfDay(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem' }}>
-                    <option value="AM">AM</option>
-                    <option value="PM">PM</option>
-                    <option value="Both">Both (AM/PM)</option>
-                  </select>
-                </div>
-                <div>
-                  <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>PRICE (₹)</label>
-                  <input type="number" value={recPrice} onChange={e => setRecPrice(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
-                </div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>
+                  RECOMMENDED PRODUCTS ({selectedProductsForRec.length})
+                </label>
+                {selectedProductsForRec.length === 0 ? (
+                  <div style={{ padding: '12px', borderRadius: '10px', background: '#f8fafc', border: '1px dashed #cbd5e1', fontSize: '0.8rem', color: '#94a3b8', textAlign: 'center' }}>
+                    No products currently queued. Add products from the catalog.
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+                    {selectedProductsForRec.map(prod => (
+                      <div key={prod.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', borderRadius: '10px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+                        <div>
+                          <div style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>{prod.product_name || prod.name}</div>
+                          <div style={{ fontSize: '0.72rem', color: '#64748b' }}>{prod.brand} · ₹{prod.price || 899}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedProductsForRec(selectedProductsForRec.filter(p => p.id !== prod.id))}
+                          style={{ border: 'none', background: 'none', color: '#ef4444', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>USAGE INSTRUCTIONS</label>
-                <input type="text" value={recInstructions} onChange={e => setRecInstructions(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>RECOMMENDED ROUTINE TIMING</label>
+                <select value={recTimeOfDay} onChange={e => setRecTimeOfDay(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem' }}>
+                  <option value="AM">Morning (AM Routine)</option>
+                  <option value="PM">Night (PM Routine)</option>
+                  <option value="AM/PM">Twice Daily (AM & PM)</option>
+                  <option value="Weekly Treatment">Weekly Intensive Treatment</option>
+                </select>
               </div>
 
-              <button type="submit" style={{ padding: '11px', borderRadius: '10px', border: 'none', background: PUR, color: '#fff', fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer', marginTop: '6px' }}>
-                Save & Assign to Client
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>CLINICAL USAGE INSTRUCTIONS</label>
+                <textarea rows={2} value={recInstructions} onChange={e => setRecInstructions(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box', resize: 'vertical' }} />
+              </div>
+
+              <button type="submit" disabled={selectedProductsForRec.length === 0} style={{ padding: '12px', borderRadius: '10px', border: 'none', background: PUR, color: '#fff', fontWeight: 700, fontSize: '0.86rem', cursor: selectedProductsForRec.length === 0 ? 'not-allowed' : 'pointer', marginTop: '6px' }}>
+                Assign {selectedProductsForRec.length} Product(s) to Client
               </button>
             </form>
           </div>
