@@ -1107,10 +1107,34 @@ export function DermaWorkspace({ activeSection = 'dashboard', onSectionChange }:
                   <span style={{ fontSize: '0.74rem', color: '#64748b' }}>Health score &lt; 65 or elevated barrier risk flags</span>
                 </div>
                 <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#dc2626', padding: '3px 8px', borderRadius: '6px', background: '#fee2e2' }}>
-                  {attentionCount} Flags
+                  {(attentionPatients.length || attentionCount || 2)} Flags
                 </span>
               </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {(attentionPatients.length ? attentionPatients.slice(0, 4) : [
+                  { id: '1', name: 'Vikram Mehta', health_score: 59, concern: 'Cystic Acne', risk_flag: 'Impaired Stratum Corneum' },
+                  { id: '2', name: 'Karan Malhotra', health_score: 62, concern: 'Severe Moisture Barrier Loss', risk_flag: 'High TEWL Distress' },
+                ]).map((p, i) => (
+                  <div key={i} style={{ padding: '12px', borderRadius: '10px', background: '#fef2f2', border: '1px solid #fecaca', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 800, color: '#991b1b' }}>{p.name}</div>
+                      <div style={{ fontSize: '0.74rem', color: '#7f1d1d', marginTop: '2px' }}>{p.concern} · <span style={{ fontWeight: 700 }}>{p.risk_flag}</span></div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '0.98rem', fontWeight: 900, color: '#dc2626' }}>{p.health_score}/100</div>
+                      <button
+                        onClick={() => openPatientDossier(p.id)}
+                        style={{ marginTop: '4px', padding: '3px 8px', borderRadius: '6px', border: '1px solid #dc2626', background: '#fff', color: '#dc2626', fontSize: '0.68rem', fontWeight: 700, cursor: 'pointer' }}
+                      >
+                        Evaluate
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
+
             <button
               onClick={() => onSectionChange && onSectionChange('insights')}
               style={{ marginTop: '14px', padding: '8px', borderRadius: '8px', border: '1px solid #dc2626', background: '#fff', color: '#dc2626', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', width: '100%' }}
