@@ -431,26 +431,43 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
       {cropSrc && <TopbarCropModal src={cropSrc} onSave={handleCropSave} onCancel={() => setCropSrc(null)} />}
       {profileModal}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600;1,700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700;800&display=swap');
         .miracle-topbar-heading {
           font-family: 'Cormorant Garamond', Georgia, serif;
-          font-size: 2.15rem;
-          font-weight: 500;
-          letter-spacing: -0.01em;
+          font-size: 2.3rem;
+          font-weight: 700;
+          letter-spacing: -0.015em;
           color: #1a1a2e;
           margin: 0;
           line-height: 1.15;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
         }
         .miracle-topbar-heading .wb-name {
           color: ${PUR};
-          font-style: italic;
-          font-weight: 700;
+          font-weight: 800;
+        }
+        .miracle-topbar-heading .wb-emoji {
+          display: inline-block;
+          font-size: 1.9rem;
+          margin-left: 2px;
+          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+          transform-origin: 70% 70%;
+          animation: wave 2.2s infinite ease-in-out;
+        }
+        @keyframes wave {
+          0%, 60%, 100% { transform: rotate(0deg); }
+          10%, 30% { transform: rotate(14deg); }
+          20% { transform: rotate(-8deg); }
+          40% { transform: rotate(-4deg); }
+          50% { transform: rotate(10deg); }
         }
       `}</style>
       <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', padding: '30px 24px 6px', background: '#f4efe4' }}>
         <div style={{ minWidth: '220px' }}>
           <h1 className="miracle-topbar-heading">
-            Welcome back, <span className="wb-name">{firstName}</span> 👋
+            Welcome back, <span className="wb-name">{firstName}</span> <span className="wb-emoji">👋</span>
           </h1>
           <p style={{ margin: '5px 0 0', fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>{topbar.subtitle}</p>
         </div>
