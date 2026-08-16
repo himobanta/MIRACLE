@@ -32,148 +32,185 @@ function PhotoViewer({ src, name, onClose }: { src: string; name: string; onClos
   );
 }
 
-// ── Professional crop modal — display-pixel-based, drag crop box over image ──
+// ── Professional Pan & Zoom Avatar Cropper ─────────────────────────────────
 function TopbarCropModal({ src, onSave, onCancel }: { src: string; onSave: (cropped: string) => void; onCancel: () => void }) {
-  const CROP_BOX = 220; // fixed crop box size in display pixels
-  const imgRef = useRef<HTMLImageElement>(null);
+  const [zoom, setZoom] = useState<number>(1);
+  const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStart = useRef<{ x: number; y: number; offX: number; offY: number }>({ x: 0, y: 0, offX: 0, offY: 0 });
+  const [imageObj, setImageObj] = useState<HTMLImageElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Display dimensions of rendered image (set after img loads)
-  const [disp, setDisp] = useState({ w: 0, h: 0 });
-  // Crop box position in display pixels (top-left corner)
-  const [pos, setPos] = useState({ x: 0, y: 0 });
-  const [loaded, setLoaded] = useState(false);
-  const dragging = useRef(false);
-  const dragOrigin = useRef({ mx: 0, my: 0, px: 0, py: 0 });
+  const VIEW_SIZE = 280; // Size of the square view box
 
-  const onImgLoad = () => {
-    const el = imgRef.current!;
-    const rect = el.getBoundingClientRect();
-    const w = rect.width, h = rect.height;
-    setDisp({ w, h });
-    setPos({ x: (w - CROP_BOX) / 2, y: (h - CROP_BOX) / 2 });
-    setLoaded(true);
-  };
-
-  // Redraw canvas preview whenever pos changes
   useEffect(() => {
-    if (!loaded || !canvasRef.current || !imgRef.current) return;
-    const img = imgRef.current;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      setImageObj(img);
+      setZoom(1);
+      setOffset({ x: 0, y: 0 });
+    };
+    img.src = src;
+  }, [src]);
+
+  // Draw main viewport and circular preview
+  useEffect(() => {
+    if (!imageObj) return;
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d')!;
-    canvas.width = 200; canvas.height = 200;
-    const scaleX = img.naturalWidth / disp.w;
-    const scaleY = img.naturalHeight / disp.h;
-    ctx.clearRect(0, 0, 200, 200);
-    ctx.drawImage(img, pos.x * scaleX, pos.y * scaleY, CROP_BOX * scaleX, CROP_BOX * scaleY, 0, 0, 200, 200);
-  }, [pos, loaded, disp]);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+    canvas.width = VIEW_SIZE;
+    canvas.height = VIEW_SIZE;
 
-  const onMouseDown = (e: React.MouseEvent) => {
-    dragging.current = true;
-    dragOrigin.current = { mx: e.clientX, my: e.clientY, px: pos.x, py: pos.y };
+    ctx.clearRect(0, 0, VIEW_SIZE, VIEW_SIZE);
+
+    // Calculate base cover scaling
+    const baseScale = Math.max(VIEW_SIZE / imageObj.naturalWidth, VIEW_SIZE / imageObj.naturalHeight);
+    const currentScale = baseScale * zoom;
+
+    const renderW = imageObj.naturalWidth * currentScale;
+    const renderH = imageObj.naturalHeight * currentScale;
+
+    // Centered base position + offset
+    const posX = (VIEW_SIZE - renderW) / 2 + offset.x;
+    const posY = (VIEW_SIZE - renderH) / 2 + offset.y;
+
+    ctx.drawImage(imageObj, posX, posY, renderW, renderH);
+
+    // Draw to circular mini preview
+    const previewCanvas = previewCanvasRef.current;
+    if (previewCanvas) {
+      const pCtx = previewCanvas.getContext('2d');
+      if (pCtx) {
+        previewCanvas.width = 64;
+        previewCanvas.height = 64;
+        pCtx.clearRect(0, 0, 64, 64);
+        pCtx.save();
+        pCtx.beginPath();
+        pCtx.arc(32, 32, 32, 0, Math.PI * 2);
+        pCtx.clip();
+        pCtx.drawImage(canvas, 0, 0, 64, 64);
+        pCtx.restore();
+      }
+    }
+  }, [imageObj, zoom, offset]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, offX: offset.x, offY: offset.y };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStart.current.x;
+    const dy = e.clientY - dragStart.current.y;
+    setOffset({ x: dragStart.current.offX + dx, y: dragStart.current.offY + dy });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
+    const delta = e.deltaY * -0.002;
+    setZoom(z => Math.min(Math.max(1, z + delta), 3.5));
   };
-  const onMouseMove = (e: React.MouseEvent) => {
-    if (!dragging.current) return;
-    const dx = e.clientX - dragOrigin.current.mx;
-    const dy = e.clientY - dragOrigin.current.my;
-    setPos({
-      x: clamp(dragOrigin.current.px + dx, 0, disp.w - CROP_BOX),
-      y: clamp(dragOrigin.current.py + dy, 0, disp.h - CROP_BOX),
-    });
-  };
-  const onMouseUp = () => { dragging.current = false; };
 
   const handleSave = () => {
-    if (!imgRef.current || !loaded) return;
-    const img = imgRef.current;
-    const scaleX = img.naturalWidth / disp.w;
-    const scaleY = img.naturalHeight / disp.h;
-    const out = document.createElement('canvas');
-    out.width = 400; out.height = 400;
-    const ctx = out.getContext('2d')!;
-    ctx.drawImage(img, pos.x * scaleX, pos.y * scaleY, CROP_BOX * scaleX, CROP_BOX * scaleY, 0, 0, 400, 400);
-    onSave(out.toDataURL('image/jpeg', 0.94));
+    if (!imageObj) return;
+    const outCanvas = document.createElement('canvas');
+    outCanvas.width = 400;
+    outCanvas.height = 400;
+    const ctx = outCanvas.getContext('2d');
+    if (!ctx) return;
+
+    const baseScale = Math.max(VIEW_SIZE / imageObj.naturalWidth, VIEW_SIZE / imageObj.naturalHeight);
+    const currentScale = baseScale * zoom;
+    const renderW = imageObj.naturalWidth * currentScale;
+    const renderH = imageObj.naturalHeight * currentScale;
+    const posX = (VIEW_SIZE - renderW) / 2 + offset.x;
+    const posY = (VIEW_SIZE - renderH) / 2 + offset.y;
+
+    // Scale from VIEW_SIZE (280) to 400px high-def output
+    const outScale = 400 / VIEW_SIZE;
+    ctx.drawImage(imageObj, posX * outScale, posY * outScale, renderW * outScale, renderH * outScale);
+    onSave(outCanvas.toDataURL('image/jpeg', 0.95));
   };
 
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(5,4,20,0.82)', backdropFilter: 'blur(10px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: '#fff', borderRadius: '24px', padding: '26px', width: '420px', maxWidth: '96vw', boxShadow: '0 40px 90px -20px rgba(0,0,0,0.55)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
-          <div style={{ fontSize: '1.08rem', fontWeight: 800, color: '#171433' }}>Crop your photo</div>
-          <button onClick={onCancel} style={{ width: '28px', height: '28px', borderRadius: '50%', border: '1px solid #edeef4', background: '#f6f7fb', cursor: 'pointer', fontSize: '1rem', color: '#8b8fa3', display: 'grid', placeItems: 'center' }}>×</button>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 3000, background: 'rgba(15,23,42,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ background: '#ffffff', borderRadius: '24px', padding: '28px', width: '380px', maxWidth: '92vw', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)', border: '1px solid #e2e8f0' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+          <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#0f172a' }}>Crop Profile Photo</div>
+          <button onClick={onCancel} style={{ width: '30px', height: '30px', borderRadius: '50%', border: '1px solid #e2e8f0', background: '#f8fafc', cursor: 'pointer', fontSize: '1rem', color: '#64748b', display: 'grid', placeItems: 'center' }}>×</button>
         </div>
-        <div style={{ fontSize: '0.76rem', color: '#94a3b8', marginBottom: '14px' }}>Drag the crop box to reposition · Square crop</div>
+        <p style={{ margin: '0 0 16px', fontSize: '0.8rem', color: '#64748b' }}>Drag to position & use slider to zoom</p>
 
-        {/* Image container with crop overlay */}
+        {/* Viewport Box */}
         <div
-          ref={containerRef}
-          onMouseDown={onMouseDown}
-          onMouseMove={onMouseMove}
-          onMouseUp={onMouseUp}
-          onMouseLeave={onMouseUp}
-          style={{ position: 'relative', background: '#0d0b22', borderRadius: '14px', overflow: 'hidden', cursor: 'crosshair', userSelect: 'none', lineHeight: 0 }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          onWheel={handleWheel}
+          style={{
+            position: 'relative',
+            width: VIEW_SIZE,
+            height: VIEW_SIZE,
+            margin: '0 auto',
+            borderRadius: '20px',
+            overflow: 'hidden',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            background: '#090d16',
+            boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.1)',
+            userSelect: 'none',
+          }}
         >
-          {/* Dimmed full image */}
-          <img
-            ref={imgRef}
-            src={src}
-            alt="crop-source"
-            onLoad={onImgLoad}
-            style={{ width: '100%', display: 'block', opacity: 0.35, pointerEvents: 'none' }}
-            draggable={false}
+          <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+
+          {/* Circular mask guide overlay */}
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            borderRadius: '50%',
+            border: '2px dashed rgba(255,255,255,0.85)',
+            boxShadow: '0 0 0 9999px rgba(15,23,42,0.5)',
+          }} />
+        </div>
+
+        {/* Zoom Slider */}
+        <div style={{ marginTop: '18px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600 }}>Zoom</span>
+          <input
+            type="range"
+            min="1"
+            max="3"
+            step="0.01"
+            value={zoom}
+            onChange={e => setZoom(parseFloat(e.target.value))}
+            style={{ flex: 1, accentColor: PUR, cursor: 'pointer' }}
           />
-
-          {/* Crop box — bright, shows real image */}
-          {loaded && (
-            <div style={{
-              position: 'absolute',
-              left: pos.x, top: pos.y,
-              width: CROP_BOX, height: CROP_BOX,
-              cursor: 'move',
-              boxShadow: `0 0 0 9999px rgba(5,4,20,0.55)`,
-              border: `2px solid ${PUR}`,
-              overflow: 'hidden',
-            }}>
-              {/* Shows real-brightness image in crop region */}
-              <img
-                src={src}
-                alt=""
-                style={{
-                  position: 'absolute',
-                  left: -pos.x, top: -pos.y,
-                  width: disp.w, height: disp.h,
-                  pointerEvents: 'none',
-                  opacity: 1,
-                  display: 'block',
-                }}
-                draggable={false}
-              />
-              {/* Corner guides */}
-              {[{ t: 0, l: 0 }, { t: 0, r: 0 }, { b: 0, l: 0 }, { b: 0, r: 0 }].map((s, i) => (
-                <div key={i} style={{ position: 'absolute', width: 14, height: 14, ...s as any, borderTop: (s as any).t === 0 ? `3px solid #fff` : undefined, borderBottom: (s as any).b === 0 ? `3px solid #fff` : undefined, borderLeft: (s as any).l === 0 ? `3px solid #fff` : undefined, borderRight: (s as any).r === 0 ? `3px solid #fff` : undefined }} />
-              ))}
-            </div>
-          )}
+          <span style={{ fontSize: '0.78rem', color: '#0f172a', fontWeight: 700, width: '38px', textAlign: 'right' }}>{Math.round(zoom * 100)}%</span>
         </div>
 
-        {/* Live preview + hint */}
-        <div style={{ marginTop: '14px', display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{ position: 'relative', flexShrink: 0 }}>
-            <canvas ref={canvasRef} style={{ width: '56px', height: '56px', borderRadius: '12px', border: `2px solid ${PUR}40`, display: 'block' }} />
-            <div style={{ fontSize: '0.6rem', color: '#94a3b8', textAlign: 'center', marginTop: '3px' }}>Preview</div>
-          </div>
-          <div style={{ fontSize: '0.76rem', color: '#64748b', lineHeight: 1.6 }}>
-            <strong style={{ color: '#374151' }}>Drag the crop box</strong> over your<br />photo to choose what to show.
+        {/* Preview & Action Buttons */}
+        <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '14px', background: '#f8fafc', padding: '12px 14px', borderRadius: '14px', border: '1px solid #edf2f7' }}>
+          <canvas ref={previewCanvasRef} style={{ width: '48px', height: '48px', borderRadius: '50%', border: `2px solid ${PUR}`, background: '#fff', flexShrink: 0 }} />
+          <div style={{ fontSize: '0.75rem', color: '#475569', lineHeight: 1.4 }}>
+            <span style={{ fontWeight: 700, color: '#0f172a' }}>Live Avatar Preview</span><br />
+            Adjust position until centered
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
-          <button onClick={onCancel} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 600, color: '#374151', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={handleSave} style={{ flex: 2, padding: '11px', borderRadius: '12px', border: 'none', background: PUR, color: '#fff', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 700, cursor: 'pointer' }}>Save Photo</button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '18px' }}>
+          <button onClick={onCancel} style={{ flex: 1, padding: '11px', borderRadius: '12px', border: '1px solid #e2e8f0', background: '#f8fafc', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 600, color: '#334155', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={handleSave} style={{ flex: 2, padding: '11px', borderRadius: '12px', border: 'none', background: PUR, color: '#fff', fontFamily: 'inherit', fontSize: '0.86rem', fontWeight: 700, cursor: 'pointer', boxShadow: `0 4px 12px ${PUR}40` }}>Apply & Save</button>
         </div>
       </div>
     </div>
@@ -394,20 +431,18 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
       {cropSrc && <TopbarCropModal src={cropSrc} onSave={handleCropSave} onCancel={() => setCropSrc(null)} />}
       {profileModal}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600;1,700&display=swap');
         .miracle-topbar-heading {
-          font-family: 'Cormorant Garamond', Georgia, serif;
-          font-size: 2.1rem;
-          font-weight: 600;
-          letter-spacing: -0.01em;
-          color: #1a1a2e;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 1.85rem;
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #0f172a;
           margin: 0;
-          line-height: 1.18;
+          line-height: 1.2;
         }
         .miracle-topbar-heading .wb-name {
           color: ${PUR};
-          font-style: italic;
-          font-weight: 700;
+          font-weight: 800;
         }
       `}</style>
       <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', padding: '30px 24px 6px', background: '#f4efe4' }}>
