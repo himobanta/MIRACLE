@@ -702,6 +702,131 @@ def _seed_demo_content():
                 "precautions": "Re-apply sunscreen every 2-3 hours during outdoor exposure. Tinted sunscreen protects against visible blue light pigment stimulation.",
                 "derma_referral_triggers": "Dermal melasma, suspicious asymmetrical pigmented lesions, or resistance to 12 weeks of topical protocol."
             }
+            {
+                "protocol_code": "PROT-MELASMA-04",
+                "name": "Recalcitrant Dermal Melasma & Pigment Modulation Protocol",
+                "category": "Pigmentary Disorders",
+                "target_concerns": ["Dermal Melasma", "Centrofacial Pigmentation", "Malar Hyperpigmentation"],
+                "suitable_skin_types": ["Fitzpatrick III-V", "Combination", "Sensitive"],
+                "severity_level": "Severe / Chronic",
+                "duration_weeks": 16,
+                "expected_outcome": "60-80% reduction in MASI score without rebound post-inflammatory hyperpigmentation or barrier breakdown.",
+                "morning_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Non-foaming lipid replenishing cream cleanser"},
+                    {"step": 2, "category": "Pigment Inhibitor", "instructions": "Topical Tranexamic Acid 3% + Niacinamide 4% serum"},
+                    {"step": 3, "category": "Antioxidant Barrier", "instructions": "Tetrahexyldecyl Ascorbate (Lipid-Soluble Vitamin C) 7% + CoQ10"},
+                    {"step": 4, "category": "Photoprotection", "instructions": "Broad-Spectrum Tinted Mineral Sunscreen SPF 50+ (Iron Oxides for High-Energy Visible Blue Light)"}
+                ],
+                "evening_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Micellar thermal water double cleanse"},
+                    {"step": 2, "category": "Active Depigmenting", "instructions": "Azelaic Acid 15% gel-cream + Alpha Arbutin 2% micro-dose"},
+                    {"step": 3, "category": "Barrier Support", "instructions": "Ceramide-rich physiological lipid repair cream with Glabridin"}
+                ],
+                "recommended_actives": ["Tranexamic Acid", "Azelaic Acid (15%)", "Alpha Arbutin", "Iron Oxides", "Glabridin (Licorice)", "Ceramides"],
+                "contraindicated_actives": ["High-energy non-fractionated lasers", "Unbuffered Glycolic peels >30%", "Hydroquinone monotherapy without drug holidays"],
+                "precautions": "Avoid heat exposure, hot yoga, and direct sunlight. Reapply tinted mineral sunscreen every 2 hours during daylight.",
+                "derma_referral_triggers": "Melanin deposition in deep reticular dermis, lack of improvement after 16 weeks, or suspected Ochronosis."
+            },
+            {
+                "protocol_code": "PROT-ROSACEA-05",
+                "name": "Erythematotelangiectatic Rosacea & Vascular Calming Protocol",
+                "category": "Vascular & Sensitivity",
+                "target_concerns": ["Persistent Erythema", "Telangiectasia", "Flushing", "Neurogenic Stinging"],
+                "suitable_skin_types": ["Sensitive", "Reactive", "Fair Fitzpatrick I-II"],
+                "severity_level": "Moderate",
+                "duration_weeks": 10,
+                "expected_outcome": "Marked reduction in baseline flushing episodes and stabilization of endothelial microvascular tone within 4 weeks.",
+                "morning_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Rinse with cool thermal spring water or ultra-mild cleansing milk"},
+                    {"step": 2, "category": "Vascular Calming", "instructions": "Centella Asiatica (Madecassoside 0.5%) + Green Tea Polyphenol essence"},
+                    {"step": 3, "category": "Soothing Hydrator", "instructions": "Panthenol 5% + Bisabolol barrier soothing gel-cream"},
+                    {"step": 4, "category": "Physical Filter", "instructions": "100% Micronized Zinc Oxide SPF 50 (anti-inflammatory filter)"}
+                ],
+                "evening_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Gentle sulfate-free physiological wash"},
+                    {"step": 2, "category": "Anti-Inflammatory", "instructions": "Azelaic Acid 10% micro-emulsion (anti-Demodex and cytokine suppression)"},
+                    {"step": 3, "category": "Occlusive Repair", "instructions": "Squalane 100% barrier-sealing lightweight elixir"}
+                ],
+                "recommended_actives": ["Zinc Oxide", "Azelaic Acid", "Madecassoside", "Bisabolol", "EGCG Green Tea", "Panthenol"],
+                "contraindicated_actives": ["Chemical UV Filters (Avobenzone, Oxybenzone)", "Menthol / Camphor", "Witch Hazel / Alcohol", "Retinoids during acute flares"],
+                "precautions": "Avoid spicy foods, red wine, saunas, and sudden temperature fluctuations.",
+                "derma_referral_triggers": "Ocular rosacea symptoms (grittiness, blepharitis), severe papulopustular eruptive flares, or suspected Rhinophyma."
+            },
+            {
+                "protocol_code": "PROT-ECZEMA-06",
+                "name": "Atopic Dermatitis & Severe Xerosis Lipid Restitution Protocol",
+                "category": "Eczema & Atopy",
+                "target_concerns": ["Eczematous Plaques", "Severe Xerosis", "Pruritus", "Filaggrin Deficiency"],
+                "suitable_skin_types": ["Atopic", "Extremely Dry", "Compromised"],
+                "severity_level": "Moderate to Severe",
+                "duration_weeks": 6,
+                "expected_outcome": "Restoration of epidermal barrier seal, 85% cessation of pruritus, and normalization of corneocyte lipid envelopes.",
+                "morning_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Lipid-replenishing syndet bar or shower oil"},
+                    {"step": 2, "category": "Hydration", "instructions": "Ectoin 2% + Colloidal Oatmeal 1% barrier spray"},
+                    {"step": 3, "category": "Emollient Therapy", "instructions": "Physiological 3:1:1 Ceramide (NP/AP/EOP) dense lipid balm"},
+                    {"step": 4, "category": "Sun Protection", "instructions": "Mineral Titanium/Zinc hypoallergenic SPF 50"}
+                ],
+                "evening_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Lukewarm bath/rinse under 5 minutes without soap scrubbing"},
+                    {"step": 2, "category": "Anti-Pruritic", "instructions": "Oat Beta-Glucan + Palmitoylethanolamide (PEA) calming serum"},
+                    {"step": 3, "category": "Deep Occlusion", "instructions": "Medical-grade Petrolatum / Shea Butter occlusive wrap on focal dry plaques"}
+                ],
+                "recommended_actives": ["Ceramides (3:1:1 Ratio)", "Colloidal Oatmeal", "Ectoin", "Oat Beta-Glucan", "Squalane", "Glycerin (15%)"],
+                "contraindicated_actives": ["All fragrance, essential oils, and masking fragrances", "Preservatives with formaldehyde releasers", "Sodium Lauryl Sulfate (SLS)"],
+                "precautions": "Apply emollients within 3 minutes of bathing to lock in moisture (Soak and Seal technique).",
+                "derma_referral_triggers": "Eczema herpeticum (punched-out erosions), secondary Staphylococcal golden crusting, or widespread erythrodermic flares."
+            },
+            {
+                "protocol_code": "PROT-HORMONAL-07",
+                "name": "Adult Hormonal Cystic Acne & Androgenic Sebum Control Protocol",
+                "category": "Hormonal Acne",
+                "target_concerns": ["Jawline & Chin Cysts", "Pre-Menstrual Flare", "Deep Nodules", "Sebum Hyper-Secretion"],
+                "suitable_skin_types": ["Oily", "Combination", "Hormonally Reactive"],
+                "severity_level": "Moderate to Severe",
+                "duration_weeks": 12,
+                "expected_outcome": "65-75% reduction in deep cystic lesions, normalization of follicular keratinization, and clearance of jawline papules.",
+                "morning_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Zinc Sulfate 1% gentle purifying foaming gel wash"},
+                    {"step": 2, "category": "Sebum Regulation", "instructions": "Niacinamide 5% + Green Tea Extract 2% sebum-balancing essence"},
+                    {"step": 3, "category": "Non-Comedogenic Hydration", "instructions": "Hyaluronic Acid + Centella Asiatica oil-free fluid"},
+                    {"step": 4, "category": "Photoprotection", "instructions": "Matte finish non-comedogenic silica-based SPF 50"}
+                ],
+                "evening_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Salicylic Acid 2% clarifying wash (leave on 60 seconds before rinse)"},
+                    {"step": 2, "category": "Targeted Retinoid", "instructions": "Encapsulated Retinaldehyde 0.05% or Adapalene 0.1% topical thin film"},
+                    {"step": 3, "category": "Anti-Blemish Repair", "instructions": "Azelaic Acid 10% + Phytosphingosine restorative night gel"}
+                ],
+                "recommended_actives": ["Retinaldehyde / Adapalene", "Azelaic Acid", "Salicylic Acid", "Zinc PCA", "Green Tea Extract", "Phytosphingosine"],
+                "contraindicated_actives": ["Heavy comedogenic oils (Coconut, Cocoa Butter)", "Isopropyl Palmitate", "Over-scrubbing with physical rotary brushes"],
+                "precautions": "Introduce retinoid 2 nights/week initially, building tolerance over 4 weeks. Sandwich with moisturizer if peeling occurs.",
+                "derma_referral_triggers": "Deep scarring nodules, lack of response to 12 weeks of topical retinoid + azelaic acid, or signs of hyperandrogenism (PCOS)."
+            },
+            {
+                "protocol_code": "PROT-AGING-08",
+                "name": "Advanced Photo-Aging & Dermal Collagen Remodeling Protocol",
+                "category": "Anti-Aging & Photo-Damage",
+                "target_concerns": ["Photo-Damaged Skin", "Elastosis", "Static Rhytids", "Dermal Thinning"],
+                "suitable_skin_types": ["Normal", "Dry", "Mature", "Photo-Exposed"],
+                "severity_level": "Moderate to Advanced",
+                "duration_weeks": 24,
+                "expected_outcome": "Significant increase in epidermal thickness, improved pro-collagen I expression, and reduction in fine line depth by 40%.",
+                "morning_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Hydrating antioxidant cream wash"},
+                    {"step": 2, "category": "Antioxidant Shield", "instructions": "15% L-Ascorbic Acid + 1% Alpha Tocopherol + 0.5% Ferulic Acid serum"},
+                    {"step": 3, "category": "Peptide Plumping", "instructions": "Multi-Peptide complex (Matrixyl 3000 + Copper Tripeptide-1)"},
+                    {"step": 4, "category": "Broad-Spectrum SPF", "instructions": "High PA++++ UVA/UVB/HEV Defense SPF 50+"}
+                ],
+                "evening_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Gentle peptide cleanser"},
+                    {"step": 2, "category": "Cellular Renewal", "instructions": "Micro-encapsulated Retinol 0.5% or Tretinoin 0.025% topical cream"},
+                    {"step": 3, "category": "Lipid Matrix Repair", "instructions": "Cholesterol, Ceramide, and Fatty Acid biomimetic restorative night cream"}
+                ],
+                "recommended_actives": ["L-Ascorbic Acid", "Ferulic Acid", "Copper Tripeptide-1", "Matrixyl Synthe'6", "Retinol / Tretinoin", "Ceramides"],
+                "contraindicated_actives": ["Combining pure Vitamin C and Retinol in the same morning routine", "Tanning beds and unprotected sun exposure"],
+                "precautions": "Nighttime retinoid use necessitates non-negotiable daily morning SPF 50 photoprotection.",
+                "derma_referral_triggers": "Actinic keratoses (rough pre-cancerous scaly patches), suspicious changing moles, or severe solar elastosis."
+            }
         ]
         for prot in treatment_protocols:
             existing_prot = db.query(TreatmentProtocol).filter(TreatmentProtocol.protocol_code == prot["protocol_code"]).first()
@@ -781,6 +906,73 @@ def _seed_demo_content():
                 "lifestyle_guidance": "Avoid boiling hot beverages and saunas, moderate spicy food intake, and protect face from winter wind with scarves.",
                 "warnings": "Never apply topical steroids without strict dermatologist supervision as it can trigger steroid-induced rebound rosacea.",
                 "derma_referral_threshold": "Ocular symptoms (dry, gritty eyes), severe papulopustular flares, or persistent rhinophyma changes."
+            {
+                "name": "Dermal & Epidermal Melasma",
+                "slug": "dermal-epidermal-melasma",
+                "clinical_name": "Chloasma / Centrofacial Melanosis",
+                "category": "Pigmentary & Endocrine",
+                "description": "Acquired, chronic, symmetrical hyperpigmentation resulting from melanocyte hyper-activity and vascular endothelial growth factor (VEGF) upregulation in sun-exposed facial areas.",
+                "common_characteristics": ["Symmetric macules and patches with irregular borders on cheeks, forehead, upper lip, and chin", "Accentuated by sunlight, UV radiation, and high-energy visible blue light", "Dermal component with melanophages in papillary dermis", "Absence of prior traumatic inflammation"],
+                "associated_skin_types": ["Fitzpatrick Skin Types III-V", "Hormonally Fluctuating (Pregnancy, OCP)", "Sun-Exposed"],
+                "root_causes": ["Estrogen and progesterone receptor activation on melanocytes", "Solar elastosis and basement membrane disruption allowing melanocyte leakage into dermis", "Elevated VEGF stimulating dermal angiogenesis and melanogenesis", "Visible light (400-700nm) and UVA induced reactive oxygen species"],
+                "recommended_approaches": ["Multimodal enzymatic tyrosinase inhibition", "Plasminogen/plasmin pathway inhibition via Tranexamic acid", "Broad-spectrum physical protection containing Iron Oxides", "Cellular barrier preservation without thermal trauma"],
+                "key_ingredients": ["Tranexamic Acid (3%)", "Azelaic Acid (15%)", "Alpha Arbutin (2%)", "Iron Oxides", "Glabridin (Licorice 90%)", "Kojic Dipalmitate"],
+                "ingredients_to_avoid": ["High-energy ablative laser therapies causing rebound PIH", "Hydroquinone without strict medical supervision (Ochronosis risk)", "Photosensitizing essential oils (Citrus, Bergamot)"],
+                "suggested_products": ["Tranexamic Dermal Brightening Serum", "Azelaic 15% Advanced Emulsion", "Iron Oxide Tinted Mineral Barrier Shield SPF 50+"],
+                "lifestyle_guidance": "Strict strict UV and blue light shielding. Wear tinted sunscreen indoors near screens and wide-brim hats during outdoor activities.",
+                "warnings": "Heat and infrared exposure (ovens, hot yoga) can trigger melanogenesis independently of UV light.",
+                "derma_referral_triggers": "Deep dermal refractory melasma, exogenous ochronosis suspicion, or consideration for prescription modified Kligman formula."
+            },
+            {
+                "name": "Atopic Eczema & Severe Cutaneous Xerosis",
+                "slug": "atopic-eczema-xerosis",
+                "clinical_name": "Atopic Dermatitis / Filaggrin Mutation",
+                "category": "Immunological & Barrier",
+                "description": "Chronic relapsing inflammatory dermatosis driven by loss-of-function filaggrin gene mutations, ceramidase upregulation, and Th2 cytokine immune deviation (IL-4, IL-13).",
+                "common_characteristics": ["Intense pruritus (itch-scratch cycle)", "Lichenified plaques on flexural folds (antecubital, popliteal)", "Profound xerosis and cracked fissured skin", "Heightened susceptibility to Staphylococcus aureus colonization"],
+                "associated_skin_types": ["Atopic Triad History (Asthma, Hayfever)", "Very Dry", "Hypersensitive"],
+                "root_causes": ["Filaggrin deficiency causing defective stratum corneum hydration and natural moisturizing factor (NMF) loss", "Defective tight junctions allowing environmental allergen penetration", "Th2 skewed immune response inducing cutaneous inflammation", "Altered lipid processing with severe deficiency of Ceramide 1 and 3"],
+                "recommended_approaches": ["Physiological 3:1:1 lipid replenishment therapy", "Frequent emollient 'Soak and Seal' within 3 minutes of bathing", "Topical non-steroidal anti-pruritic and calming actives", "Elimination of alkaline soaps, surfactants, and wool textiles"],
+                "key_ingredients": ["Ceramides NP, AP, EOP (3:1:1 Ratio)", "Colloidal Oatmeal (Oat Beta-Glucan)", "Ectoin (2%)", "Palmitoylethanolamide (PEA)", "Squalane", "Glycerin (15%)"],
+                "ingredients_to_avoid": ["Sodium Lauryl Sulfate (SLS) and foaming anionic surfactants", "All artificial fragrances, essential oils, and masking fragrances", "Alkaline bar soaps (pH > 7.0)", "Harsh chemical preservatives (Methylisothiazolinone)"],
+                "suggested_products": ["Physiological Lipid Emollient Balm", "Ectoin Colloidal Calming Mist", "Sulfate-Free Cleansing Shower Oil"],
+                "lifestyle_guidance": "Bathe in lukewarm water for under 5 minutes. Apply dense emollients 2-3 times daily. Keep fingernails trimmed and wear 100% cotton clothing.",
+                "warnings": "Never apply fragranced body lotions onto active eczema flares as it induces allergic contact sensitization.",
+                "derma_referral_triggers": "Eczema herpeticum (multiple punched-out vesicular erosions), bacterial impetiginization with golden crusting, or widespread erythrodermic flares."
+            },
+            {
+                "name": "Seborrheic Dermatitis & Fungal Dysbiosis",
+                "slug": "seborrheic-dermatitis-dysbiosis",
+                "clinical_name": "Seborrheic Dermatitis",
+                "category": "Microbiome & Sebaceous",
+                "description": "Chronic superficial inflammatory dermatosis localized to sebaceous-rich areas, triggered by Malassezia yeast overgrowth, altered sebum triglycerides, and free fatty acid irritation.",
+                "common_characteristics": ["Erythematous plaques with greasy yellowish or white scaling", "Predilection for nasolabial folds, glabella, eyebrows, and hairline", "Mild to moderate pruritus aggravated by heat and emotional stress", "Fluctuating course with seasonal winter worsening"],
+                "associated_skin_types": ["Oily", "Sebaceous", "Male / Hormonally Driven", "Neurologically Sensitive"],
+                "root_causes": ["Malassezia globosa and restricta lipases hydrolyzing sebum into irritating free fatty acids (oleic acid)", "Impaired epidermal barrier permitting penetration of unsaturated fatty acids", "Individual immune hyper-reactivity to Malassezia metabolites", "Elevated sebum secretion and high ambient stress levels"],
+                "recommended_approaches": ["Targeted antifungal and anti-yeast topical therapy", "Keratolytic agents to gently clear greasy parakeratotic scales", "Anti-inflammatory calming botanicals without heavy fungal-feeding lipids", "Strict avoidance of medium/long chain triglycerides (C11-C24 fatty acids)"],
+                "key_ingredients": ["Zinc Pyrithione (1%)", "Ketoconazole / Piroctone Olamine", "Azelaic Acid (10%)", "Niacinamide (4%)", "Salicylic Acid (0.5-1%)", "Green Tea Extract"],
+                "ingredients_to_avoid": ["Fatty Acids with chain lengths C11-C24 (Lauric, Myristic, Palmitic, Stearic, Oleic acids)", "Natural plant oils (Olive, Coconut, Argan, Rosehip) that feed Malassezia", "Heavy petrolatum occlusives on sebaceous facial zones"],
+                "suggested_products": ["Zinc Pyrithione Calming Facial Wash", "Piroctone Olamine + Azelaic Clarifying Gel", "Oil-Free Squalane Hydrator (Pure C30 Isomer)"],
+                "lifestyle_guidance": "Shampoo scalp regularly to reduce overall Malassezia reservoir. Avoid very hot water on face and reduce stress levels.",
+                "warnings": "Avoid prolonged use of fluorinated topical steroids on face due to cutaneous atrophy and steroid rosacea risk.",
+                "derma_referral_triggers": "Severe recalcitrant erythroderma, poor response to topical antifungals, or co-existing HIV/immunosuppression presentation."
+            },
+            {
+                "name": "Keratosis Pilaris & Follicular Hyperkeratosis",
+                "slug": "keratosis-pilaris-hyperkeratosis",
+                "clinical_name": "Keratosis Pilaris",
+                "category": "Keratinization Disorder",
+                "description": "Benign autosomal dominant disorder of follicular keratinization where excess keratin forms hard plugs in the orifices of hair follicles, producing a rough 'goose-bump' texture.",
+                "common_characteristics": ["Grouped pinpoint follicular keratotic papules with or without perifollicular erythema", "Predilection for lateral aspects of upper arms, thighs, and cheeks (KP rubra)", "Grater-like rough texture ('chicken skin')", "Asymptomatic to mild pruritus in dry cold conditions"],
+                "associated_skin_types": ["Dry", "Atopic Diathesis", "Ichthyosis Vulgaris Associated", "Adolescent / Young Adult"],
+                "root_causes": ["Defective follicular desquamation leading to hyperkeratotic plug accumulation", "Genetic linkage to filaggrin (FLG) loss-of-function variants", "Co-existing follicular inflammation and micro-erythema", "Aggravation by low ambient humidity and mechanical friction"],
+                "recommended_approaches": ["Daily chemical keratolytics to dissolve cohesive keratin plugs", "Humectant-rich emollient therapy to soften dry stratum corneum", "Gentle non-abrasive cleansing without harsh loofahs", "Humidification in cold winter climates"],
+                "key_ingredients": ["Lactic Acid (10-12%)", "Urea (10-20%)", "Salicylic Acid (2%)", "Ammonium Lactate", "Ceramides", "Squalane"],
+                "ingredients_to_avoid": ["Abrasive physical body scrubs and dry brushing (worsens perifollicular erythema)", "Drying hot water showers", "Fragrance and drying ethyl alcohol"],
+                "suggested_products": ["12% Lactic Acid + Ceramide Resurfacing Body Lotion", "Urea 10% Deep Hydrating Cream", "Salicylic Acid Clarifying Wash"],
+                "lifestyle_guidance": "Apply chemical keratolytic moisturizers immediately after showering onto damp skin. Be patient as KP responds gradually over 4-8 weeks.",
+                "warnings": "Do not pick or squeeze keratotic plugs as this causes scarring and secondary post-inflammatory hyperpigmentation.",
+                "derma_referral_triggers": "Severe Keratosis Pilaris Rubra Facei requiring pulsed dye laser (PDL) or extensive secondary folliculitis."
             }
         ]
         for c in skin_concerns_data:
