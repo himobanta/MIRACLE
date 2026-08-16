@@ -463,4 +463,119 @@ export const api = {
 
   // Admin Reports
   getAdminReportsOverview: () => request("/admin/reports/overview"),
+
+  // ── Consultant Extended Endpoints ──────────────────────────────────────────
+  getConsultantDashboard: () => request("/consultant/dashboard"),
+  getConsultantRoster: (params?: { search?: string; skin_type?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    if (params?.skin_type) q.append("skin_type", params.skin_type);
+    const qs = q.toString();
+    return request(`/consultant/roster${qs ? `?${qs}` : ""}`);
+  },
+  getConsultantAssessments: (params?: { search?: string; skin_type?: string; min_score?: number; max_score?: number }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    if (params?.skin_type) q.append("skin_type", params.skin_type);
+    if (params?.min_score !== undefined) q.append("min_score", String(params.min_score));
+    if (params?.max_score !== undefined) q.append("max_score", String(params.max_score));
+    const qs = q.toString();
+    return request(`/consultant/assessments${qs ? `?${qs}` : ""}`);
+  },
+  getConsultantRoutines: (patientId?: string) => {
+    const q = new URLSearchParams();
+    if (patientId) q.append("patient_id", patientId);
+    const qs = q.toString();
+    return request(`/consultant/routines${qs ? `?${qs}` : ""}`);
+  },
+  deleteConsultantRoutineStep: (id: string) =>
+    request(`/consultant/routines/${id}`, { method: "DELETE" }),
+
+  // Recommendations
+  getConsultantRecommendations: (clientId?: string) => {
+    const q = new URLSearchParams();
+    if (clientId) q.append("client_id", clientId);
+    const qs = q.toString();
+    return request(`/consultant/recommendations${qs ? `?${qs}` : ""}`);
+  },
+  createConsultantRecommendation: (data: any) =>
+    request("/consultant/recommendations", { method: "POST", body: JSON.stringify(data) }),
+  deleteConsultantRecommendation: (id: string) =>
+    request(`/consultant/recommendations/${id}`, { method: "DELETE" }),
+
+  // Notes
+  getConsultantNotes: (params?: { client_id?: string; category?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.client_id) q.append("client_id", params.client_id);
+    if (params?.category) q.append("category", params.category);
+    const qs = q.toString();
+    return request(`/consultant/notes${qs ? `?${qs}` : ""}`);
+  },
+  createConsultantNote: (data: any) =>
+    request("/consultant/notes", { method: "POST", body: JSON.stringify(data) }),
+  updateConsultantNote: (id: string, data: any) =>
+    request(`/consultant/notes/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteConsultantNote: (id: string) =>
+    request(`/consultant/notes/${id}`, { method: "DELETE" }),
+
+  // Follow-ups
+  getConsultantFollowups: (params?: { status?: string; client_id?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.append("status", params.status);
+    if (params?.client_id) q.append("client_id", params.client_id);
+    const qs = q.toString();
+    return request(`/consultant/followups${qs ? `?${qs}` : ""}`);
+  },
+  createConsultantFollowup: (data: any) =>
+    request("/consultant/followups", { method: "POST", body: JSON.stringify(data) }),
+  updateConsultantFollowup: (id: string, data: any) =>
+    request(`/consultant/followups/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteConsultantFollowup: (id: string) =>
+    request(`/consultant/followups/${id}`, { method: "DELETE" }),
+
+  // Reminders
+  getConsultantReminders: (params?: { priority?: string; completed?: boolean }) => {
+    const q = new URLSearchParams();
+    if (params?.priority) q.append("priority", params.priority);
+    if (params?.completed !== undefined) q.append("completed", String(params.completed));
+    const qs = q.toString();
+    return request(`/consultant/reminders${qs ? `?${qs}` : ""}`);
+  },
+  createConsultantReminder: (data: any) =>
+    request("/consultant/reminders", { method: "POST", body: JSON.stringify(data) }),
+  updateConsultantReminder: (id: string, data: any) =>
+    request(`/consultant/reminders/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteConsultantReminder: (id: string) =>
+    request(`/consultant/reminders/${id}`, { method: "DELETE" }),
+
+  // Knowledge Guides
+  getConsultantTreatmentProtocols: (params?: { category?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.category) q.append("category", params.category);
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/consultant/treatment-protocols${qs ? `?${qs}` : ""}`);
+  },
+  getConsultantSkinConcernsGuide: (params?: { category?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.category) q.append("category", params.category);
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/consultant/skin-concerns${qs ? `?${qs}` : ""}`);
+  },
+  getConsultantIngredients: (params?: { search?: string; category?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    if (params?.category) q.append("category", params.category);
+    const qs = q.toString();
+    return request(`/consultant/ingredients${qs ? `?${qs}` : ""}`);
+  },
+
+  // Consultant Profile, Settings, Notifications
+  getConsultantProfile: () => request("/consultant/profile"),
+  updateConsultantProfile: (data: any) =>
+    request("/consultant/profile", { method: "PUT", body: JSON.stringify(data) }),
+  changeConsultantPassword: (data: any) =>
+    request("/consultant/password", { method: "PUT", body: JSON.stringify(data) }),
+  getConsultantNotifications: () => request("/consultant/notifications"),
 };

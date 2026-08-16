@@ -209,3 +209,147 @@ class BackupRecord(Base):
     size_bytes = Column(Integer, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     completed_at = Column(DateTime, nullable=True)
+
+
+# ── Consultant Domain Models ───────────────────────────────────────────────────
+
+class ConsultantProfile(Base):
+    """Rich professional profile for Skincare Consultants."""
+    __tablename__ = "consultant_profiles"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), unique=True, nullable=False)
+    phone = Column(String, nullable=True)
+    title = Column(String, default="Senior Skincare Consultant")
+    specialization = Column(String, default="Acne Barrier Repair & Botanical Science")
+    experience_years = Column(Integer, default=8)
+    bio = Column(Text, nullable=True)
+    areas_of_expertise = Column(JSON, default=lambda: ["Acne & Blemish Care", "Barrier Restoration", "Hyperpigmentation", "Sensitive Skin Protocols"])
+    skin_concerns_handled = Column(JSON, default=lambda: ["Acne", "Hyperpigmentation", "Dryness & Dehydration", "Redness & Sensitivity", "Premature Aging"])
+    skin_types_handled = Column(JSON, default=lambda: ["Oily", "Combination", "Dry", "Sensitive", "Normal"])
+    certifications = Column(JSON, default=lambda: ["Certified Aesthetic Skincare Specialist (CASS)", "Advanced Dermal Barrier Science Diploma", "Clinical Botanical Formulations Certificate"])
+    qualifications = Column(String, default="B.Sc. Cosmetic Science & Dermatology Aesthetics")
+    availability = Column(String, default="Mon-Fri, 9:00 AM - 6:00 PM IST")
+    consultation_modes = Column(JSON, default=lambda: ["Video Consultation", "Chat & Follow-up Review", "Clinical Routine Audit"])
+    joined_date = Column(String, default="2022-03-15")
+    account_status = Column(String, default="Active · Verified Professional")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ConsultantNote(Base):
+    """Consultant clinical & client interaction notes."""
+    __tablename__ = "consultant_notes"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    consultant_id = Column(String, ForeignKey("users.id"), nullable=False)
+    client_id = Column(String, ForeignKey("users.id"), nullable=False)
+    client_name = Column(String, nullable=True)
+    title = Column(String, nullable=False)
+    content = Column(Text, nullable=False)
+    category = Column(String, default="General Consultation")  # General Consultation, Routine Review, Allergy Alert, Progress Note, Barrier Check
+    tag = Column(String, default="Routine")
+    is_pinned = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ConsultantFollowUp(Base):
+    """Scheduled client follow-up interactions."""
+    __tablename__ = "consultant_followups"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    consultant_id = Column(String, ForeignKey("users.id"), nullable=False)
+    client_id = Column(String, ForeignKey("users.id"), nullable=False)
+    client_name = Column(String, nullable=True)
+    due_date = Column(String, nullable=False)   # YYYY-MM-DD
+    due_time = Column(String, default="11:00 AM")
+    topic = Column(String, nullable=False)
+    action_items = Column(Text, nullable=True)
+    status = Column(String, default="Upcoming")  # Upcoming, Completed, Overdue, Cancelled
+    outcome_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ConsultantReminder(Base):
+    """Clinical reminders and tasks for consultants."""
+    __tablename__ = "consultant_reminders"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    consultant_id = Column(String, ForeignKey("users.id"), nullable=False)
+    client_id = Column(String, ForeignKey("users.id"), nullable=True)
+    client_name = Column(String, nullable=True)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    due_date = Column(String, nullable=False)   # YYYY-MM-DD
+    priority = Column(String, default="Medium") # High, Medium, Low
+    category = Column(String, default="Follow-up") # Follow-up, Routine Review, Appointment, Product Check, General
+    is_completed = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class ProductRecommendation(Base):
+    """Products recommended to clients by consultants."""
+    __tablename__ = "product_recommendations"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    consultant_id = Column(String, ForeignKey("users.id"), nullable=False)
+    client_id = Column(String, ForeignKey("users.id"), nullable=False)
+    client_name = Column(String, nullable=True)
+    product_id = Column(String, ForeignKey("products.id"), nullable=True)
+    product_name = Column(String, nullable=False)
+    brand = Column(String, nullable=True)
+    category = Column(String, nullable=True)
+    target_concern = Column(String, nullable=True)
+    usage_instructions = Column(Text, nullable=True)  # e.g. "Apply 3-4 drops in PM routine after cleansing"
+    time_of_day = Column(String, default="PM")        # AM, PM, Both
+    why_recommended = Column(Text, nullable=True)
+    price = Column(Float, nullable=True)
+    image_url = Column(String, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class TreatmentProtocol(Base):
+    """Structured clinical treatment reference protocols."""
+    __tablename__ = "treatment_protocols"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    protocol_code = Column(String, unique=True, index=True, nullable=False) # e.g. "PROT-ACNE-01"
+    name = Column(String, nullable=False)
+    category = Column(String, nullable=False) # Acne & Blemish, Barrier Repair, Hyperpigmentation, Anti-Aging, Rosacea & Redness
+    target_concerns = Column(JSON, default=list)
+    suitable_skin_types = Column(JSON, default=list)
+    severity_level = Column(String, default="Mild to Moderate") # Mild, Moderate, Severe
+    duration_weeks = Column(Integer, default=6)
+    expected_outcome = Column(Text, nullable=True)
+    morning_protocol = Column(JSON, default=list)  # list of step dicts
+    evening_protocol = Column(JSON, default=list)  # list of step dicts
+    recommended_actives = Column(JSON, default=list)
+    contraindicated_actives = Column(JSON, default=list)
+    precautions = Column(Text, nullable=True)
+    derma_referral_triggers = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SkinConcernGuide(Base):
+    """Clinical skin concerns knowledge guide for consultants."""
+    __tablename__ = "skin_concerns_guide"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    name = Column(String, unique=True, index=True, nullable=False)
+    slug = Column(String, unique=True, index=True, nullable=False)
+    clinical_name = Column(String, nullable=True)
+    category = Column(String, nullable=False) # Inflammatory, Pigmentary, Barrier & Hydration, Structural & Aging, Vascular
+    description = Column(Text, nullable=False)
+    common_characteristics = Column(JSON, default=list)
+    associated_skin_types = Column(JSON, default=list)
+    root_causes = Column(JSON, default=list)
+    recommended_approaches = Column(JSON, default=list)
+    key_ingredients = Column(JSON, default=list)
+    ingredients_to_avoid = Column(JSON, default=list)
+    suggested_products = Column(JSON, default=list)
+    lifestyle_guidance = Column(Text, nullable=True)
+    warnings = Column(Text, nullable=True)
+    derma_referral_threshold = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+

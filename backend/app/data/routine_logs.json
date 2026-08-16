@@ -1896,5 +1896,77 @@
       "step_3",
       "step_4"
     ]
+  },
+  {
+    "user_id": "ca192229-1419-4814-a856-099f6d4895ba",
+    "log_date": "2026-08-10",
+    "completed_steps": [
+      "Morning Routine",
+      "Sunscreen Applied"
+    ],
+    "water_intake_ml": 2500,
+    "sleep_hours": 7.5
+  },
+  {
+    "user_id": "bb568fa4-8b57-4767-a0f0-8b3007a24595",
+    "log_date": "2026-08-11",
+    "completed_steps": [
+      "Cleansing"
+    ],
+    "water_intake_ml": 3000,
+    "sleep_hours": 8.0
+  },
+  {
+    "user_id": "fe80148e-c92d-4240-9db6-7951b6e3a7d1",
+    "log_date": "2026-08-11",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3"
+    ],
+    "water_intake_ml": 2500,
+    "sleep_hours": 8.0
+  },
+  {
+    "user_id": "0ab07ef9-eca7-4cc4-800f-76d523023cfc",
+    "log_date": "2026-08-10",
+    "completed_steps": [
+      "Morning Routine",
+      "Drink Water"
+    ],
+    "water_intake_ml": 2500,
+    "sleep_hours": 7.5
+  },
+  {
+    "user_id": "122be348-1ad0-48ea-a7ef-7f15d821646d",
+    "log_date": "2026-08-16",
+    "completed_steps": [
+      "Morning Routine",
+      "Sunscreen Applied"
+    ],
+    "water_intake_ml": 2500,
+    "sleep_hours": 8.0
+  },
+  {
+    "user_id": "2929136d-1e46-4756-bdab-b6e927a35c1b",
+    "log_date": "2026-08-11",
+    "completed_steps": [
+      "Morning Routine",
+      "Sunscreen Applied"
+    ],
+    "water_intake_ml": 2500,
+    "sleep_hours": 7.5
+  },
+  {
+    "user_id": "f12d35be-659b-45ec-9d37-b2ecf974a778",
+    "log_date": "2026-08-11",
+    "completed_steps": [
+      "Morning Routine",
+      "Sunscreen Applied",
+      "Night Routine",
+      "8 hrs Sleep"
+    ],
+    "water_intake_ml": 2500,
+    "sleep_hours": 7.5
   }
 ]

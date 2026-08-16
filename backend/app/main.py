@@ -6,7 +6,11 @@ from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import engine, Base, SessionLocal, check_db_connection
-from .models import User, UserProfile, SystemConfig, ContentArticle, Ingredient, BackupRecord
+from .models import (
+    User, UserProfile, SystemConfig, ContentArticle, Ingredient, BackupRecord,
+    ConsultantProfile, ConsultantNote, ConsultantFollowUp, ConsultantReminder,
+    ProductRecommendation, TreatmentProtocol, SkinConcernGuide
+)
 from .auth import hash_password
 from .config import CORS_ORIGINS_RAW, ENVIRONMENT, log_startup_summary
 from .routers import (
@@ -620,6 +624,281 @@ def _seed_demo_content():
                     setattr(existing_ing, k, v)
         db.commit()
 
+        # ── Seed Treatment Protocols ──────────────────────────────────────────
+        treatment_protocols = [
+            {
+                "protocol_code": "PROT-ACNE-01",
+                "name": "Targeted Acne & Dermal Barrier Repair Protocol",
+                "category": "Acne & Blemish",
+                "target_concerns": ["Acne", "Inflammation", "Clogged Pores"],
+                "suitable_skin_types": ["Oily", "Combination", "Acne-Prone"],
+                "severity_level": "Moderate",
+                "duration_weeks": 8,
+                "expected_outcome": "50-70% reduction in inflammatory comedones and papules within 6 weeks, with full barrier restoration and reduced sebum production.",
+                "morning_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Gentle Salicylic Acid 0.5% foaming cleanser with lukewarm water"},
+                    {"step": 2, "category": "Treatment", "instructions": "Niacinamide 5% + Zinc PCA 1% soothing hydration serum"},
+                    {"step": 3, "category": "Moisturizing", "instructions": "Lightweight oil-free Ceramide gel hydrator"},
+                    {"step": 4, "category": "Sun Protection", "instructions": "Broad Spectrum Mineral SPF 50 Non-Comedogenic Sunscreen"}
+                ],
+                "evening_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Double cleanse: Gentle Micellar water followed by hydrating cleanser"},
+                    {"step": 2, "category": "Treatment", "instructions": "Azelaic Acid 10% topical cream on affected regions"},
+                    {"step": 3, "category": "Moisturizing", "instructions": "Barrier lipid replenishing night cream with Centella Asiatica"}
+                ],
+                "recommended_actives": ["Niacinamide", "Salicylic Acid", "Zinc PCA", "Centella Asiatica (Cica)", "Azelaic Acid"],
+                "contraindicated_actives": ["Heavy Mineral Oils", "High-concentration Benzoyl Peroxide with Retinol (same step)", "Physical walnut scrubs"],
+                "precautions": "Introduce Azelaic Acid gradually (3x/week). Ensure daily broad-spectrum SPF 50 sunscreen use.",
+                "derma_referral_triggers": "Nodulocystic acne, scarring cysts, failure to improve after 8 weeks, or signs of secondary bacterial infection."
+            },
+            {
+                "protocol_code": "PROT-BARRIER-02",
+                "name": "Intensive Lipid Barrier Restoration & Calm Protocol",
+                "category": "Barrier Repair",
+                "target_concerns": ["Barrier Damage", "Redness", "Stinging", "Dehydration"],
+                "suitable_skin_types": ["Sensitive", "Dry", "Reactive", "Over-Exfoliated"],
+                "severity_level": "Mild to Moderate",
+                "duration_weeks": 4,
+                "expected_outcome": "Restoration of natural stratum corneum integrity, cessation of stinging upon moisture application within 10-14 days.",
+                "morning_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Rinse with lukewarm thermal water or gentle non-foaming cream wash"},
+                    {"step": 2, "category": "Hydration", "instructions": "Multi-molecular Hyaluronic Acid + Panthenol 5% essence"},
+                    {"step": 3, "category": "Moisturizing", "instructions": "Physiological 3:1:1 Ceramide, Cholesterol & Fatty Acid cream"},
+                    {"step": 4, "category": "Sun Protection", "instructions": "Pure Zinc Oxide 100% physical mineral sunscreen SPF 50+"}
+                ],
+                "evening_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Ultra-gentle milk cleanser (sulfate-free, fragrance-free)"},
+                    {"step": 2, "category": "Soothing", "instructions": "Madecassoside + Bisabolol barrier concentrate"},
+                    {"step": 3, "category": "Occlusion", "instructions": "Rich soothing balm with Squalane and Oat Beta-Glucan"}
+                ],
+                "recommended_actives": ["Ceramides (NP, AP, EOP)", "Centella Asiatica", "Panthenol (Vitamin B5)", "Squalane", "Oat Beta-Glucan", "Bisabolol"],
+                "contraindicated_actives": ["AHA / BHA / PHA Chemical Exfoliants", "L-Ascorbic Acid", "Retinoids", "Essential Oils", "Alcohol Denat"],
+                "precautions": "Strictly suspend all chemical exfoliants and retinoids during the 4-week recovery phase.",
+                "derma_referral_triggers": "Severe contact dermatitis, blistering, active eczema flares requiring topical corticosteroids."
+            },
+            {
+                "protocol_code": "PROT-PIGMENT-03",
+                "name": "Clinical Hyperpigmentation & Melanin Dispersal Protocol",
+                "category": "Hyperpigmentation",
+                "target_concerns": ["Dark Spots", "Post-Inflammatory Hyperpigmentation (PIH)", "Uneven Tone"],
+                "suitable_skin_types": ["Combination", "Normal", "Oily", "Hyperpigmented"],
+                "severity_level": "Moderate",
+                "duration_weeks": 12,
+                "expected_outcome": "Visible lightening of localized pigmentation clusters by 35-50% over 12 weeks of compliant treatment and strict UV shielding.",
+                "morning_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Antioxidant balancing gel cleanser"},
+                    {"step": 2, "category": "Antioxidant", "instructions": "10% Pure Vitamin C (Ascorbic Acid) + Ferulic Acid serum"},
+                    {"step": 3, "category": "Moisturizing", "instructions": "Niacinamide 3% light emulsion"},
+                    {"step": 4, "category": "Sun Protection", "instructions": "High UVA/UVB PA++++ Mineral + Tinted SPF 50 (blocks blue light)"}
+                ],
+                "evening_protocol": [
+                    {"step": 1, "category": "Cleansing", "instructions": "Thorough gentle cleansing balm and foam wash"},
+                    {"step": 2, "category": "Brightening Active", "instructions": "Tranexamic Acid 3% + Alpha Arbutin 2% treatment serum"},
+                    {"step": 3, "category": "Repair", "instructions": "Licorice Root + Peptide renewal night cream"}
+                ],
+                "recommended_actives": ["Alpha Arbutin", "Tranexamic Acid", "Licorice Root Extract (Glabridin)", "Vitamin C", "Niacinamide", "Ferulic Acid"],
+                "contraindicated_actives": ["Hydroquinone without dermatologist prescription", "Unbuffered glycolic acid peels at home"],
+                "precautions": "Re-apply sunscreen every 2-3 hours during outdoor exposure. Tinted sunscreen protects against visible blue light pigment stimulation.",
+                "derma_referral_triggers": "Dermal melasma, suspicious asymmetrical pigmented lesions, or resistance to 12 weeks of topical protocol."
+            }
+        ]
+        for prot in treatment_protocols:
+            existing_prot = db.query(TreatmentProtocol).filter(TreatmentProtocol.protocol_code == prot["protocol_code"]).first()
+            if not existing_prot:
+                db.add(TreatmentProtocol(**prot))
+            else:
+                for k, v in prot.items():
+                    setattr(existing_prot, k, v)
+        db.commit()
+
+        # ── Seed Skin Concerns Guide ──────────────────────────────────────────
+        skin_concerns_data = [
+            {
+                "name": "Acne & Inflammatory Comedones",
+                "slug": "acne-inflammatory-comedones",
+                "clinical_name": "Acne Vulgaris",
+                "category": "Inflammatory",
+                "description": "Multifactorial follicular disorder characterized by microcomedone formation, Cutibacterium acnes proliferation, follicular hyperkeratinization, and inflammatory cytokine cascades.",
+                "common_characteristics": ["Open and closed comedones", "Erythematous papules and pustules", "Elevated sebum secretion rate", "Post-inflammatory hyperpigmentation"],
+                "associated_skin_types": ["Oily", "Combination", "Hormonally Reactive"],
+                "root_causes": ["Elevated androgen levels stimulating sebaceous hyperplasia", "Abnormal follicular desquamation causing follicular plugging", "Bacterial biofilm formation (C. acnes)", "High glycemic diet and chronic psychological stress"],
+                "recommended_approaches": ["Topical keratolytics to normalize cellular desquamation", "Anti-inflammatory botanical agents to soothe cytokine storm", "Sebum-regulating actives without disrupting lipid mantle", "Strict non-comedogenic daily hydration"],
+                "key_ingredients": ["Salicylic Acid (BHA 0.5-2%)", "Niacinamide (2-5%)", "Zinc PCA", "Azelaic Acid (10%)", "Centella Asiatica (Madecassoside)"],
+                "ingredients_to_avoid": ["Isopropyl Myristate", "Coconut Oil / Sodium Lauryl Sulfate", "Heavy Petrolatum Occlusives on Active Papules", "High-concentration Essential Oils"],
+                "suggested_products": ["BHA Clarifying Cleanser", "Niacinamide 10% + Zinc 1% Serum", "Cica Barrier Soothing Gel Cream", "Matte Fluid SPF 50"],
+                "lifestyle_guidance": "Maintain consistent circadian sleep, minimize refined sugar intake, wash pillowcases bi-weekly, and avoid physical friction/touching of facial skin.",
+                "warnings": "Do not combine high-strength Salicylic Acid and Retinol in the same morning/evening step to avoid barrier compromise.",
+                "derma_referral_threshold": "Nodular or cystic acne (>5mm), scarring, lesions extending down the neck and jawline, or emotional distress."
+            },
+            {
+                "name": "Compromised Dermal Barrier & Dehydration",
+                "slug": "compromised-dermal-barrier",
+                "clinical_name": "Stratum Corneum Barrier Dysfunction",
+                "category": "Barrier & Hydration",
+                "description": "Impaired lipid matrix in the stratum corneum leading to excessive Transepidermal Water Loss (TEWL), heightened allergen penetrance, and sensory neurogenic hyper-reactivity.",
+                "common_characteristics": ["Persistent skin tightness after washing", "Stinging or burning with mild moisturizers", "Flaking, roughness, and fine dehydration lines", "Diffuse patchy erythema"],
+                "associated_skin_types": ["Dry", "Sensitive", "Over-Processed", "All Skin Types in Winter"],
+                "root_causes": ["Over-exfoliation with AHA/BHA or facial scrubs", "Harsh alkaline surfactants stripping natural intercellular lipids", "Environmental cold, low humidity, and indoor heating", "Chronic use of unbuffered retinoids without adequate lipid support"],
+                "recommended_approaches": ["Immediate elimination of active acids and physical scrubs", "Replenishment of physiological 3:1:1 lipid ratio", "Multi-depth humectants coupled with biocompatible occlusives", "Non-stripping pH 5.5 cleansers"],
+                "key_ingredients": ["Ceramide NP, AP, EOP", "Cholesterol & Free Fatty Acids", "Panthenol (Pro-Vitamin B5)", "Squalane", "Oat Beta-Glucan", "Centella Asiatica"],
+                "ingredients_to_avoid": ["Glycolic Acid", "Salicylic Acid", "Pure Retinol", "Alcohol Denat", "Synthetic Fragrances & Limonene"],
+                "suggested_products": ["Lipid Barrier Replenishing Cream", "Panthenol 5% B5 Hydrating Essence", "Oat Calming Cleansing Balm", "100% Plant Squalane Oil"],
+                "lifestyle_guidance": "Use a room humidifier, limit hot showers to under 5 minutes, and apply hydrators onto damp skin.",
+                "warnings": "Do not attempt to 'scrub off' flaking skin as this further removes defensive corneocyte layers.",
+                "derma_referral_threshold": "Secondary bacterial crusting (impetigo), weeping lesions, or severe eczema/dermatitis unresponsive to 2 weeks of barrier therapy."
+            },
+            {
+                "name": "Post-Inflammatory Hyperpigmentation (PIH)",
+                "slug": "post-inflammatory-hyperpigmentation",
+                "clinical_name": "Post-Inflammatory Melanosis",
+                "category": "Pigmentary",
+                "description": "Acquired hypermelanosis following cutaneous injury or inflammatory dermatoses, characterized by epidermal melanin accumulation and/or dermal melanophage deposition.",
+                "common_characteristics": ["Flat localized dark brown, red, or purple macules", "Coincides with sites of resolved acne or eczema", "Slow spontaneous resolution over months", "Aggravated by UV and visible sunlight"],
+                "associated_skin_types": ["Fitzpatrick Skin Types III-VI", "Acne-Prone", "Post-Procedure Skin"],
+                "root_causes": ["Prostaglandins, leukotrienes, and cytokines triggering melanocyte hyper-reactivity", "Sunlight stimulating further tyrosinase activity on damaged sites", "Manual extraction and picking of acne lesions"],
+                "recommended_approaches": ["Tyrosinase enzyme inhibition", "Melanosome transfer blockage from melanocytes to keratinocytes", "Accelerated epidermal cell renewal via gentle non-irritating actives", "Daily broad-spectrum high UVA/UVB and blue light protection"],
+                "key_ingredients": ["Tranexamic Acid (3-5%)", "Alpha Arbutin (2%)", "Ascorbyl Glucoside / Vitamin C", "Niacinamide (5%)", "Licorice Extract (Glabridin)"],
+                "ingredients_to_avoid": ["Excessive friction", "Aggressive chemical peels without photoprotection", "Comedogenic carrier oils"],
+                "suggested_products": ["Tranexamic + Arbutin Brightening Serum", "10% Vitamin C + Ferulic Acid Antioxidant Day Serum", "Tinted Mineral SPF 50"],
+                "lifestyle_guidance": "Strict daily sun protection is 80% of PIH resolution. Wear wide-brim hats during peak solar hours.",
+                "warnings": "Avoid rapid aggressive brightening products that cause inflammation, which will paradoxically worsen PIH.",
+                "derma_referral_threshold": "Dermal melanophage deposition refractory to 6 months of topical care, or melasma requiring prescription triple combination therapy."
+            },
+            {
+                "name": "Facial Erythema & Microvascular Reactivity",
+                "slug": "facial-erythema-reactivity",
+                "clinical_name": "Erythematotelangiectatic Reactivity",
+                "category": "Vascular",
+                "description": "Neurovascular dysregulation leading to transient flushing, persistent central facial erythema, and increased sensitivity to thermal, spicy, and emotional stimuli.",
+                "common_characteristics": ["Central facial flushing (cheeks, nose, forehead)", "Visible telangiectasias (spider veins)", "Stinging sensation upon temperature change", "Skin reactivity to topical cosmetics"],
+                "associated_skin_types": ["Fair Skin Types (Fitzpatrick I-II)", "Sensitive", "Thin/Reactive Skin"],
+                "root_causes": ["Upregulation of transient receptor potential (TRP) channels in sensory nerves", "Microvascular hyper-reactivity and endothelial permeability", "Demodex folliculorum mite proliferation trigger", "Alcohol, hot beverages, spicy foods, and temperature swings"],
+                "recommended_approaches": ["Anti-inflammatory topical vasoconstrictive/calming agents", "Microbiome balance support", "Physical mineral-only sunscreen filters", "Strict elimination of known dietary/environmental vasodilators"],
+                "key_ingredients": ["Azelaic Acid (10%)", "Centella Asiatica (Asiaticoside)", "Green Tea Polyphenols (EGCG)", "Bisabolol", "Niacinamide (low dose 2%)", "Zinc Oxide"],
+                "ingredients_to_avoid": ["Menthol, Camphor & Peppermint", "High-strength Glycolic Acid", "Alcohol-based astringents", "Physical scrub beads"],
+                "suggested_products": ["Azelaic Calming 10% Suspension", "Cica Redness Relief Treatment Gel", "Mineral Tinted Soothing Sunscreen SPF 50"],
+                "lifestyle_guidance": "Avoid boiling hot beverages and saunas, moderate spicy food intake, and protect face from winter wind with scarves.",
+                "warnings": "Never apply topical steroids without strict dermatologist supervision as it can trigger steroid-induced rebound rosacea.",
+                "derma_referral_threshold": "Ocular symptoms (dry, gritty eyes), severe papulopustular flares, or persistent rhinophyma changes."
+            }
+        ]
+        for c in skin_concerns_data:
+            existing_c = db.query(SkinConcernGuide).filter(SkinConcernGuide.slug == c["slug"]).first()
+            if not existing_c:
+                db.add(SkinConcernGuide(**c))
+            else:
+                for k, v in c.items():
+                    setattr(existing_c, k, v)
+        db.commit()
+
+        # ── Seed Consultant Profile & Sample Data for Priya & Riya ────────────
+        consultants = db.query(User).filter(User.role == "Skincare Consultant").all()
+        for c_user in consultants:
+            c_prof = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == c_user.id).first()
+            if not c_prof:
+                db.add(ConsultantProfile(
+                    user_id=c_user.id,
+                    phone="+91 98765 43210",
+                    title="Senior Clinical Skincare Consultant",
+                    specialization="Acne Barrier Repair & Botanical Science",
+                    experience_years=8,
+                    bio="Dedicated clinical aesthetician and skincare consultant with over 8 years of specialized practice in lipid barrier repair, chronic acne comedolysis, and evidence-based botanical active delivery.",
+                    qualifications="B.Sc. Cosmetic Science & Dermatology Aesthetics (Gold Medalist)",
+                    availability="Mon - Sat · 9:30 AM - 6:30 PM IST",
+                ))
+                db.commit()
+
+        # Seed sample client notes, followups, reminders, recommendations if empty
+        if db.query(ConsultantNote).count() == 0 and consultants:
+            sample_client = db.query(User).filter(User.role == "User").first()
+            if sample_client:
+                c_id = consultants[0].id
+                # Notes
+                db.add(ConsultantNote(
+                    consultant_id=c_id,
+                    client_id=sample_client.id,
+                    client_name=sample_client.name,
+                    title="Initial Barrier & Acne Evaluation",
+                    content="Client presents with compromised lipid barrier following intensive OTC scrub use. Prescribed gentle Cica gel cleanser + 5% Niacinamide serum. Advised strict cessation of physical exfoliants.",
+                    category="Routine Review",
+                    tag="Barrier Health",
+                    is_pinned=True
+                ))
+                db.add(ConsultantNote(
+                    consultant_id=c_id,
+                    client_id=sample_client.id,
+                    client_name=sample_client.name,
+                    title="Week 2 Tolerance Check-In",
+                    content="Client reports redness reduced significantly. Zero stinging on sunscreen application. Progressing to low-dose Azelaic Acid 10% on PM routine 3x weekly.",
+                    category="Progress Note",
+                    tag="Acne Protocol",
+                    is_pinned=False
+                ))
+                # Follow-ups
+                db.add(ConsultantFollowUp(
+                    consultant_id=c_id,
+                    client_id=sample_client.id,
+                    client_name=sample_client.name,
+                    due_date="2026-08-25",
+                    due_time="11:30 AM",
+                    topic="4-Week Dermal Barrier & Comedone Audit",
+                    action_items="Evaluate skin hydration subscore, inspect progress photos, adjust PM active frequency.",
+                    status="Upcoming"
+                ))
+                db.add(ConsultantFollowUp(
+                    consultant_id=c_id,
+                    client_id=sample_client.id,
+                    client_name=sample_client.name,
+                    due_date="2026-08-12",
+                    due_time="10:00 AM",
+                    topic="Introductory Skincare Habit Consultation",
+                    action_items="Completed baseline assessment review and established hydration goals.",
+                    status="Completed",
+                    outcome_notes="Client successfully onboarded and initiated customized routine."
+                ))
+                # Reminders
+                db.add(ConsultantReminder(
+                    consultant_id=c_id,
+                    client_id=sample_client.id,
+                    client_name=sample_client.name,
+                    title="Review Routine Compliance Log for Ananya",
+                    description="Check if PM barrier repair serum was applied consistently over past 7 days.",
+                    due_date="2026-08-20",
+                    priority="High",
+                    category="Routine Review",
+                    is_completed=False
+                ))
+                db.add(ConsultantReminder(
+                    consultant_id=c_id,
+                    client_id=sample_client.id,
+                    client_name=sample_client.name,
+                    title="Send Progress Photo Upload Notification",
+                    description="Request 4-week milestone progress selfie in natural indirect daylight.",
+                    due_date="2026-08-24",
+                    priority="Medium",
+                    category="Follow-up",
+                    is_completed=False
+                ))
+                # Product Recommendations
+                sample_prod = db.query(Product).first()
+                if sample_prod:
+                    db.add(ProductRecommendation(
+                        consultant_id=c_id,
+                        client_id=sample_client.id,
+                        client_name=sample_client.name,
+                        product_id=sample_prod.id,
+                        product_name=sample_prod.product_name,
+                        brand=sample_prod.brand,
+                        category=sample_prod.category,
+                        target_concern="Barrier Repair & Acne Management",
+                        usage_instructions="Apply 2 pumps evenly over face and neck every morning after gentle cleansing.",
+                        time_of_day="AM",
+                        why_recommended="Formulated with physiological ceramides and niacinamide to accelerate stratum corneum healing.",
+                        price=sample_prod.price,
+                        image_url=sample_prod.image_url
+                    ))
+                db.commit()
+
         # ── 1 Sample BackupRecord ─────────────────────────────────────────────
         if db.query(BackupRecord).count() == 0:
             db.add(BackupRecord(
@@ -631,7 +910,7 @@ def _seed_demo_content():
             ))
             db.commit()
 
-        logger.info("Demo content seeded: SystemConfig, ContentArticles, Ingredients, BackupRecord")
+        logger.info("Demo content seeded: SystemConfig, ContentArticles, Ingredients, Protocols, SkinConcerns, ConsultantData, BackupRecord")
     finally:
         db.close()
 

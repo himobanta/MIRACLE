@@ -42,6 +42,24 @@ export function StatCards({ role }: StatCardsProps) {
 
   let stats: StatItem[] = [];
 
+  const [consultantStats, setConsultantStats] = React.useState<{
+    total_clients: number;
+    assessments_done: number;
+    active_routines: number;
+    avg_improvement_pct: number;
+    upcoming_followups: number;
+  } | null>(null);
+
+  React.useEffect(() => {
+    if (role === 'consultant') {
+      import('../../services/api').then(({ api }) => {
+        api.getConsultantDashboard().then(d => {
+          setConsultantStats(d);
+        }).catch(() => {});
+      });
+    }
+  }, [role]);
+
   if (role === 'admin') {
     stats = [
       makeStat('Total Users', '12,845', 'users', 'pur', <UpEl text="18% this month" color="#16a34a" />),
@@ -60,12 +78,13 @@ export function StatCards({ role }: StatCardsProps) {
       makeStat('Follow-ups Due', '23', 'cal', 'red', <span style={{ color: PUR, fontWeight: 600 }}>View all follow-ups →</span>),
     ];
   } else if (role === 'consultant') {
+    const c = consultantStats;
     stats = [
-      makeStat('Total Clients', '128', 'users', 'pur', <UpEl text="12% this month" color="#16a34a" />),
-      makeStat('Assessments Done', '86', 'clip', 'grn', <UpEl text="18% this month" color="#16a34a" />),
-      makeStat('Active Routines', '92', 'trend', 'blu', <UpEl text="15% this month" color="#16a34a" />),
-      makeStat('Avg. Improvement', '24%', 'star', 'ora', <UpEl text="6% this month" color="#16a34a" />),
-      makeStat('Upcoming Follow-ups', '14', 'cal', 'red', <span style={{ color: PUR, fontWeight: 600 }}>View Calendar →</span>),
+      makeStat('Total Clients', c ? String(c.total_clients) : '—', 'users', 'pur', <UpEl text="Active DB Roster" color="#16a34a" />),
+      makeStat('Assessments Done', c ? String(c.assessments_done) : '—', 'clip', 'grn', <UpEl text="Real Evaluation Data" color="#16a34a" />),
+      makeStat('Active Routines', c ? String(c.active_routines) : '—', 'trend', 'blu', <UpEl text="Patient Regimens" color="#16a34a" />),
+      makeStat('Avg. Improvement', c ? (c.avg_improvement_pct > 0 ? `+${c.avg_improvement_pct}%` : `${c.avg_improvement_pct}%`) : '—', 'star', 'ora', <UpEl text="Dermal Score Delta" color="#16a34a" />),
+      makeStat('Upcoming Follow-ups', c ? String(c.upcoming_followups) : '—', 'cal', 'red', <span style={{ color: PUR, fontWeight: 600 }}>Action Required →</span>),
     ];
   }
 
