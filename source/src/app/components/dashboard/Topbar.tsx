@@ -431,44 +431,28 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
       {cropSrc && <TopbarCropModal src={cropSrc} onSave={handleCropSave} onCancel={() => setCropSrc(null)} />}
       {profileModal}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,600;1,700&display=swap');
         .miracle-topbar-heading {
-          font-family: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-          font-size: 1.95rem;
-          font-weight: 700;
-          letter-spacing: -0.025em;
-          color: #0f172a;
+          font-family: 'Cormorant Garamond', Georgia, serif;
+          font-size: 2.15rem;
+          font-weight: 500;
+          letter-spacing: -0.01em;
+          color: #1a1a2e;
           margin: 0;
           line-height: 1.15;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-        }
-        .miracle-topbar-heading .wb-lead {
-          font-weight: 500;
-          color: #334155;
-          letter-spacing: -0.02em;
         }
         .miracle-topbar-heading .wb-name {
-          background: linear-gradient(135deg, #1e4e37 0%, ${PUR} 60%, #3d8b63 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          font-weight: 800;
-          letter-spacing: -0.02em;
-        }
-        .miracle-topbar-heading .wb-emoji {
-          display: inline-block;
-          font-size: 1.7rem;
-          margin-left: 2px;
-          filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
+          color: ${PUR};
+          font-style: italic;
+          font-weight: 700;
         }
       `}</style>
       <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', padding: '30px 24px 6px', background: '#f4efe4' }}>
         <div style={{ minWidth: '220px' }}>
           <h1 className="miracle-topbar-heading">
-            <span className="wb-lead">Welcome back,</span> <span className="wb-name">{firstName}</span> <span className="wb-emoji">👋</span>
+            Welcome back, <span className="wb-name">{firstName}</span> 👋
           </h1>
-          <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: '#64748b', fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{topbar.subtitle}</p>
+          <p style={{ margin: '5px 0 0', fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>{topbar.subtitle}</p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
