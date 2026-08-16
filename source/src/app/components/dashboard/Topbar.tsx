@@ -1,6 +1,161 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { DashIcon, PATHS, PUR, FACE } from './dashboardUtils';
 import type { RoleType } from './Sidebar';
+
+// ── Professional Calendar Picker ─────────────────────────────────────────────
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DAY_NAMES   = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function CalendarPicker({ onClose }: { onClose: () => void }) {
+  const today = new Date();
+  const [viewYear,  setViewYear]  = useState(today.getFullYear());
+  const [viewMonth, setViewMonth] = useState(today.getMonth());
+  const [selected,  setSelected]  = useState<Date>(today);
+  const [yearMode,  setYearMode]  = useState(false);
+  const [yearPage,  setYearPage]  = useState(Math.floor(today.getFullYear() / 12) * 12);
+  const ref = useRef<HTMLDivElement>(null);
+
+  // Close on outside click or Esc
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    const onMouse = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onMouse);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onMouse); };
+  }, [onClose]);
+
+  // Build calendar grid
+  const firstDow = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const daysInPrev  = new Date(viewYear, viewMonth, 0).getDate();
+  const cells: { day: number; type: 'prev'|'cur'|'next' }[] = [];
+  for (let i = firstDow - 1; i >= 0; i--) cells.push({ day: daysInPrev - i, type: 'prev' });
+  for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, type: 'cur' });
+  const trailing = 42 - cells.length;
+  for (let d = 1; d <= trailing; d++) cells.push({ day: d, type: 'next' });
+
+  const isToday  = (d: number) => d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+  const isSelected = (d: number) => d === selected.getDate() && viewMonth === selected.getMonth() && viewYear === selected.getFullYear();
+
+  const prevMonth = () => { if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); } else setViewMonth(m => m - 1); };
+  const nextMonth = () => { if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); } else setViewMonth(m => m + 1); };
+
+  const CAL_W = '#2f6b4c'; // brand green for calendar accents
+  const cellStyle = (type: string, d: number): React.CSSProperties => {
+    const cur  = type === 'cur';
+    const sel  = cur && isSelected(d);
+    const tod  = cur && isToday(d);
+    return {
+      width: '34px', height: '34px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+      borderRadius: '50%', fontSize: '0.82rem', fontWeight: sel ? 800 : tod ? 700 : 500,
+      cursor: cur ? 'pointer' : 'default',
+      background: sel ? CAL_W : 'transparent',
+      color: sel ? '#fff' : tod ? CAL_W : cur ? '#0f172a' : '#b0b8cc',
+      border: tod && !sel ? `1.5px solid ${CAL_W}` : 'none',
+      transition: 'background 0.15s, color 0.15s',
+      userSelect: 'none',
+    };
+  };
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: 'absolute', top: 'calc(100% + 10px)', right: 0, zIndex: 3500,
+        background: '#fff', borderRadius: '20px', boxShadow: '0 20px 60px -10px rgba(15,23,42,0.25)',
+        border: '1px solid #e8eaf2', width: '310px', overflow: 'hidden',
+        animation: 'calDrop 0.2s cubic-bezier(0.22,1,0.36,1) both',
+      }}
+    >
+      <style>{`
+        @keyframes calDrop { from { opacity:0; transform:translateY(-8px) scale(0.97); } to { opacity:1; transform:translateY(0) scale(1); } }
+        .cal-cell:hover { background: #f0f9f4 !important; }
+        .cal-cell-sel:hover { background: ${CAL_W} !important; }
+        .cal-nav:hover { background: #f1f5f9 !important; }
+        .cal-year-cell:hover { background: #f0f9f4 !important; color: ${CAL_W} !important; }
+      `}</style>
+
+      {/* Header bar */}
+      <div style={{ background: CAL_W, padding: '16px 18px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ color: '#fff' }}>
+          <div style={{ fontSize: '0.72rem', fontWeight: 600, opacity: 0.75, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Today</div>
+          <div style={{ fontSize: '1.05rem', fontWeight: 800, marginTop: '2px' }}>
+            {today.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+          </div>
+        </div>
+        <button onClick={onClose} style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.18)', border: 'none', color: '#fff', fontSize: '1rem', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>×</button>
+      </div>
+
+      {yearMode ? (
+        /* ── Year picker grid ── */
+        <div style={{ padding: '14px 16px 16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <button className="cal-nav" onClick={() => setYearPage(p => p - 12)} style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1rem', color: '#64748b' }}>‹</button>
+            <span style={{ fontSize: '0.85rem', fontWeight: 700, color: '#0f172a' }}>{yearPage} – {yearPage + 11}</span>
+            <button className="cal-nav" onClick={() => setYearPage(p => p + 12)} style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1rem', color: '#64748b' }}>›</button>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '6px' }}>
+            {Array.from({ length: 12 }, (_, i) => yearPage + i).map(yr => (
+              <button
+                key={yr}
+                className={yr === viewYear ? 'cal-year-cell' : 'cal-year-cell'}
+                onClick={() => { setViewYear(yr); setYearMode(false); }}
+                style={{
+                  padding: '8px 4px', borderRadius: '10px', border: yr === viewYear ? `2px solid ${CAL_W}` : '2px solid transparent',
+                  background: yr === viewYear ? `${CAL_W}14` : 'transparent', color: yr === viewYear ? CAL_W : '#334155',
+                  fontSize: '0.82rem', fontWeight: yr === viewYear ? 800 : 500, cursor: 'pointer', transition: 'all 0.12s',
+                }}
+              >{yr}</button>
+            ))}
+          </div>
+          <button onClick={() => setYearMode(false)} style={{ marginTop: '10px', width: '100%', padding: '8px', borderRadius: '10px', border: `1px solid ${CAL_W}30`, background: `${CAL_W}0a`, color: CAL_W, fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>Back to Calendar</button>
+        </div>
+      ) : (
+        /* ── Calendar grid ── */
+        <div style={{ padding: '14px 16px 16px' }}>
+          {/* Month/Year nav row */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <button className="cal-nav" onClick={prevMonth} style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.1rem', color: '#64748b' }}>‹</button>
+            <button
+              onClick={() => setYearMode(true)}
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 800, color: '#0f172a', letterSpacing: '-0.01em' }}
+            >{MONTH_NAMES[viewMonth]} {viewYear} ▾</button>
+            <button className="cal-nav" onClick={nextMonth} style={{ width: '30px', height: '30px', borderRadius: '8px', border: 'none', background: 'transparent', cursor: 'pointer', fontSize: '1.1rem', color: '#64748b' }}>›</button>
+          </div>
+
+          {/* Day-of-week headers */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', marginBottom: '4px' }}>
+            {DAY_NAMES.map(d => (
+              <div key={d} style={{ fontSize: '0.72rem', fontWeight: 700, color: '#94a3b8', padding: '4px 0', letterSpacing: '0.04em' }}>{d}</div>
+            ))}
+          </div>
+
+          {/* Date cells */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', gap: '2px' }}>
+            {cells.map((c, i) => (
+              <div
+                key={i}
+                className={c.type === 'cur' ? (isSelected(c.day) ? 'cal-cell-sel' : 'cal-cell') : ''}
+                style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                onClick={() => { if (c.type === 'cur') setSelected(new Date(viewYear, viewMonth, c.day)); }}
+              >
+                <div style={cellStyle(c.type, c.day)}>{c.day}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer */}
+          <div style={{ borderTop: '1px solid #f1f5f9', marginTop: '12px', paddingTop: '10px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <button onClick={() => { setViewYear(today.getFullYear()); setViewMonth(today.getMonth()); setSelected(today); }} style={{ border: `1px solid ${CAL_W}30`, background: `${CAL_W}0a`, color: CAL_W, padding: '6px 14px', borderRadius: '8px', fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer' }}>Today</button>
+            <span style={{ fontSize: '0.78rem', color: '#94a3b8', fontWeight: 500 }}>
+              {selected.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+            </span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface TopbarProps {
   role: RoleType;
@@ -225,6 +380,8 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
   const [unreadNotifs, setUnreadNotifs] = useState<number>(0);
   const [showDpMenu, setShowDpMenu] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [showCalendar, setShowCalendar] = useState(false);
+  const calBtnRef = useRef<HTMLDivElement>(null);
   const dpMenuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -516,15 +673,18 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
             )}
           </button>
 
-          <button
-            type="button"
-            onClick={() => onSectionChange && onSectionChange('reminders')}
-            style={{ display: 'flex', alignItems: 'center', gap: '9px', borderRadius: '14px', border: '1px solid #edeef4', background: '#fff', cursor: 'pointer', padding: '11px 16px', fontFamily: 'inherit', color: '#2b2b40', boxShadow: '0 2px 10px -6px rgba(23,20,51,0.2)' }}
-          >
-            <DashIcon d={PATHS.cal} s={17} stroke={PUR} />
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{todayDate}</span>
-            <DashIcon d="<path d='m6 9 6 6 6-6'/>" s={14} stroke="#9aa0b4" sw={2} />
-          </button>
+          <div ref={calBtnRef} style={{ position: 'relative' }}>
+            <button
+              type="button"
+              onClick={() => setShowCalendar(v => !v)}
+              style={{ display: 'flex', alignItems: 'center', gap: '9px', borderRadius: '14px', border: `1px solid ${showCalendar ? PUR : '#edeef4'}`, background: '#fff', cursor: 'pointer', padding: '11px 16px', fontFamily: 'inherit', color: '#2b2b40', boxShadow: showCalendar ? `0 0 0 3px ${PUR}18, 0 2px 10px -6px rgba(23,20,51,0.2)` : '0 2px 10px -6px rgba(23,20,51,0.2)', transition: 'border-color 0.2s, box-shadow 0.2s' }}
+            >
+              <DashIcon d={PATHS.cal} s={17} stroke={PUR} />
+              <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{todayDate}</span>
+              <DashIcon d={`<path d='m6 ${showCalendar ? 15 : 9} 6 ${showCalendar ? -6 : 6} 6 ${showCalendar ? -6 : 6}'/>`} s={14} stroke="#9aa0b4" sw={2} />
+            </button>
+            {showCalendar && <CalendarPicker onClose={() => setShowCalendar(false)} />}
+          </div>
 
           {/* Clickable Profile Area */}
           <button
