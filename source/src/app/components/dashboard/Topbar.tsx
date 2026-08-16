@@ -432,12 +432,6 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
       {profileModal}
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
-        .miracle-topbar-heading-wrap {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          flex-wrap: wrap;
-        }
         .miracle-topbar-heading {
           font-family: 'Outfit', 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
           font-size: 1.95rem;
@@ -467,50 +461,13 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
           font-size: 1.7rem;
           margin-left: 2px;
           filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
-          transform-origin: 70% 70%;
-          animation: wave 2.2s infinite ease-in-out;
-        }
-        @keyframes wave {
-          0%, 60%, 100% { transform: rotate(0deg); }
-          10%, 30% { transform: rotate(14deg); }
-          20% { transform: rotate(-8deg); }
-          40% { transform: rotate(-4deg); }
-          50% { transform: rotate(10deg); }
-        }
-        .miracle-topbar-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          padding: 4px 10px;
-          border-radius: 999px;
-          background: rgba(47, 107, 76, 0.08);
-          border: 1px solid rgba(47, 107, 76, 0.18);
-          font-family: 'Plus Jakarta Sans', sans-serif;
-          font-size: 0.7rem;
-          font-weight: 700;
-          color: ${PUR};
-          letter-spacing: 0.04em;
-          text-transform: uppercase;
-        }
-        .miracle-topbar-badge-dot {
-          width: 6px;
-          height: 6px;
-          border-radius: 50%;
-          background: #16a34a;
-          box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
         }
       `}</style>
       <header style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '20px', flexWrap: 'wrap', padding: '30px 24px 6px', background: '#f4efe4' }}>
         <div style={{ minWidth: '220px' }}>
-          <div className="miracle-topbar-heading-wrap">
-            <h1 className="miracle-topbar-heading">
-              <span className="wb-lead">Welcome back,</span> <span className="wb-name">{firstName}</span> <span className="wb-emoji">👋</span>
-            </h1>
-            <span className="miracle-topbar-badge">
-              <span className="miracle-topbar-badge-dot" />
-              {role === 'admin' ? 'Super Admin' : role === 'derma' ? 'Doctor' : role === 'consultant' ? 'Consultant' : 'Member'}
-            </span>
-          </div>
+          <h1 className="miracle-topbar-heading">
+            <span className="wb-lead">Welcome back,</span> <span className="wb-name">{firstName}</span> <span className="wb-emoji">👋</span>
+          </h1>
           <p style={{ margin: '6px 0 0', fontSize: '0.88rem', color: '#64748b', fontWeight: 500, fontFamily: "'Plus Jakarta Sans', sans-serif", letterSpacing: '-0.01em' }}>{topbar.subtitle}</p>
         </div>
 
