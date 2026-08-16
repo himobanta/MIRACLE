@@ -662,7 +662,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
 
           <button
             type="button"
-            onClick={() => onSectionChange && onSectionChange(role === 'admin' ? 'notifications' : 'reminders')}
+            onClick={() => onSectionChange && onSectionChange((role === 'admin' || role === 'consultant') ? 'notifications' : 'reminders')}
             style={{ position: 'relative', display: 'grid', placeItems: 'center', width: '46px', height: '46px', borderRadius: '14px', border: '1px solid #edeef4', background: '#fff', cursor: 'pointer', color: '#3f4a5a', boxShadow: '0 2px 10px -6px rgba(23,20,51,0.2)' }}
           >
             <DashIcon d={PATHS.bell} s={19} stroke="#3f4a5a" />

@@ -1968,5 +1968,115 @@
     ],
     "water_intake_ml": 2500,
     "sleep_hours": 7.5
+  },
+  {
+    "user_id": "75ee692f-2680-4fbd-82a0-4dd0abf6b183",
+    "log_date": "2026-08-11",
+    "completed_steps": [
+      "Morning Routine",
+      "Drink Water"
+    ],
+    "water_intake_ml": 2000,
+    "sleep_hours": 8.0
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-01",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-02",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-03",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-04",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-05",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-06",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-07",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-08",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-09",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
+  },
+  {
+    "user_id": "c3229c98-9bb9-46a1-9030-3111a4e0bcfa",
+    "log_date": "2026-08-10",
+    "completed_steps": [
+      "step_1",
+      "step_2",
+      "step_3",
+      "step_4"
+    ]
   }
 ]

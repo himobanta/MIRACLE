@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Card,
   CardHead,
@@ -19,6 +19,26 @@ import {
   UpEl,
 } from './dashboardUtils';
 import { api } from '../../services/api';
+
+// ── Dynamic Skin Type Color Generator ────────────────────────────────────────
+const DEFAULT_PALETTE = [PUR, BLU, ORA, PNK, GRN, TEA, '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#64748b'];
+const KNOWN_SKIN_COLORS: Record<string, string> = {
+  Combination: PUR,
+  Oily: BLU,
+  Dry: ORA,
+  Sensitive: PNK,
+  Normal: GRN,
+  Unassessed: '#8b8fa3',
+};
+
+function getSkinTypeColor(type: string, index: number = 0): string {
+  if (KNOWN_SKIN_COLORS[type]) return KNOWN_SKIN_COLORS[type];
+  // Generate consistent color based on string hash or fallback palette
+  let hash = 0;
+  for (let i = 0; i < type.length; i++) hash = type.charCodeAt(i) + ((hash << 5) - hash);
+  const colorIdx = Math.abs(hash) % DEFAULT_PALETTE.length;
+  return DEFAULT_PALETTE[colorIdx] || DEFAULT_PALETTE[index % DEFAULT_PALETTE.length];
+}
 
 // ── Types ───────────────────────────────────────────────────────────────────
 interface RosterPatient {
@@ -130,14 +150,259 @@ function Toast({ msg, ok, onClose }: { msg: string; ok: boolean; onClose: () => 
   );
 }
 
-const skinTypeColors: Record<string, string> = {
-  Combination: PUR,
-  Oily: BLU,
-  Dry: ORA,
-  Sensitive: PNK,
-  Normal: GRN,
-  Unassessed: '#8b8fa3',
-};
+// ── Photo Viewer Lightbox ────────────────────────────────────────────────────
+function PhotoViewer({ src, name, onClose }: { src: string; name: string; onClose: () => void }) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose]);
+  return (
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 4000,
+        background: 'rgba(5,4,20,0.9)',
+        backdropFilter: 'blur(12px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'zoom-out',
+      }}
+    >
+      <div onClick={e => e.stopPropagation()} style={{ position: 'relative', maxWidth: '90vw', maxHeight: '90vh' }}>
+        <img
+          src={src}
+          alt={name}
+          style={{ maxWidth: '80vw', maxHeight: '80vh', borderRadius: '20px', objectFit: 'contain', boxShadow: '0 40px 100px rgba(0,0,0,0.6)', display: 'block' }}
+        />
+        <button
+          onClick={onClose}
+          style={{
+            position: 'absolute',
+            top: -12,
+            right: -12,
+            width: '34px',
+            height: '34px',
+            borderRadius: '50%',
+            background: '#fff',
+            border: 'none',
+            fontSize: '1.1rem',
+            cursor: 'pointer',
+            display: 'grid',
+            placeItems: 'center',
+            boxShadow: '0 4px 14px rgba(0,0,0,0.3)',
+          }}
+        >
+          ×
+        </button>
+        <div style={{ textAlign: 'center', color: 'rgba(255,255,255,0.7)', fontSize: '0.82rem', marginTop: '12px', fontWeight: 500 }}>
+          {name} · Press Esc to close
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── DP Cropper Modal ────────────────────────────────────────────────────────
+function DpCropModal({ src, onSave, onCancel }: { src: string; onSave: (cropped: string) => void; onCancel: () => void }) {
+  const [zoom, setZoom] = useState<number>(1);
+  const [offset, setOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState<boolean>(false);
+  const dragStart = useRef<{ x: number; y: number; offX: number; offY: number }>({ x: 0, y: 0, offX: 0, offY: 0 });
+  const [imageObj, setImageObj] = useState<HTMLImageElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  const VIEW_SIZE = 280;
+
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      setImageObj(img);
+      setZoom(1);
+      setOffset({ x: 0, y: 0 });
+    };
+    img.src = src;
+  }, [src]);
+
+  useEffect(() => {
+    if (!imageObj) return;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    canvas.width = VIEW_SIZE;
+    canvas.height = VIEW_SIZE;
+    ctx.clearRect(0, 0, VIEW_SIZE, VIEW_SIZE);
+
+    const baseScale = Math.max(VIEW_SIZE / imageObj.naturalWidth, VIEW_SIZE / imageObj.naturalHeight);
+    const currentScale = baseScale * zoom;
+    const renderW = imageObj.naturalWidth * currentScale;
+    const renderH = imageObj.naturalHeight * currentScale;
+    const posX = (VIEW_SIZE - renderW) / 2 + offset.x;
+    const posY = (VIEW_SIZE - renderH) / 2 + offset.y;
+
+    ctx.drawImage(imageObj, posX, posY, renderW, renderH);
+
+    const previewCanvas = previewCanvasRef.current;
+    if (previewCanvas) {
+      const pCtx = previewCanvas.getContext('2d');
+      if (pCtx) {
+        previewCanvas.width = 64;
+        previewCanvas.height = 64;
+        pCtx.clearRect(0, 0, 64, 64);
+        pCtx.save();
+        pCtx.beginPath();
+        pCtx.arc(32, 32, 32, 0, Math.PI * 2);
+        pCtx.clip();
+        pCtx.drawImage(canvas, 0, 0, 64, 64);
+        pCtx.restore();
+      }
+    }
+  }, [imageObj, zoom, offset]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    dragStart.current = { x: e.clientX, y: e.clientY, offX: offset.x, offY: offset.y };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging) return;
+    setOffset({
+      x: dragStart.current.offX + (e.clientX - dragStart.current.x),
+      y: dragStart.current.offY + (e.clientY - dragStart.current.y),
+    });
+  };
+
+  const handleMouseUp = () => setIsDragging(false);
+
+  const handleSaveCropped = () => {
+    if (!canvasRef.current) return;
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = 256;
+    cropCanvas.height = 256;
+    const cCtx = cropCanvas.getContext('2d');
+    if (!cCtx) return;
+
+    cCtx.beginPath();
+    cCtx.arc(128, 128, 128, 0, Math.PI * 2);
+    cCtx.clip();
+    cCtx.drawImage(canvasRef.current, 0, 0, 256, 256);
+    onSave(cropCanvas.toDataURL('image/jpeg', 0.9));
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 5000,
+        background: 'rgba(15,23,42,0.65)',
+        backdropFilter: 'blur(8px)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <div
+        style={{
+          background: '#fff',
+          borderRadius: '24px',
+          padding: '28px',
+          width: '380px',
+          maxWidth: '92vw',
+          boxShadow: '0 25px 60px rgba(0,0,0,0.3)',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+        }}
+      >
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h3 style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: '#0f172a' }}>Crop Profile Photo</h3>
+          <button onClick={onCancel} style={{ border: 'none', background: 'transparent', fontSize: '1.2rem', cursor: 'pointer' }}>×</button>
+        </div>
+
+        {/* Viewport Canvas */}
+        <div
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
+          style={{
+            width: `${VIEW_SIZE}px`,
+            height: `${VIEW_SIZE}px`,
+            borderRadius: '50%',
+            overflow: 'hidden',
+            cursor: isDragging ? 'grabbing' : 'grab',
+            border: `3px solid ${PUR}`,
+            boxShadow: '0 8px 30px rgba(0,0,0,0.12)',
+            position: 'relative',
+            background: '#f1f5f9',
+          }}
+        >
+          <canvas ref={canvasRef} style={{ display: 'block', width: '100%', height: '100%' }} />
+        </div>
+
+        {/* Zoom Slider */}
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '0.8rem', color: '#64748b' }}>Zoom</span>
+          <input
+            type="range"
+            min="1"
+            max="3"
+            step="0.05"
+            value={zoom}
+            onChange={e => setZoom(parseFloat(e.target.value))}
+            style={{ flex: 1, accentColor: PUR }}
+          />
+          <span style={{ fontSize: '0.8rem', color: '#64748b', minWidth: '32px' }}>{Math.round(zoom * 100)}%</span>
+        </div>
+
+        {/* Buttons */}
+        <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
+          <button
+            onClick={onCancel}
+            style={{
+              flex: 1,
+              padding: '10px',
+              borderRadius: '10px',
+              border: '1px solid #e2e8f0',
+              background: '#fff',
+              color: '#475569',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSaveCropped}
+            style={{
+              flex: 1,
+              padding: '10px',
+              borderRadius: '10px',
+              border: 'none',
+              background: PUR,
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '0.82rem',
+              cursor: 'pointer',
+            }}
+          >
+            Save Photo
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ── Main ConsultantWorkspace Component ──────────────────────────────────────
 export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChange }: ConsultantWorkspaceProps) {
@@ -162,6 +427,11 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
   const [routinesList, setRoutinesList] = useState<any[]>([]);
   const [routinesLoading, setRoutinesLoading] = useState(false);
 
+  // Available Products catalog for recommendation
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [selectedProductToRec, setSelectedProductToRec] = useState<any | null>(null);
+
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [showRecModal, setShowRecModal] = useState(false);
@@ -176,7 +446,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
 
   const [notesList, setNotesList] = useState<any[]>([]);
   const [notesLoading, setNotesLoading] = useState(false);
-  const [noteCategoryFilter, setNoteCategoryFilter] = useState('All');
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [noteTargetClient, setNoteTargetClient] = useState('');
   const [noteTitle, setNoteTitle] = useState('');
@@ -186,7 +455,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
 
   const [followupsList, setFollowupsList] = useState<any[]>([]);
   const [followupsLoading, setFollowupsLoading] = useState(false);
-  const [followupStatusFilter, setFollowupStatusFilter] = useState('All');
   const [showFollowupModal, setShowFollowupModal] = useState(false);
   const [followupTargetClient, setFollowupTargetClient] = useState('');
   const [followupTopic, setFollowupTopic] = useState('');
@@ -205,7 +473,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
 
   const [protocolsList, setProtocolsList] = useState<any[]>([]);
   const [protocolsLoading, setProtocolsLoading] = useState(false);
-  const [protocolCategoryFilter, setProtocolCategoryFilter] = useState('All');
   const [selectedProtocol, setSelectedProtocol] = useState<any | null>(null);
 
   const [concernsGuide, setConcernsGuide] = useState<any[]>([]);
@@ -214,7 +481,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
 
   const [ingredientsList, setIngredientsList] = useState<any[]>([]);
   const [ingredientsLoading, setIngredientsLoading] = useState(false);
-  const [ingredientCategoryFilter, setIngredientCategoryFilter] = useState('All');
   const [selectedIngredient, setSelectedIngredient] = useState<any | null>(null);
 
   // Profile & Settings
@@ -230,6 +496,14 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
   const [profileQual, setProfileQual] = useState('');
   const [profileAvail, setProfileAvail] = useState('');
 
+  // DP Management States
+  const dpKey = 'miracle_dp_consultant';
+  const [customDp, setCustomDp] = useState<string | null>(() => localStorage.getItem(dpKey) || null);
+  const [viewPhoto, setViewPhoto] = useState(false);
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+  const [showDpMenu, setShowDpMenu] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Password change
   const [currentPw, setCurrentPw] = useState('');
   const [newPw, setNewPw] = useState('');
@@ -239,13 +513,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
   // Notifications
   const [notificationsList, setNotificationsList] = useState<any[]>([]);
   const [notifsLoading, setNotifsLoading] = useState(false);
-
-  // Referral Modal
-  const [showReferModal, setShowReferModal] = useState<string | null>(null);
-  const [referSummary, setReferSummary] = useState('');
-  const [referDate, setReferDate] = useState('');
-  const [referTime, setReferTime] = useState('');
-  const [referLoading, setReferLoading] = useState(false);
 
   // Prescription Modal
   const [showPrescribeModal, setShowPrescribeModal] = useState<string | null>(null);
@@ -264,7 +531,13 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
     setRosterLoading(true);
     api.getConsultantRoster()
       .then(d => {
-        setRoster(d.patients || []);
+        // Sanitize skin types: replace raw "string" with "Unassessed" or real skin type
+        const sanitized = (d.patients || []).map((p: any) => ({
+          ...p,
+          skin_type: (!p.skin_type || p.skin_type === 'string' || p.skin_type.trim() === '') ? 'Unassessed' : p.skin_type,
+          primary_concern: (!p.primary_concern || p.primary_concern === 'string') ? 'General Care' : p.primary_concern,
+        }));
+        setRoster(sanitized);
         setRosterError(null);
       })
       .catch(() => setRosterError('Failed to load client roster. Please refresh.'))
@@ -285,6 +558,14 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
       .then(d => setRoutinesList(d.routines || []))
       .catch(() => setRoutinesList([]))
       .finally(() => setRoutinesLoading(false));
+  }, []);
+
+  const fetchProductsCatalog = useCallback(() => {
+    setProductsLoading(true);
+    api.getAdminProducts({ per_page: 50 })
+      .then(d => setAllProducts(d.products || d.items || []))
+      .catch(() => setAllProducts([]))
+      .finally(() => setProductsLoading(false));
   }, []);
 
   const fetchRecommendations = useCallback(() => {
@@ -394,6 +675,7 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
         break;
       case 'product-recommendations':
         fetchRecommendations();
+        fetchProductsCatalog();
         fetchRoster();
         break;
       case 'progress-tracking':
@@ -421,9 +703,11 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
       case 'treatment-protocols':
         fetchProtocols();
         break;
-      case 'settings':
-      case 'account-settings':
       case 'my-profile':
+      case 'settings':
+        fetchProfile();
+        break;
+      case 'account-settings':
         fetchProfile();
         break;
       case 'notifications':
@@ -432,7 +716,7 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
       default:
         break;
     }
-  }, [activeSection, fetchRoster, fetchAssessments, fetchRoutines, fetchRecommendations, fetchNotes, fetchFollowups, fetchReminders, fetchIngredients, fetchConcernsGuide, fetchProtocols, fetchProfile, fetchNotifications]);
+  }, [activeSection, fetchRoster, fetchAssessments, fetchRoutines, fetchRecommendations, fetchProductsCatalog, fetchNotes, fetchFollowups, fetchReminders, fetchIngredients, fetchConcernsGuide, fetchProtocols, fetchProfile, fetchNotifications]);
 
   const openPatient = async (id: string) => {
     setPatientLoading(true);
@@ -444,6 +728,36 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
     } finally {
       setPatientLoading(false);
     }
+  };
+
+  // DP Handlers
+  const handleDpUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCropSrc(reader.result as string);
+        setShowDpMenu(false);
+      };
+      reader.readAsDataURL(file);
+    }
+    e.target.value = '';
+  };
+
+  const handleCropSave = (croppedDataUrl: string) => {
+    localStorage.setItem(dpKey, croppedDataUrl);
+    setCustomDp(croppedDataUrl);
+    setCropSrc(null);
+    window.dispatchEvent(new CustomEvent('miracle_user_updated'));
+    setToast({ msg: 'Profile photo updated successfully', ok: true });
+  };
+
+  const handleRemoveDp = () => {
+    localStorage.removeItem(dpKey);
+    setCustomDp(null);
+    setShowDpMenu(false);
+    window.dispatchEvent(new CustomEvent('miracle_user_updated'));
+    setToast({ msg: 'Profile photo removed', ok: true });
   };
 
   const handleSaveProfile = async (e: React.FormEvent) => {
@@ -623,40 +937,41 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
     return matchesSearch && matchesSkin;
   });
 
-  // Calculate live Skin Type Distribution
+  // Calculate live Skin Type Distribution with dynamic colors for any future input
   const skinTypeCounts: Record<string, number> = {};
   roster.forEach(p => {
-    const st = p.skin_type || 'Unassessed';
+    const st = (!p.skin_type || p.skin_type === 'string' || p.skin_type.trim() === '') ? 'Unassessed' : p.skin_type;
     skinTypeCounts[st] = (skinTypeCounts[st] || 0) + 1;
   });
   const totalRoster = roster.length || 1;
-  const skinTypeDist = Object.entries(skinTypeCounts).map(([type, count]) => ({
+  const skinTypeDist = Object.entries(skinTypeCounts).map(([type, count], idx) => ({
     type,
     count,
     pct: Math.round((count / totalRoster) * 100),
+    color: getSkinTypeColor(type, idx),
   })).sort((a, b) => b.count - a.count);
 
-  const skinTypeSegs = skinTypeDist.map(d => ({ pct: d.pct, color: skinTypeColors[d.type] || PUR }));
+  const skinTypeSegs = skinTypeDist.map(d => ({ pct: d.pct, color: d.color }));
   const skinTypeLegend: [string, string, string][] = skinTypeDist.map(d => [
     d.type,
     `${d.count} (${d.pct}%)`,
-    skinTypeColors[d.type] || PUR,
+    d.color,
   ]);
 
-  // Calculate live Top Skin Concerns
+  // Calculate live Top 4 Skin Concerns with spacious margin
   const concernCounts: Record<string, number> = {};
   roster.forEach(p => {
     if (p.concerns && p.concerns.length > 0) {
       p.concerns.forEach(c => {
-        if (c && c !== 'string') concernCounts[c] = (concernCounts[c] || 0) + 1;
+        if (c && c !== 'string' && c.trim() !== '') concernCounts[c] = (concernCounts[c] || 0) + 1;
       });
-    } else if (p.primary_concern && p.primary_concern !== 'General Maintenance' && p.primary_concern !== 'string') {
+    } else if (p.primary_concern && p.primary_concern !== 'General Maintenance' && p.primary_concern !== 'string' && p.primary_concern.trim() !== '') {
       concernCounts[p.primary_concern] = (concernCounts[p.primary_concern] || 0) + 1;
     }
   });
   const concernBars: [string, number, string][] = Object.entries(concernCounts)
     .sort((a, b) => b[1] - a[1])
-    .slice(0, 5)
+    .slice(0, 4) // Top 4 skin concerns strictly
     .map(([concern, count]) => {
       const pct = Math.round((count / totalRoster) * 100);
       return [concern, pct, `${count} (${pct}%)`];
@@ -669,12 +984,15 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
   const needAttention = validScores.filter(s => s < 60).length;
   const chartPoints = validScores.length >= 2 ? validScores : [72, 75, 78, 82, 85];
 
+  // Current consultant avatar
+  const currentAvatar = customDp || FACE.priya;
+
   // ── Render Pages / Sections ───────────────────────────────────────────────
 
   // 1. DASHBOARD OVERVIEW
   const renderDashboard = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-      {/* Client Roster Card with Proper Sticky Header */}
+      {/* Client Roster Card with Proper Sticky Header & Extended MaxHeight */}
       <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'minmax(0, 2.3fr) minmax(360px, 1.2fr)' }}>
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column' }}>
           <CardHead
@@ -710,21 +1028,18 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
                   }}
                 >
                   <option value="All">All Skin Types</option>
-                  <option value="Combination">Combination</option>
-                  <option value="Oily">Oily</option>
-                  <option value="Dry">Dry</option>
-                  <option value="Sensitive">Sensitive</option>
-                  <option value="Normal">Normal</option>
-                  <option value="Unassessed">Unassessed</option>
+                  {skinTypeDist.map(d => (
+                    <option key={d.type} value={d.type}>{d.type}</option>
+                  ))}
                 </select>
               </div>
             }
           />
-          {/* Scrollable Container with Solid Sticky Header Background */}
+          {/* Extended Scrollable Container to eliminate excess whitespace */}
           <div
             className="dash-scroll"
             style={{
-              maxHeight: '420px',
+              maxHeight: '480px',
               overflowY: 'auto',
               overflowX: 'auto',
               border: '1px solid #f1f2f7',
@@ -773,135 +1088,138 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
                     </td>
                   </tr>
                 ) : (
-                  filteredRoster.map((p, idx) => (
-                    <tr
-                      key={p.patient_id}
-                      style={{
-                        borderBottom: '1px solid #f1f5f9',
-                        background: idx % 2 === 0 ? '#fff' : '#fafbfe',
-                        transition: 'background 0.15s',
-                      }}
-                    >
-                      <td style={{ padding: '12px 16px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  filteredRoster.map((p, idx) => {
+                    const stColor = getSkinTypeColor(p.skin_type, idx);
+                    return (
+                      <tr
+                        key={p.patient_id}
+                        style={{
+                          borderBottom: '1px solid #f1f5f9',
+                          background: idx % 2 === 0 ? '#fff' : '#fafbfe',
+                          transition: 'background 0.15s',
+                        }}
+                      >
+                        <td style={{ padding: '12px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span
+                              style={{
+                                width: '38px',
+                                height: '38px',
+                                borderRadius: '12px',
+                                overflow: 'hidden',
+                                background: '#e2e8f0',
+                                flexShrink: 0,
+                                display: 'grid',
+                                placeItems: 'center',
+                                fontWeight: 700,
+                                color: PUR,
+                              }}
+                            >
+                              {p.name.charAt(0)}
+                            </span>
+                            <div>
+                              <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>{p.name}</div>
+                              <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{p.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
                           <span
                             style={{
-                              width: '38px',
-                              height: '38px',
-                              borderRadius: '12px',
-                              overflow: 'hidden',
-                              background: '#e2e8f0',
-                              flexShrink: 0,
-                              display: 'grid',
-                              placeItems: 'center',
+                              padding: '4px 10px',
+                              borderRadius: '8px',
+                              fontSize: '0.76rem',
                               fontWeight: 700,
-                              color: PUR,
+                              background: `${stColor}18`,
+                              color: stColor,
                             }}
                           >
-                            {p.name.charAt(0)}
+                            {p.skin_type}
                           </span>
-                          <div>
-                            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#0f172a' }}>{p.name}</div>
-                            <div style={{ fontSize: '0.74rem', color: '#64748b' }}>{p.email}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: '#334155' }}>
+                          {p.primary_concern || 'General Care'}
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                          <span
+                            style={{
+                              display: 'inline-block',
+                              padding: '3px 10px',
+                              borderRadius: '999px',
+                              fontWeight: 800,
+                              fontSize: '0.82rem',
+                              background: p.health_score && p.health_score >= 75 ? '#dcfce7' : '#fef3c7',
+                              color: p.health_score && p.health_score >= 75 ? '#15803d' : '#b45309',
+                            }}
+                          >
+                            {p.health_score !== null ? `${Math.round(p.health_score)}/100` : '—'}
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b', whiteSpace: 'nowrap' }}>
+                          {p.last_assessment_date || 'None'}
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                          <span
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: '999px',
+                              fontSize: '0.76rem',
+                              fontWeight: 700,
+                              background: p.compliance_rate >= 70 ? '#dcfce7' : '#fee2e2',
+                              color: p.compliance_rate >= 70 ? '#15803d' : '#b91c1c',
+                            }}
+                          >
+                            {p.compliance_rate}%
+                          </span>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
+                            <button
+                              onClick={() => openPatient(p.patient_id)}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                border: `1px solid ${PUR}`,
+                                background: 'transparent',
+                                color: PUR,
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                              }}
+                            >
+                              View
+                            </button>
+                            <button
+                              onClick={() => setShowPrescribeModal(p.patient_id)}
+                              style={{
+                                padding: '6px 12px',
+                                borderRadius: '8px',
+                                border: 'none',
+                                background: PUR,
+                                color: '#fff',
+                                fontSize: '0.74rem',
+                                fontWeight: 700,
+                                cursor: 'pointer',
+                                fontFamily: 'inherit',
+                              }}
+                            >
+                              Prescribe
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '8px',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                            background: `${skinTypeColors[p.skin_type] || PUR}18`,
-                            color: skinTypeColors[p.skin_type] || PUR,
-                          }}
-                        >
-                          {p.skin_type}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '0.82rem', color: '#334155' }}>
-                        {p.primary_concern || 'General Care'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '3px 10px',
-                            borderRadius: '999px',
-                            fontWeight: 800,
-                            fontSize: '0.82rem',
-                            background: p.health_score && p.health_score >= 75 ? '#dcfce7' : '#fef3c7',
-                            color: p.health_score && p.health_score >= 75 ? '#15803d' : '#b45309',
-                          }}
-                        >
-                          {p.health_score !== null ? `${Math.round(p.health_score)}/100` : '—'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', fontSize: '0.8rem', color: '#64748b', whiteSpace: 'nowrap' }}>
-                        {p.last_assessment_date || 'None'}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <span
-                          style={{
-                            padding: '4px 10px',
-                            borderRadius: '999px',
-                            fontSize: '0.76rem',
-                            fontWeight: 700,
-                            background: p.compliance_rate >= 70 ? '#dcfce7' : '#fee2e2',
-                            color: p.compliance_rate >= 70 ? '#15803d' : '#b91c1c',
-                          }}
-                        >
-                          {p.compliance_rate}%
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                        <div style={{ display: 'flex', gap: '6px', justifyContent: 'center' }}>
-                          <button
-                            onClick={() => openPatient(p.patient_id)}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              border: `1px solid ${PUR}`,
-                              background: 'transparent',
-                              color: PUR,
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              fontFamily: 'inherit',
-                            }}
-                          >
-                            View
-                          </button>
-                          <button
-                            onClick={() => setShowPrescribeModal(p.patient_id)}
-                            style={{
-                              padding: '6px 12px',
-                              borderRadius: '8px',
-                              border: 'none',
-                              background: PUR,
-                              color: '#fff',
-                              fontSize: '0.74rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              fontFamily: 'inherit',
-                            }}
-                          >
-                            Prescribe
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </Card>
 
-        {/* Right Side: Large Donut Chart + Top Concerns */}
+        {/* Right Side: Large Donut Chart + Top 4 Concerns with perfect bottom spacing */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Sizable Donut Chart Card */}
+          {/* Sizable Donut Chart Card with dynamic color palette */}
           <Card style={{ padding: '20px' }}>
             <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
               Clients by Skin Type
@@ -921,23 +1239,25 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
             )}
           </Card>
 
-          {/* Top Skin Concerns with Balanced Rhythm */}
-          <Card style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
-              Top Skin Concerns
-            </h3>
-            {concernBars.length === 0 ? (
-              <EmptyState icon="🔍" message="No concern metrics available." />
-            ) : (
-              <Bars rows={concernBars} />
-            )}
+          {/* Top 4 Skin Concerns Card with Generous Bottom Padding */}
+          <Card style={{ padding: '20px 20px 24px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+            <div>
+              <h3 style={{ margin: '0 0 16px', fontSize: '1rem', fontWeight: 800, color: '#0f172a' }}>
+                Top Skin Concerns (Top 4)
+              </h3>
+              {concernBars.length === 0 ? (
+                <EmptyState icon="🔍" message="No concern metrics available." />
+              ) : (
+                <Bars rows={concernBars} />
+              )}
+            </div>
           </Card>
         </div>
       </div>
 
       {/* Bottom Row: Client Progress Overview & Clinical Actions */}
       <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'minmax(0, 2.3fr) minmax(360px, 1.2fr)' }}>
-        {/* Client Progress Overview with Centered & Evenly Distributed Bottom Metrics */}
+        {/* Client Progress Overview with Centered Bottom Metrics */}
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <CardHead
@@ -952,7 +1272,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
             />
           </div>
 
-          {/* Properly Centered and Balanced Bottom Metrics */}
           <div
             style={{
               marginTop: '20px',
@@ -990,7 +1309,7 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
           </div>
         </Card>
 
-        {/* Clinical Actions & Stats - No Unused White Space */}
+        {/* Clinical Actions & Stats */}
         <Card style={{ padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <CardHead
             title="Clinical Actions & Stats"
@@ -1097,125 +1416,125 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
                 }}
               >
                 <option value="All">All Skin Types</option>
-                <option value="Combination">Combination</option>
-                <option value="Oily">Oily</option>
-                <option value="Dry">Dry</option>
-                <option value="Sensitive">Sensitive</option>
-                <option value="Normal">Normal</option>
-                <option value="Unassessed">Unassessed</option>
+                {skinTypeDist.map(d => (
+                  <option key={d.type} value={d.type}>{d.type}</option>
+                ))}
               </select>
             </div>
           }
         />
 
         <div style={{ display: 'grid', gap: '14px', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-          {filteredRoster.map(c => (
-            <div
-              key={c.patient_id}
-              style={{
-                padding: '18px',
-                borderRadius: '16px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '12px',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {filteredRoster.map((c, idx) => {
+            const stColor = getSkinTypeColor(c.skin_type, idx);
+            return (
+              <div
+                key={c.patient_id}
+                style={{
+                  padding: '18px',
+                  borderRadius: '16px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <span
+                      style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '12px',
+                        background: PUR,
+                        color: '#fff',
+                        display: 'grid',
+                        placeItems: 'center',
+                        fontWeight: 800,
+                        fontSize: '1.1rem',
+                      }}
+                    >
+                      {c.name.charAt(0)}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>{c.name}</div>
+                      <div style={{ fontSize: '0.76rem', color: '#64748b' }}>{c.email}</div>
+                    </div>
+                  </div>
                   <span
                     style={{
-                      width: '44px',
-                      height: '44px',
-                      borderRadius: '12px',
-                      background: PUR,
-                      color: '#fff',
-                      display: 'grid',
-                      placeItems: 'center',
-                      fontWeight: 800,
-                      fontSize: '1.1rem',
+                      padding: '4px 10px',
+                      borderRadius: '8px',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      background: `${stColor}18`,
+                      color: stColor,
                     }}
                   >
-                    {c.name.charAt(0)}
+                    {c.skin_type}
                   </span>
-                  <div>
-                    <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a' }}>{c.name}</div>
-                    <div style={{ fontSize: '0.76rem', color: '#64748b' }}>{c.email}</div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem' }}>
+                  <div style={{ padding: '8px 10px', borderRadius: '10px', background: '#fff', border: '1px solid #f1f5f9' }}>
+                    <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>SCORE</span>
+                    <span style={{ fontWeight: 800, color: c.health_score && c.health_score >= 75 ? '#16a34a' : '#b45309' }}>
+                      {c.health_score ? `${Math.round(c.health_score)}/100` : 'Unassessed'}
+                    </span>
+                  </div>
+                  <div style={{ padding: '8px 10px', borderRadius: '10px', background: '#fff', border: '1px solid #f1f5f9' }}>
+                    <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>COMPLIANCE</span>
+                    <span style={{ fontWeight: 800, color: c.compliance_rate >= 70 ? '#16a34a' : '#e11d48' }}>
+                      {c.compliance_rate}%
+                    </span>
                   </div>
                 </div>
-                <span
-                  style={{
-                    padding: '4px 10px',
-                    borderRadius: '8px',
-                    fontSize: '0.74rem',
-                    fontWeight: 700,
-                    background: `${skinTypeColors[c.skin_type] || PUR}18`,
-                    color: skinTypeColors[c.skin_type] || PUR,
-                  }}
-                >
-                  {c.skin_type}
-                </span>
-              </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.78rem' }}>
-                <div style={{ padding: '8px 10px', borderRadius: '10px', background: '#fff', border: '1px solid #f1f5f9' }}>
-                  <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>SCORE</span>
-                  <span style={{ fontWeight: 800, color: c.health_score && c.health_score >= 75 ? '#16a34a' : '#b45309' }}>
-                    {c.health_score ? `${Math.round(c.health_score)}/100` : 'Unassessed'}
-                  </span>
+                <div style={{ fontSize: '0.78rem', color: '#475569' }}>
+                  <b>Primary Concern:</b> {c.primary_concern || 'General Maintenance'}
                 </div>
-                <div style={{ padding: '8px 10px', borderRadius: '10px', background: '#fff', border: '1px solid #f1f5f9' }}>
-                  <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.7rem' }}>COMPLIANCE</span>
-                  <span style={{ fontWeight: 800, color: c.compliance_rate >= 70 ? '#16a34a' : '#e11d48' }}>
-                    {c.compliance_rate}%
-                  </span>
+
+                <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
+                  <button
+                    onClick={() => openPatient(c.patient_id)}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '10px',
+                      border: `1px solid ${PUR}`,
+                      background: '#fff',
+                      color: PUR,
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Full 360° Profile
+                  </button>
+                  <button
+                    onClick={() => {
+                      setRecTargetClient(c.patient_id);
+                      setShowRecModal(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '8px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: PUR,
+                      color: '#fff',
+                      fontWeight: 700,
+                      fontSize: '0.78rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    + Recommend
+                  </button>
                 </div>
               </div>
-
-              <div style={{ fontSize: '0.78rem', color: '#475569' }}>
-                <b>Primary Concern:</b> {c.primary_concern || 'General Maintenance'}
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px', marginTop: '4px' }}>
-                <button
-                  onClick={() => openPatient(c.patient_id)}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    borderRadius: '10px',
-                    border: `1px solid ${PUR}`,
-                    background: '#fff',
-                    color: PUR,
-                    fontWeight: 700,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Full 360° Profile
-                </button>
-                <button
-                  onClick={() => {
-                    setRecTargetClient(c.patient_id);
-                    setShowRecModal(true);
-                  }}
-                  style={{
-                    flex: 1,
-                    padding: '8px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: PUR,
-                    color: '#fff',
-                    fontWeight: 700,
-                    fontSize: '0.78rem',
-                    cursor: 'pointer',
-                  }}
-                >
-                  + Recommend
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </Card>
     </div>
@@ -1249,91 +1568,94 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
         <EmptyState icon="📋" message="No skin assessments recorded in the database yet." />
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-          {assessmentsList.map(a => (
-            <div
-              key={a.id}
-              style={{
-                padding: '16px 20px',
-                borderRadius: '14px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '14px',
-              }}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <span style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>{a.patient_name}</span>
-                  <span
-                    style={{
-                      padding: '2px 8px',
-                      borderRadius: '6px',
-                      fontSize: '0.72rem',
-                      fontWeight: 700,
-                      background: `${skinTypeColors[a.skin_type] || PUR}18`,
-                      color: skinTypeColors[a.skin_type] || PUR,
-                    }}
-                  >
-                    {a.skin_type}
-                  </span>
-                </div>
-                <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
-                  {a.patient_email} · Assessed on {a.created_at}
-                </div>
-                <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
-                  {a.detected_concerns?.map((c: string) => (
+          {assessmentsList.map((a, idx) => {
+            const stColor = getSkinTypeColor(a.skin_type, idx);
+            return (
+              <div
+                key={a.id}
+                style={{
+                  padding: '16px 20px',
+                  borderRadius: '14px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '14px',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span style={{ fontSize: '0.96rem', fontWeight: 800, color: '#0f172a' }}>{a.patient_name}</span>
                     <span
-                      key={c}
                       style={{
-                        padding: '3px 8px',
+                        padding: '2px 8px',
                         borderRadius: '6px',
                         fontSize: '0.72rem',
-                        background: '#e2e8f0',
-                        color: '#334155',
-                        fontWeight: 600,
+                        fontWeight: 700,
+                        background: `${stColor}18`,
+                        color: stColor,
                       }}
                     >
-                      {c}
+                      {a.skin_type}
                     </span>
-                  ))}
+                  </div>
+                  <div style={{ fontSize: '0.76rem', color: '#64748b', marginTop: '2px' }}>
+                    {a.patient_email} · Assessed on {a.created_at}
+                  </div>
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '8px', flexWrap: 'wrap' }}>
+                    {a.detected_concerns?.map((c: string) => (
+                      <span
+                        key={c}
+                        style={{
+                          padding: '3px 8px',
+                          borderRadius: '6px',
+                          fontSize: '0.72rem',
+                          background: '#e2e8f0',
+                          color: '#334155',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-              </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-                <div style={{ textAlign: 'center' }}>
-                  <div
+                <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div
+                      style={{
+                        fontSize: '1.5rem',
+                        fontWeight: 800,
+                        color: a.overall_score >= 75 ? '#16a34a' : a.overall_score >= 50 ? '#b45309' : '#e11d48',
+                      }}
+                    >
+                      {Math.round(a.overall_score)}
+                    </div>
+                    <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>OVERALL SCORE</div>
+                  </div>
+
+                  <button
+                    onClick={() => openPatient(a.patient_id)}
                     style={{
-                      fontSize: '1.5rem',
-                      fontWeight: 800,
-                      color: a.overall_score >= 75 ? '#16a34a' : a.overall_score >= 50 ? '#b45309' : '#e11d48',
+                      padding: '8px 14px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: PUR,
+                      color: '#fff',
+                      fontSize: '0.8rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
                     }}
                   >
-                    {Math.round(a.overall_score)}
-                  </div>
-                  <div style={{ fontSize: '0.68rem', color: '#94a3b8', fontWeight: 600 }}>OVERALL SCORE</div>
+                    Clinical Review
+                  </button>
                 </div>
-
-                <button
-                  onClick={() => openPatient(a.patient_id)}
-                  style={{
-                    padding: '8px 14px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: PUR,
-                    color: '#fff',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                  }}
-                >
-                  Clinical Review
-                </button>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>
@@ -1452,103 +1774,179 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
     </Card>
   );
 
-  // 5. PRODUCT RECOMMENDATIONS PAGE
+  // 5. PRODUCT RECOMMENDATIONS PAGE (Now displays all products catalog + assigned recommendations)
   const renderRecommendationsPage = () => (
-    <Card style={{ padding: '24px' }}>
-      <CardHead
-        title={`Client Product Recommendations (${recommendations.length})`}
-        right={
-          <button
-            onClick={() => setShowRecModal(true)}
-            style={{
-              padding: '9px 16px',
-              borderRadius: '10px',
-              border: 'none',
-              background: PUR,
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: '0.82rem',
-              cursor: 'pointer',
-            }}
-          >
-            + Create Recommendation
-          </button>
-        }
-      />
-      {recsLoading ? (
-        <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading recommendations…</div>
-      ) : recommendations.length === 0 ? (
-        <EmptyState
-          icon="🛍️"
-          message="No recommendations created yet. Select a client to assign personalized skincare products."
-          action="+ Create Recommendation"
-          onAction={() => setShowRecModal(true)}
-        />
-      ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
-          {recommendations.map(rec => (
-            <div
-              key={rec.id}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      {/* Assigned Recommendations section */}
+      <Card style={{ padding: '24px' }}>
+        <CardHead
+          title={`Client Product Recommendations (${recommendations.length})`}
+          right={
+            <button
+              onClick={() => setShowRecModal(true)}
               style={{
-                padding: '18px',
-                borderRadius: '16px',
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px',
+                padding: '9px 16px',
+                borderRadius: '10px',
+                border: 'none',
+                background: PUR,
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.82rem',
+                cursor: 'pointer',
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <span style={{ fontSize: '0.74rem', color: PUR, fontWeight: 700 }}>Client: {rec.client_name}</span>
-                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{rec.product_name}</div>
-                  <div style={{ fontSize: '0.76rem', color: '#64748b' }}>{rec.brand} · {rec.category}</div>
+              + Create Custom Recommendation
+            </button>
+          }
+        />
+        {recsLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading recommendations…</div>
+        ) : recommendations.length === 0 ? (
+          <EmptyState
+            icon="🛍️"
+            message="No recommendations created yet. Browse the product catalog below to recommend directly to clients."
+          />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '14px' }}>
+            {recommendations.map(rec => (
+              <div
+                key={rec.id}
+                style={{
+                  padding: '18px',
+                  borderRadius: '16px',
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '10px',
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <span style={{ fontSize: '0.74rem', color: PUR, fontWeight: 700 }}>Client: {rec.client_name}</span>
+                    <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', marginTop: '2px' }}>{rec.product_name}</div>
+                    <div style={{ fontSize: '0.76rem', color: '#64748b' }}>{rec.brand} · {rec.category}</div>
+                  </div>
+                  <span
+                    style={{
+                      padding: '3px 8px',
+                      borderRadius: '6px',
+                      fontSize: '0.72rem',
+                      fontWeight: 700,
+                      background: '#e0f2fe',
+                      color: '#0369a1',
+                    }}
+                  >
+                    {rec.time_of_day}
+                  </span>
                 </div>
-                <span
-                  style={{
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    fontSize: '0.72rem',
-                    fontWeight: 700,
-                    background: '#e0f2fe',
-                    color: '#0369a1',
-                  }}
-                >
-                  {rec.time_of_day}
-                </span>
-              </div>
 
-              <div style={{ fontSize: '0.78rem', color: '#334155', background: '#fff', padding: '10px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
-                <b style={{ color: '#0f172a' }}>Clinical Reason:</b> {rec.why_recommended}
-                <div style={{ marginTop: '4px', color: '#64748b' }}><b>Instructions:</b> {rec.usage_instructions}</div>
-              </div>
+                <div style={{ fontSize: '0.78rem', color: '#334155', background: '#fff', padding: '10px', borderRadius: '10px', border: '1px solid #f1f5f9' }}>
+                  <b style={{ color: '#0f172a' }}>Clinical Reason:</b> {rec.why_recommended}
+                  <div style={{ marginTop: '4px', color: '#64748b' }}><b>Instructions:</b> {rec.usage_instructions}</div>
+                </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
-                <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>₹{rec.price || '999'}</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
+                  <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>₹{rec.price || '999'}</span>
+                  <button
+                    onClick={async () => {
+                      await api.deleteConsultantRecommendation(rec.id);
+                      fetchRecommendations();
+                      setToast({ msg: 'Recommendation removed', ok: true });
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#e11d48',
+                      fontSize: '0.74rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* Available Products Catalog for Consultant Selection */}
+      <Card style={{ padding: '24px' }}>
+        <CardHead
+          title={`Available Skincare Products Catalog (${allProducts.length})`}
+          right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Select a Product to Recommend</span>}
+        />
+        {productsLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading product catalog…</div>
+        ) : allProducts.length === 0 ? (
+          <EmptyState icon="📦" message="No products loaded in database catalog." />
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
+            {allProducts.map(prod => (
+              <div
+                key={prod.id}
+                style={{
+                  padding: '16px',
+                  borderRadius: '16px',
+                  background: '#fff',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'space-between',
+                  gap: '12px',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                }}
+              >
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: PUR, background: `${PUR}14`, padding: '2px 8px', borderRadius: '6px' }}>
+                      {prod.category || 'Skincare'}
+                    </span>
+                    <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>₹{prod.price || '899'}</span>
+                  </div>
+                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', marginTop: '8px' }}>{prod.product_name || prod.name}</div>
+                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>{prod.brand}</div>
+                  {prod.description && (
+                    <div style={{ fontSize: '0.76rem', color: '#475569', marginTop: '6px', lineHeight: 1.35 }}>
+                      {prod.description.length > 100 ? `${prod.description.slice(0, 100)}…` : prod.description}
+                    </div>
+                  )}
+                  {prod.skin_types && (
+                    <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '6px' }}>
+                      Skin: {Array.isArray(prod.skin_types) ? prod.skin_types.join(', ') : prod.skin_types}
+                    </div>
+                  )}
+                </div>
+
                 <button
-                  onClick={async () => {
-                    await api.deleteConsultantRecommendation(rec.id);
-                    fetchRecommendations();
-                    setToast({ msg: 'Recommendation removed', ok: true });
+                  onClick={() => {
+                    setRecProdName(prod.product_name || prod.name);
+                    setRecProdBrand(prod.brand || 'Miracle Formulations');
+                    setRecCategory(prod.category || 'Treatment');
+                    setRecPrice(String(prod.price || 999));
+                    setShowRecModal(true);
                   }}
                   style={{
-                    background: 'none',
+                    padding: '8px 12px',
+                    borderRadius: '10px',
                     border: 'none',
-                    color: '#e11d48',
-                    fontSize: '0.74rem',
+                    background: PUR,
+                    color: '#fff',
+                    fontSize: '0.78rem',
                     fontWeight: 700,
                     cursor: 'pointer',
                   }}
                 >
-                  Delete
+                  + Recommend to Client
                 </button>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
   );
 
   // 6. PROGRESS TRACKING PAGE
@@ -2129,95 +2527,279 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
     </Card>
   );
 
-  // 13. CONSULTANT PROFILE & SETTINGS PAGE
-  const renderProfileSettingsPage = () => (
-    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.4fr) minmax(0, 1fr)', gap: '16px' }}>
-      {/* Profile Form */}
-      <Card style={{ padding: '24px' }}>
-        <CardHead title="Consultant Professional Profile" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Database Synced</span>} />
-        {profileLoading ? (
-          <div style={{ padding: '30px', textAlign: 'center', color: '#94a3b8' }}>Loading profile…</div>
-        ) : (
-          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>FULL NAME</label>
-                <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+  // 13. MY PROFILE PAGE (Dedicated page with DP View/Change/Crop/Remove + Comprehensive Professional Fields)
+  const renderMyProfilePage = () => (
+    <Card style={{ padding: '28px', maxWidth: '880px', margin: '0 auto', width: '100%' }}>
+      <CardHead
+        title="Consultant Professional Profile & Credentials"
+        right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Database Synced</span>}
+      />
+      {profileLoading ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading profile…</div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Avatar / DP Management Hero Header */}
+          <div
+            style={{
+              padding: '24px',
+              borderRadius: '20px',
+              background: '#f8fafc',
+              border: '1px solid #e2e8f0',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              flexWrap: 'wrap',
+              gap: '20px',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+              <div style={{ position: 'relative' }}>
+                <img
+                  src={currentAvatar}
+                  alt={profileName || 'Consultant'}
+                  onClick={() => setViewPhoto(true)}
+                  style={{
+                    width: '90px',
+                    height: '90px',
+                    borderRadius: '24px',
+                    objectFit: 'cover',
+                    border: `3px solid ${PUR}`,
+                    boxShadow: '0 8px 24px rgba(47,107,76,0.2)',
+                    cursor: 'pointer',
+                  }}
+                  title="Click to view full photo"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowDpMenu(v => !v)}
+                  style={{
+                    position: 'absolute',
+                    bottom: -4,
+                    right: -4,
+                    width: '30px',
+                    height: '30px',
+                    borderRadius: '50%',
+                    background: PUR,
+                    border: '2px solid #fff',
+                    color: '#fff',
+                    display: 'grid',
+                    placeItems: 'center',
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  }}
+                  title="Photo options"
+                >
+                  📷
+                </button>
               </div>
+
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>PHONE NUMBER</label>
-                <input type="text" value={profilePhone} onChange={e => setProfilePhone(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+                <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0f172a' }}>{profileName || 'Priya Sharma'}</div>
+                <div style={{ fontSize: '0.84rem', color: PUR, fontWeight: 700, marginTop: '2px' }}>{profileTitle || 'Senior Skincare Consultant'}</div>
+                <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: '4px' }}>
+                  {profileSpec || 'Acne Barrier Repair & Botanical Science'} · {profileExp} Years Experience
+                </div>
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '12px' }}>
+            {/* DP Action Buttons */}
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setViewPhoto(true)}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  border: '1px solid #cbd5e1',
+                  background: '#fff',
+                  color: '#334155',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                👁️ View Photo
+              </button>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  border: 'none',
+                  background: PUR,
+                  color: '#fff',
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                }}
+              >
+                📸 Change / Crop DP
+              </button>
+              {customDp && (
+                <button
+                  type="button"
+                  onClick={handleRemoveDp}
+                  style={{
+                    padding: '8px 14px',
+                    borderRadius: '10px',
+                    border: '1px solid #fee2e2',
+                    background: '#fff',
+                    color: '#e11d48',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  🗑️ Remove
+                </button>
+              )}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleDpUpload} style={{ display: 'none' }} />
+            </div>
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handleSaveProfile} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>PROFESSIONAL TITLE</label>
-                <input type="text" value={profileTitle} onChange={e => setProfileTitle(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>FULL LEGAL NAME</label>
+                <input type="text" value={profileName} onChange={e => setProfileName(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
               </div>
               <div>
-                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>EXPERIENCE (YEARS)</label>
-                <input type="number" value={profileExp} onChange={e => setProfileExp(Number(e.target.value))} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>PHONE NUMBER</label>
+                <input type="text" value={profilePhone} onChange={e => setProfilePhone(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.8fr', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>PROFESSIONAL TITLE</label>
+                <input type="text" value={profileTitle} onChange={e => setProfileTitle(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
+              </div>
+              <div>
+                <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>EXPERIENCE (YEARS)</label>
+                <input type="number" value={profileExp} onChange={e => setProfileExp(Number(e.target.value))} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
               </div>
             </div>
 
             <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>PRIMARY SPECIALIZATION</label>
-              <input type="text" value={profileSpec} onChange={e => setProfileSpec(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>PRIMARY SPECIALIZATION & DOMAIN</label>
+              <input type="text" value={profileSpec} onChange={e => setProfileSpec(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
             </div>
 
             <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>QUALIFICATIONS & DEGREES</label>
-              <input type="text" value={profileQual} onChange={e => setProfileQual(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>QUALIFICATIONS, DEGREES & CERTIFICATIONS</label>
+              <input type="text" value={profileQual} onChange={e => setProfileQual(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
             </div>
 
             <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>CONSULTATION AVAILABILITY</label>
-              <input type="text" value={profileAvail} onChange={e => setProfileAvail(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>CONSULTATION AVAILABILITY SCHEDULE</label>
+              <input type="text" value={profileAvail} onChange={e => setProfileAvail(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box' }} />
             </div>
 
             <div>
-              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>PROFESSIONAL CLINICAL BIO</label>
-              <textarea rows={3} value={profileBio} onChange={e => setProfileBio(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box', resize: 'vertical' }} />
+              <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '6px' }}>PROFESSIONAL CLINICAL BIOGRAPHY</label>
+              <textarea rows={4} value={profileBio} onChange={e => setProfileBio(e.target.value)} style={{ width: '100%', padding: '10px 14px', borderRadius: '12px', border: '1px solid #e2e8f0', fontSize: '0.86rem', boxSizing: 'border-box', resize: 'vertical' }} />
             </div>
 
-            <button type="submit" disabled={profileSaving} style={{ padding: '11px', borderRadius: '10px', border: 'none', background: PUR, color: '#fff', fontWeight: 700, fontSize: '0.84rem', cursor: 'pointer' }}>
-              {profileSaving ? 'Saving Changes…' : 'Save Profile Changes'}
+            <button
+              type="submit"
+              disabled={profileSaving}
+              style={{
+                padding: '12px',
+                borderRadius: '12px',
+                border: 'none',
+                background: PUR,
+                color: '#fff',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                marginTop: '8px',
+              }}
+            >
+              {profileSaving ? 'Saving Profile Changes…' : 'Save Profile Credentials'}
             </button>
           </form>
-        )}
-      </Card>
+        </div>
+      )}
+    </Card>
+  );
 
-      {/* Security & Password */}
+  // 14. ACCOUNT SETTINGS PAGE (Dedicated page for Security, Password, Session, and Account Management)
+  const renderAccountSettingsPage = () => (
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)', gap: '16px', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+      {/* Password and Credential Management */}
       <Card style={{ padding: '24px' }}>
-        <CardHead title="Account Security & Password" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Argon2 Secure</span>} />
+        <CardHead title="Change Password & Security Credentials" right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Argon2 Encrypted</span>} />
         <form onSubmit={handleChangePassword} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div>
             <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>CURRENT PASSWORD</label>
-            <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+            <input type="password" value={currentPw} onChange={e => setCurrentPw(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>NEW PASSWORD</label>
-            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+            <input type="password" value={newPw} onChange={e => setNewPw(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
           </div>
           <div>
             <label style={{ fontSize: '0.76rem', fontWeight: 700, color: '#475569', display: 'block', marginBottom: '4px' }}>CONFIRM NEW PASSWORD</label>
-            <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} style={{ width: '100%', padding: '9px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
+            <input type="password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #e2e8f0', fontSize: '0.84rem', boxSizing: 'border-box' }} />
           </div>
 
-          <button type="submit" disabled={pwSaving || !currentPw || !newPw} style={{ padding: '11px', borderRadius: '10px', border: 'none', background: (pwSaving || !currentPw || !newPw) ? '#94a3b8' : '#0f172a', color: '#fff', fontWeight: 700, fontSize: '0.84rem', cursor: (pwSaving || !currentPw || !newPw) ? 'not-allowed' : 'pointer' }}>
-            {pwSaving ? 'Updating Password…' : 'Update Password'}
+          <button
+            type="submit"
+            disabled={pwSaving || !currentPw || !newPw}
+            style={{
+              padding: '12px',
+              borderRadius: '10px',
+              border: 'none',
+              background: (pwSaving || !currentPw || !newPw) ? '#94a3b8' : '#0f172a',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: '0.84rem',
+              cursor: (pwSaving || !currentPw || !newPw) ? 'not-allowed' : 'pointer',
+              marginTop: '6px',
+            }}
+          >
+            {pwSaving ? 'Updating Password…' : 'Update Security Password'}
           </button>
         </form>
+      </Card>
+
+      {/* Account Info and Preferences */}
+      <Card style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div>
+          <CardHead title="Consultant Account Overview" right={<span style={{ fontSize: '0.76rem', color: '#16a34a', fontWeight: 700 }}>Active · Verified</span>} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.82rem', color: '#334155' }}>
+            <div style={{ padding: '12px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.72rem' }}>AUTHENTICATED EMAIL</span>
+              <b>{profileData?.email || 'consultant@miracle.com'}</b>
+            </div>
+            <div style={{ padding: '12px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.72rem' }}>ACCOUNT ROLE</span>
+              <b>Skincare Consultant (Clinical Portal)</b>
+            </div>
+            <div style={{ padding: '12px', borderRadius: '12px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <span style={{ color: '#94a3b8', display: 'block', fontSize: '0.72rem' }}>ACCOUNT STATUS</span>
+              <b>{profileData?.account_status || 'Active · Verified Professional'}</b>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: '20px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+          <div style={{ fontSize: '0.74rem', color: '#94a3b8' }}>
+            🔒 All database interactions are protected by JWT session authentication and role-based access control.
+          </div>
+        </div>
       </Card>
     </div>
   );
 
-  // 14. NOTIFICATIONS FEED PAGE
+  // 15. NOTIFICATIONS FEED PAGE
   const renderNotificationsPage = () => (
     <Card style={{ padding: '24px' }}>
       <CardHead
-        title={`Consultant Notifications (${notificationsList.length})`}
+        title={`Consultant Notifications & Alerts (${notificationsList.length})`}
         right={
           <button
             onClick={fetchNotifications}
@@ -2231,7 +2813,7 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
               cursor: 'pointer',
             }}
           >
-            🔄 Refresh
+            🔄 Refresh Alerts
           </button>
         }
       />
@@ -2307,8 +2889,9 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
         return renderProtocolsPage();
       case 'my-profile':
       case 'settings':
+        return renderMyProfilePage();
       case 'account-settings':
-        return renderProfileSettingsPage();
+        return renderAccountSettingsPage();
       case 'notifications':
         return renderNotificationsPage();
       default:
@@ -2319,6 +2902,8 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
   return (
     <>
       {toast && <Toast msg={toast.msg} ok={toast.ok} onClose={() => setToast(null)} />}
+      {viewPhoto && <PhotoViewer src={currentAvatar} name={profileName || 'Consultant'} onClose={() => setViewPhoto(false)} />}
+      {cropSrc && <DpCropModal src={cropSrc} onSave={handleCropSave} onCancel={() => setCropSrc(null)} />}
 
       {/* Patient 360° Profile Modal */}
       {selectedPatient && (
@@ -2372,7 +2957,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              {/* Profile Details */}
               <div style={{ padding: '16px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '0.84rem', fontWeight: 700, color: PUR, marginBottom: '10px' }}>CLINICAL PROFILE METRICS</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', fontSize: '0.8rem' }}>
@@ -2383,7 +2967,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
                 </div>
               </div>
 
-              {/* Active Routine */}
               <div style={{ padding: '16px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                   <span style={{ fontSize: '0.84rem', fontWeight: 700, color: PUR }}>ACTIVE ROUTINE ({selectedPatient.active_routine.length} STEPS)</span>
@@ -2412,7 +2995,6 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
                 )}
               </div>
 
-              {/* Assessment History */}
               <div style={{ padding: '16px', borderRadius: '16px', background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 <div style={{ fontSize: '0.84rem', fontWeight: 700, color: '#0f172a', marginBottom: '10px' }}>ASSESSMENT HISTORY ({selectedPatient.assessments.length})</div>
                 {selectedPatient.assessments.length === 0 ? (
