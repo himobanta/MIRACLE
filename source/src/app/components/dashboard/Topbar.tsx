@@ -164,9 +164,9 @@ interface TopbarProps {
 
 const TOPBAR_MAP: Record<RoleType, { subtitle: string; showSearch: boolean; searchPlaceholder?: string; notif: number; avatarPhoto: boolean; avatarBg?: string; avatarIcon: boolean; fallbackName: string; role: string }> = {
   admin:      { subtitle: "Here's what's happening on your platform today.",          showSearch: true,  searchPlaceholder: 'Search users, reports, assessments...', notif: 5, avatarIcon: true,  avatarPhoto: false, fallbackName: 'Himobanta Dutta',  role: 'Super Administrator'   },
-  derma:      { subtitle: "Here's an overview of your patients and clinical insights.", showSearch: true,  searchPlaceholder: 'Search patients, assessments...',         notif: 5, avatarPhoto: true, avatarBg: FACE.meeraDr, avatarIcon: false, fallbackName: 'Dermatologist',    role: 'Dermatologist'          },
-  consultant: { subtitle: "Here's what's happening with your clients today.",         showSearch: true,  searchPlaceholder: 'Search clients, assessments...',          notif: 3, avatarPhoto: true, avatarBg: FACE.priya,   avatarIcon: false, fallbackName: 'Consultant',       role: 'Skincare Consultant'    },
-  user:       { subtitle: "Here's your skin summary and personalized recommendations.", showSearch: false,                                                            notif: 3, avatarPhoto: true, avatarBg: FACE.ananyaUser, avatarIcon: false, fallbackName: 'there',           role: 'Premium User'           },
+  derma:      { subtitle: "Here's an overview of your patients and clinical insights.", showSearch: true,  searchPlaceholder: 'Search patients, assessments...',         notif: 5, avatarIcon: true,  avatarPhoto: false, fallbackName: 'Dermatologist',    role: 'Dermatologist'          },
+  consultant: { subtitle: "Here's what's happening with your clients today.",         showSearch: true,  searchPlaceholder: 'Search clients, assessments...',          notif: 3, avatarIcon: true,  avatarPhoto: false, fallbackName: 'Consultant',       role: 'Skincare Consultant'    },
+  user:       { subtitle: "Here's your skin summary and personalized recommendations.", showSearch: false,                                                            notif: 3, avatarIcon: true,  avatarPhoto: false, fallbackName: 'there',           role: 'Premium User'           },
 };
 
 // ── Photo viewer lightbox ────────────────────────────────────────────────────

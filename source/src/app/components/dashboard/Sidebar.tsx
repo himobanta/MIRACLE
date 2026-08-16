@@ -86,14 +86,6 @@ const N = {
         ['Treatment Protocols', 'Clinical treatment guides', 'book'],
       ],
     },
-    {
-      heading: 'ACCOUNT & SETTINGS',
-      items: [
-        ['My Profile', 'Profile, qualifications & DP', 'users'],
-        ['Account Settings', 'Security & credentials', 'gear'],
-        ['Notifications', 'System & client alerts', 'bell'],
-      ],
-    },
   ],
   user: [
     {
