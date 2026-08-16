@@ -918,8 +918,11 @@ def _seed_demo_content():
 @asynccontextmanager
 async def lifespan(app_: FastAPI):
     """FastAPI lifespan handler: runs startup logic before the app accepts requests."""
-    _seed_demo_users()
-    _seed_demo_content()
+    try:
+        _seed_demo_users()
+        _seed_demo_content()
+    except Exception as e:
+        logger.error(f"Startup seeding error (non-fatal): {e}", exc_info=True)
     yield
     # Shutdown: no cleanup required for SQLAlchemy connection pool disposal
 
