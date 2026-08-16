@@ -553,7 +553,7 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
 
   const fetchProductsCatalog = useCallback(() => {
     setProductsLoading(true);
-    api.getAdminProducts({ per_page: 50 })
+    api.getAdminProducts({ per_page: 500 })
       .then(d => setAllProducts(d.products || d.items || []))
       .catch(() => setAllProducts([]))
       .finally(() => setProductsLoading(false));
@@ -1047,7 +1047,7 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
           <div
             className="dash-scroll"
             style={{
-              maxHeight: '390px',
+              maxHeight: '560px',
               overflowY: 'auto',
               overflowX: 'auto',
               border: '1px solid #f1f2f7',
