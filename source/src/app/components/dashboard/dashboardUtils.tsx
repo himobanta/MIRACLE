@@ -98,22 +98,90 @@ export function UpEl({ text, color }: { text: string; color: string }) {
   );
 }
 
-export function DonutChart({ segs, center, sub, size = 150 }: { segs: { pct: number; color: string }[]; center: string; sub: string; size?: number }) {
-  let accum = 0;
-  const stops = segs.map((s) => {
-    const from = accum;
-    accum += s.pct;
-    return `${s.color} ${from}% ${accum}%`;
-  }).join(',');
+export function DonutChart({
+  segs,
+  center,
+  sub,
+  size = 150,
+}: {
+  segs: { pct: number; color: string }[];
+  center: string;
+  sub: string;
+  size?: number;
+}) {
+  const strokeWidth = size * 0.16;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
 
-  const thick = size * 0.17;
+  // Filter segments with > 0 pct
+  const validSegs = segs.filter(s => s.pct > 0);
+  const totalPct = validSegs.reduce((acc, s) => acc + s.pct, 0) || 100;
+
+  let accumulatedPct = 0;
 
   return (
-    <div style={{ position: 'relative', width: `${size}px`, height: `${size}px`, flexShrink: 0, borderRadius: '50%', background: `conic-gradient(${stops})` }}>
-      <div style={{ position: 'absolute', inset: `${thick}px`, borderRadius: '50%', background: '#fff', display: 'grid', placeItems: 'center', textAlign: 'center' }}>
-        <div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 800, color: '#171433' }}>{center}</div>
-          <div style={{ fontSize: '0.68rem', color: '#8b8fa3' }}>{sub}</div>
+    <div style={{ position: 'relative', width: `${size}px`, height: `${size}px`, flexShrink: 0 }}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ transform: 'rotate(-90deg)', display: 'block' }}
+      >
+        {/* Background track */}
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill="none"
+          stroke="#f1f3f9"
+          strokeWidth={strokeWidth}
+        />
+
+        {/* Vector SVG segments */}
+        {validSegs.map((seg, i) => {
+          const normPct = (seg.pct / totalPct) * 100;
+          const strokeDash = (normPct / 100) * circumference;
+          const strokeOffset = -((accumulatedPct / 100) * circumference);
+          accumulatedPct += normPct;
+
+          return (
+            <circle
+              key={i}
+              cx={size / 2}
+              cy={size / 2}
+              r={radius}
+              fill="none"
+              stroke={seg.color}
+              strokeWidth={strokeWidth}
+              strokeDasharray={`${strokeDash} ${circumference - strokeDash}`}
+              strokeDashoffset={strokeOffset}
+              strokeLinecap="butt"
+              style={{
+                transition: 'stroke-dasharray 0.4s ease, stroke-dashoffset 0.4s ease',
+              }}
+            />
+          );
+        })}
+      </svg>
+
+      {/* Center content */}
+      <div
+        style={{
+          position: 'absolute',
+          inset: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          textAlign: 'center',
+          pointerEvents: 'none',
+        }}
+      >
+        <div style={{ fontSize: `${Math.max(1.1, size * 0.16)}rem`, fontWeight: 800, color: '#0f172a', lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+          {center}
+        </div>
+        <div style={{ fontSize: `${Math.max(0.68, size * 0.08)}rem`, color: '#64748b', fontWeight: 600, marginTop: '2px' }}>
+          {sub}
         </div>
       </div>
     </div>
