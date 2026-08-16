@@ -1,0 +1,15 @@
+import sqlite3, os
+db_path = os.path.join(os.path.dirname(__file__), 'miracle.db')
+print(f"DB path: {db_path}")
+print(f"DB size: {os.path.getsize(db_path)} bytes")
+conn = sqlite3.connect(db_path)
+cur = conn.cursor()
+cur.execute("SELECT name FROM sqlite_master WHERE type='table'")
+tables = cur.fetchall()
+print("Tables:", tables)
+cur.execute("SELECT count(*) FROM users")
+print("User count:", cur.fetchone())
+cur.execute("SELECT id, name, email, role FROM users LIMIT 20")
+for r in cur.fetchall():
+    print(r)
+conn.close()

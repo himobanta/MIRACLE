@@ -132,6 +132,22 @@ def _seed_demo_users():
             db.add(doctor)
             db.commit()
             logger.info("Seeded legacy Dermatologist alias: derma@miracle.com")
+
+        # ── Second Skincare Consultant ─────────────────────────────────────────
+        if not db.query(User).filter(User.email == "consultant2@miracle.com").first():
+            consultant2 = User(
+                name="Riya Banerjee",
+                email="consultant2@miracle.com",
+                hashed_password=hash_password("Miracle@2024"),
+                role="Skincare Consultant"
+            )
+            db.add(consultant2)
+            db.commit()
+            db.refresh(consultant2)
+            profile2 = UserProfile(user_id=consultant2.id)
+            db.add(profile2)
+            db.commit()
+            logger.info("Seeded second Skincare Consultant: consultant2@miracle.com")
     finally:
         db.close()
 
