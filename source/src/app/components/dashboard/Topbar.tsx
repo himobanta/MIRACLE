@@ -681,7 +681,7 @@ export function Topbar({ role, onSectionChange }: TopbarProps) {
             >
               <DashIcon d={PATHS.cal} s={17} stroke={PUR} />
               <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>{todayDate}</span>
-              <DashIcon d={`<path d='m6 ${showCalendar ? 15 : 9} 6 ${showCalendar ? -6 : 6} 6 ${showCalendar ? -6 : 6}'/>`} s={14} stroke="#9aa0b4" sw={2} />
+              <DashIcon d={showCalendar ? "<path d='m6 15 6-6 6 6'/>" : "<path d='m6 9 6 6 6-6'/>"} s={14} stroke="#9aa0b4" sw={2} />
             </button>
             {showCalendar && <CalendarPicker onClose={() => setShowCalendar(false)} />}
           </div>
