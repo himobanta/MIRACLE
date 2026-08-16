@@ -399,6 +399,11 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
   // Available Products catalog for recommendation
   const [allProducts, setAllProducts] = useState<any[]>([]);
   const [productsLoading, setProductsLoading] = useState(false);
+  const [productSearch, setProductSearch] = useState('');
+  const [productCategory, setProductCategory] = useState('');
+  const [productPage, setProductPage] = useState(1);
+  const [totalProductPages, setTotalProductPages] = useState(1);
+  const [totalProductsCount, setTotalProductsCount] = useState(0);
 
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
@@ -551,11 +556,20 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
       .finally(() => setRoutinesLoading(false));
   }, []);
 
-  const fetchProductsCatalog = useCallback(() => {
+  const fetchProductsCatalog = useCallback((page: number = 1, search: string = '', cat: string = '') => {
     setProductsLoading(true);
-    api.getAdminProducts({ per_page: 500 })
-      .then(d => setAllProducts(d.products || d.items || []))
-      .catch(() => setAllProducts([]))
+    api.getConsultantProducts({ page, per_page: 24, search: search || undefined, category: cat || undefined })
+      .then(d => {
+        setAllProducts(d.items || d.products || []);
+        setTotalProductsCount(d.total || 0);
+        setTotalProductPages(d.total_pages || 1);
+        setProductPage(d.page || page);
+      })
+      .catch(() => {
+        setAllProducts([]);
+        setTotalProductsCount(0);
+        setTotalProductPages(1);
+      })
       .finally(() => setProductsLoading(false));
   }, []);
 
@@ -658,7 +672,7 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
         break;
       case 'product-recommendations':
         fetchRecommendations();
-        fetchProductsCatalog();
+        fetchProductsCatalog(1, productSearch, productCategory);
         fetchRoster();
         break;
       case 'progress-tracking':
@@ -1043,17 +1057,16 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
               </div>
             }
           />
-          {/* Container with 390px maxHeight ensuring comfortable whitespace inside the card */}
+          {/* Container with 460px maxHeight perfectly balanced to fill the roster card */}
           <div
             className="dash-scroll"
             style={{
-              maxHeight: '560px',
+              maxHeight: '460px',
               overflowY: 'auto',
               overflowX: 'auto',
               border: '1px solid #f1f2f7',
               borderRadius: '14px',
               background: '#fff',
-              marginBottom: '4px',
             }}
           >
             <table style={{ borderCollapse: 'separate', borderSpacing: 0, width: '100%', minWidth: '840px' }}>
@@ -1879,73 +1892,169 @@ export function ConsultantWorkspace({ activeSection = 'dashboard', onSectionChan
         )}
       </Card>
 
-      {/* Available Skincare Products Catalog */}
+      {/* Available Skincare Products Catalog (50,000+ Products) */}
       <Card style={{ padding: '24px' }}>
         <CardHead
-          title={`Available Skincare Products Catalog (${allProducts.length})`}
-          right={<span style={{ fontSize: '0.76rem', color: PUR, fontWeight: 700 }}>Select a Product to Recommend</span>}
-        />
-        {productsLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#94a3b8' }}>Loading product catalog…</div>
-        ) : allProducts.length === 0 ? (
-          <EmptyState icon="📦" message="No products loaded in database catalog." />
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-            {allProducts.map(prod => (
-              <div
-                key={prod.id}
+          title={`Available Skincare Products Catalog (${totalProductsCount > 0 ? totalProductsCount.toLocaleString() : allProducts.length} Products)`}
+          right={
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                placeholder="Search 50,000+ products, brands..."
+                value={productSearch}
+                onChange={e => {
+                  setProductSearch(e.target.value);
+                  fetchProductsCatalog(1, e.target.value, productCategory);
+                }}
                 style={{
-                  padding: '16px',
-                  borderRadius: '16px',
-                  background: '#fff',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
                   border: '1px solid #e2e8f0',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                  fontSize: '0.82rem',
+                  width: '260px',
+                  outline: 'none',
+                  fontFamily: 'inherit',
+                }}
+              />
+              <select
+                value={productCategory}
+                onChange={e => {
+                  setProductCategory(e.target.value);
+                  fetchProductsCatalog(1, productSearch, e.target.value);
+                }}
+                style={{
+                  padding: '8px 12px',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0',
+                  fontSize: '0.82rem',
+                  background: '#fff',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
                 }}
               >
-                <div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: PUR, background: `${PUR}14`, padding: '2px 8px', borderRadius: '6px' }}>
-                      {prod.category || 'Skincare'}
-                    </span>
-                    <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a' }}>₹{prod.price || '899'}</span>
-                  </div>
-                  <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', marginTop: '8px' }}>{prod.product_name || prod.name}</div>
-                  <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px' }}>{prod.brand}</div>
-                  {prod.description && (
-                    <div style={{ fontSize: '0.76rem', color: '#475569', marginTop: '6px', lineHeight: 1.35 }}>
-                      {prod.description.length > 100 ? `${prod.description.slice(0, 100)}…` : prod.description}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={() => {
-                    setRecProdName(prod.product_name || prod.name);
-                    setRecProdBrand(prod.brand || 'Miracle Formulations');
-                    setRecCategory(prod.category || 'Treatment');
-                    setRecPrice(String(prod.price || 999));
-                    setShowRecModal(true);
-                  }}
+                <option value="">All Categories</option>
+                <option value="Cleansers">Cleansers</option>
+                <option value="Moisturizers">Moisturizers</option>
+                <option value="Treatments">Treatments & Serums</option>
+                <option value="Sunscreen">Sun Care & SPF</option>
+                <option value="Toners">Toners & Essences</option>
+                <option value="Eye Care">Eye Care</option>
+                <option value="Masks">Masks & Peels</option>
+                <option value="Lip Care">Lip Care</option>
+              </select>
+            </div>
+          }
+        />
+        {productsLoading ? (
+          <div style={{ padding: '50px', textAlign: 'center', color: '#94a3b8' }}>Searching product database…</div>
+        ) : allProducts.length === 0 ? (
+          <EmptyState icon="📦" message="No products matching your search criteria." />
+        ) : (
+          <>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px', marginTop: '12px' }}>
+              {allProducts.map(prod => (
+                <div
+                  key={prod.id}
                   style={{
-                    padding: '8px 12px',
-                    borderRadius: '10px',
-                    border: 'none',
-                    background: PUR,
-                    color: '#fff',
-                    fontSize: '0.78rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
+                    padding: '16px',
+                    borderRadius: '16px',
+                    background: '#fff',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between',
+                    gap: '12px',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+                    transition: 'transform 0.15s, box-shadow 0.15s',
                   }}
                 >
-                  + Recommend to Client
-                </button>
+                  <div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                      <span style={{ fontSize: '0.72rem', fontWeight: 700, color: PUR, background: `${PUR}14`, padding: '2px 8px', borderRadius: '6px' }}>
+                        {prod.category || 'Skincare'}
+                      </span>
+                      <span style={{ fontSize: '0.86rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap' }}>₹{prod.price || '899'}</span>
+                    </div>
+                    <div style={{ fontSize: '0.94rem', fontWeight: 800, color: '#0f172a', marginTop: '8px', lineHeight: 1.3 }}>
+                      {prod.product_name || prod.name}
+                    </div>
+                    <div style={{ fontSize: '0.74rem', color: '#64748b', marginTop: '2px', fontWeight: 600 }}>{prod.brand}</div>
+                    {prod.description && (
+                      <div style={{ fontSize: '0.74rem', color: '#475569', marginTop: '6px', lineHeight: 1.35, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                        {prod.description}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setRecProdName(prod.product_name || prod.name);
+                      setRecProdBrand(prod.brand || 'Miracle Formulations');
+                      setRecCategory(prod.category || 'Treatment');
+                      setRecPrice(String(prod.price || 999));
+                      setShowRecModal(true);
+                    }}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '10px',
+                      border: 'none',
+                      background: PUR,
+                      color: '#fff',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      width: '100%',
+                    }}
+                  >
+                    + Recommend to Client
+                  </button>
+                </div>
+              ))}
+            </div>
+
+            {/* Pagination Controls */}
+            {totalProductPages > 1 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid #e2e8f0' }}>
+                <div style={{ fontSize: '0.82rem', color: '#64748b' }}>
+                  Showing page <b>{productPage}</b> of <b>{totalProductPages}</b> ({totalProductsCount.toLocaleString()} total products)
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => fetchProductsCatalog(productPage - 1, productSearch, productCategory)}
+                    disabled={productPage <= 1}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      background: productPage <= 1 ? '#f1f5f9' : '#fff',
+                      color: productPage <= 1 ? '#94a3b8' : '#334155',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: productPage <= 1 ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    ← Previous
+                  </button>
+                  <button
+                    onClick={() => fetchProductsCatalog(productPage + 1, productSearch, productCategory)}
+                    disabled={productPage >= totalProductPages}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: '8px',
+                      border: '1px solid #cbd5e1',
+                      background: productPage >= totalProductPages ? '#f1f5f9' : '#fff',
+                      color: productPage >= totalProductPages ? '#94a3b8' : '#334155',
+                      fontSize: '0.78rem',
+                      fontWeight: 700,
+                      cursor: productPage >= totalProductPages ? 'not-allowed' : 'pointer',
+                    }}
+                  >
+                    Next →
+                  </button>
+                </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
       </Card>
     </div>

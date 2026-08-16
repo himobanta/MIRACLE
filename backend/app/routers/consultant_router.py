@@ -1182,3 +1182,59 @@ def get_consultant_notifications(
         })
 
     return {"total": len(dynamic_items), "notifications": dynamic_items}
+
+
+# ── Product Catalog for Consultants ──────────────────────────────────────────
+
+@router.get("/products")
+def consultant_product_catalog(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(50, ge=1, le=200),
+    search: Optional[str] = None,
+    category: Optional[str] = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Browse the full product catalog so consultants can recommend any product to their clients."""
+    verify_consultant_or_medical(current_user)
+
+    q = db.query(Product)
+    if search:
+        q = q.filter(or_(
+            Product.product_name.ilike(f"%{search}%"),
+            Product.brand.ilike(f"%{search}%"),
+            Product.category.ilike(f"%{search}%"),
+        ))
+    if category:
+        q = q.filter(Product.category.ilike(f"%{category}%"))
+
+    total = q.count()
+    products = (
+        q.order_by(Product.product_name)
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+        .all()
+    )
+
+    return {
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": max(1, -(-total // per_page)),  # ceiling division
+        "items": [
+            {
+                "id": p.id,
+                "product_name": p.product_name,
+                "brand": p.brand,
+                "category": p.category,
+                "usage_type": p.usage_type,
+                "price": p.price,
+                "safety_score": p.safety_score,
+                "rating": p.rating,
+                "image_url": p.image_url,
+                "product_url": p.product_url,
+                "description": p.ingredients[:120] if p.ingredients else None,
+            }
+            for p in products
+        ],
+    }

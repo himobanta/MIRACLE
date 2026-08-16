@@ -578,4 +578,14 @@ export const api = {
   changeConsultantPassword: (data: any) =>
     request("/consultant/password", { method: "PUT", body: JSON.stringify(data) }),
   getConsultantNotifications: () => request("/consultant/notifications"),
+
+  getConsultantProducts: (params?: { page?: number; per_page?: number; search?: string; category?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.page) q.append("page", String(params.page));
+    if (params?.per_page) q.append("per_page", String(params.per_page));
+    if (params?.search) q.append("search", params.search);
+    if (params?.category) q.append("category", params.category);
+    const qs = q.toString();
+    return request(`/consultant/products${qs ? `?${qs}` : ""}`);
+  },
 };
