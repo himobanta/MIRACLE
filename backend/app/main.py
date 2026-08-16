@@ -21,7 +21,8 @@ from .routers import (
     recommendation_router,
     analytics_router,
     consultant_router,
-    appointment_router
+    appointment_router,
+    dermatologist_router
 )
 from .routers import admin_router
 from .routers import admin_extended_router
@@ -987,6 +988,7 @@ app.include_router(consultant_router.router)
 app.include_router(appointment_router.router)
 app.include_router(admin_router.router)
 app.include_router(admin_extended_router.router)
+app.include_router(dermatologist_router.router)
 
 # ── Health & Readiness Endpoints ──────────────────────────────────────────────
 @app.get("/health", tags=["Health"])

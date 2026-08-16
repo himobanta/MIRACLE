@@ -353,3 +353,139 @@ class SkinConcernGuide(Base):
     derma_referral_threshold = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+
+# ── Dermatologist Domain Models ───────────────────────────────────────────────
+
+class DermatologistProfile(Base):
+    """Rich professional profile for Medical Dermatologists."""
+    __tablename__ = "dermatologist_profiles"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey("users.id"), unique=True, nullable=False)
+    phone = Column(String, nullable=True)
+    title = Column(String, default="Senior Consultant Dermatologist")
+    specialization = Column(String, default="Clinical & Procedural Dermatology")
+    license_number = Column(String, default="MCI-DERM-48921-IN")
+    clinic_hospital_affiliation = Column(String, default="Miracle Advanced Skin & Laser Institute")
+    experience_years = Column(Integer, default=12)
+    bio = Column(Text, nullable=True)
+    areas_of_expertise = Column(JSON, default=lambda: ["Acne Vulgaris & Cystic Acne", "Melasma & Pigmentary Disorders", "Atopic Dermatitis & Psoriasis", "Laser & Procedural Aesthetics", "Barrier Repair Therapies"])
+    clinical_interests = Column(JSON, default=lambda: ["Topical Retinoid Formulations", "Transepidermal Water Loss Dynamics", "Microbiome Modulation", "Post-Inflammatory Erythema"])
+    certifications = Column(JSON, default=lambda: ["Board Certified Dermatologist (IADVL)", "Fellowship in Aesthetic Dermatology (FAAD)", "Diplomate in Clinical Dermatology (UK)"])
+    qualifications = Column(String, default="M.D. Dermatology, Venereology & Leprosy (Gold Medalist)")
+    consultation_fee = Column(Float, default=1500.0)
+    availability = Column(String, default="Mon-Sat, 10:00 AM - 7:00 PM IST")
+    clinical_modes = Column(JSON, default=lambda: ["In-Clinic Examination", "Tele-Dermatology Video Audit", "Emergency Clinical Review"])
+    joined_date = Column(String, default="2021-06-10")
+    account_status = Column(String, default="Verified Medical Practitioner · Active")
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class DermaTreatmentPlan(Base):
+    """Structured medical treatment plans created by dermatologists."""
+    __tablename__ = "derma_treatment_plans"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    dermatologist_id = Column(String, ForeignKey("users.id"), nullable=False)
+    patient_id = Column(String, ForeignKey("users.id"), nullable=False)
+    patient_name = Column(String, nullable=True)
+    title = Column(String, nullable=False)
+    diagnosis = Column(String, nullable=False)
+    severity = Column(String, default="Moderate")  # Mild, Moderate, Severe, Refractory
+    objectives = Column(Text, nullable=False)
+    recommended_actives = Column(JSON, default=list)
+    frequency = Column(String, default="Daily - Morning & Evening")
+    duration_weeks = Column(Integer, default=8)
+    start_date = Column(String, nullable=False)    # YYYY-MM-DD
+    end_date = Column(String, nullable=False)      # YYYY-MM-DD
+    instructions = Column(Text, nullable=True)
+    status = Column(String, default="Active")      # Active, Completed, Paused, Discontinued
+    progress_percentage = Column(Integer, default=0)
+    clinical_notes = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class DermaPrescription(Base):
+    """High-potency Rx prescriptions issued by dermatologists."""
+    __tablename__ = "derma_prescriptions"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    prescription_code = Column(String, unique=True, index=True, nullable=False)  # e.g. "RX-2026-9812"
+    dermatologist_id = Column(String, ForeignKey("users.id"), nullable=False)
+    patient_id = Column(String, ForeignKey("users.id"), nullable=False)
+    patient_name = Column(String, nullable=True)
+    medication_name = Column(String, nullable=False)  # e.g. "Tretinoin 0.05% Microsphere Gel"
+    dosage = Column(String, nullable=False)           # e.g. "Pea-sized amount (0.5g)"
+    frequency = Column(String, default="Every alternate evening")
+    duration = Column(String, default="12 Weeks")
+    start_date = Column(String, nullable=False)       # YYYY-MM-DD
+    end_date = Column(String, nullable=False)         # YYYY-MM-DD
+    refills_allowed = Column(Integer, default=2)
+    instructions = Column(Text, nullable=True)
+    warnings = Column(Text, nullable=True)            # e.g. "Strict sunscreen mandatory. Avoid during pregnancy."
+    status = Column(String, default="Active")         # Active, Completed, Cancelled
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class DermaClinicalInsight(Base):
+    """AI-powered clinical intelligence & risk analysis records."""
+    __tablename__ = "derma_clinical_insights"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    dermatologist_id = Column(String, ForeignKey("users.id"), nullable=False)
+    patient_id = Column(String, ForeignKey("users.id"), nullable=False)
+    patient_name = Column(String, nullable=True)
+    skin_concern = Column(String, nullable=False)
+    risk_level = Column(String, default="Moderate")   # Low, Moderate, High, Critical
+    confidence_score = Column(Float, default=88.5)
+    primary_finding = Column(Text, nullable=False)
+    ai_risk_indicators = Column(JSON, default=list)   # list of risk indicators
+    concerning_patterns = Column(JSON, default=list)  # list of concerning trends
+    recommended_interventions = Column(JSON, default=list)
+    barrier_stress_index = Column(Float, default=42.0)
+    requires_attention = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class DermaClinicalReport(Base):
+    """Formal medical dossiers & analytical reports."""
+    __tablename__ = "derma_clinical_reports"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    report_code = Column(String, unique=True, index=True, nullable=False)  # e.g. "RPT-DERMA-892"
+    dermatologist_id = Column(String, ForeignKey("users.id"), nullable=False)
+    patient_id = Column(String, ForeignKey("users.id"), nullable=False)
+    patient_name = Column(String, nullable=True)
+    report_type = Column(String, default="Comprehensive Clinical Evaluation")
+    diagnosis_summary = Column(Text, nullable=False)
+    baseline_score = Column(Float, default=62.0)
+    current_score = Column(Float, default=82.0)
+    improvement_rate = Column(Float, default=32.2)
+    barrier_recovery_pct = Column(Float, default=88.5)
+    regimen_compliance_pct = Column(Float, default=94.0)
+    doctor_conclusions = Column(Text, nullable=False)
+    next_audit_date = Column(String, default="2026-09-15")
+    status = Column(String, default="Finalized")  # Draft, Finalized, Archived
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class DermaResearchPublication(Base):
+    """Peer-reviewed clinical literature & dermatology research papers."""
+    __tablename__ = "derma_research_publications"
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    title = Column(String, nullable=False)
+    authors = Column(String, nullable=False)
+    journal = Column(String, nullable=False)
+    publication_year = Column(Integer, default=2026)
+    category = Column(String, nullable=False)       # Retinoids & Actives, Barrier Repair, Pigmentary Disorders, Acne Pathology, Laser Aesthetics
+    doi_or_url = Column(String, nullable=True)
+    abstract = Column(Text, nullable=False)
+    clinical_takeaways = Column(JSON, default=list)
+    tags = Column(JSON, default=list)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+

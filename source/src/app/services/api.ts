@@ -588,4 +588,74 @@ export const api = {
     const qs = q.toString();
     return request(`/consultant/products${qs ? `?${qs}` : ""}`);
   },
+
+  // ── Dermatologist Clinical Suite APIs ──────────────────────────────────────
+  getDermaProfile: () => request("/dermatologist/profile"),
+  updateDermaProfile: (data: any) =>
+    request("/dermatologist/profile", { method: "PUT", body: JSON.stringify(data) }),
+  getDermaDashboardOverview: () => request("/dermatologist/dashboard/overview"),
+  getDermaPatients: (params?: { search?: string; skin_type?: string; concern?: string; sort_by?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    if (params?.skin_type) q.append("skin_type", params.skin_type);
+    if (params?.concern) q.append("concern", params.concern);
+    if (params?.sort_by) q.append("sort_by", params.sort_by);
+    const qs = q.toString();
+    return request(`/dermatologist/patients${qs ? `?${qs}` : ""}`);
+  },
+  getDermaPatientDossier: (patientId: string) => request(`/dermatologist/patients/${patientId}/dossier`),
+  getDermaAssessments: (params?: { search?: string; concern?: string; severity?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    if (params?.concern) q.append("concern", params.concern);
+    if (params?.severity) q.append("severity", params.severity);
+    const qs = q.toString();
+    return request(`/dermatologist/assessments${qs ? `?${qs}` : ""}`);
+  },
+  getDermaInsights: (params?: { risk_level?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.risk_level) q.append("risk_level", params.risk_level);
+    const qs = q.toString();
+    return request(`/dermatologist/insights${qs ? `?${qs}` : ""}`);
+  },
+  getDermaTreatmentPlans: (params?: { status?: string; patient_id?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.append("status", params.status);
+    if (params?.patient_id) q.append("patient_id", params.patient_id);
+    const qs = q.toString();
+    return request(`/dermatologist/treatment-plans${qs ? `?${qs}` : ""}`);
+  },
+  createDermaTreatmentPlan: (data: any) =>
+    request("/dermatologist/treatment-plans", { method: "POST", body: JSON.stringify(data) }),
+  updateDermaTreatmentPlan: (planId: string, data: any) =>
+    request(`/dermatologist/treatment-plans/${planId}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteDermaTreatmentPlan: (planId: string) =>
+    request(`/dermatologist/treatment-plans/${planId}`, { method: "DELETE" }),
+  getDermaPrescriptions: (params?: { status?: string; patient_id?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.status) q.append("status", params.status);
+    if (params?.patient_id) q.append("patient_id", params.patient_id);
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/dermatologist/prescriptions${qs ? `?${qs}` : ""}`);
+  },
+  createDermaPrescription: (data: any) =>
+    request("/dermatologist/prescriptions", { method: "POST", body: JSON.stringify(data) }),
+  updateDermaPrescription: (rxId: string, data: any) =>
+    request(`/dermatologist/prescriptions/${rxId}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteDermaPrescription: (rxId: string) =>
+    request(`/dermatologist/prescriptions/${rxId}`, { method: "DELETE" }),
+  getDermaReports: (params?: { search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/dermatologist/reports${qs ? `?${qs}` : ""}`);
+  },
+  getDermaResearchPublications: (params?: { category?: string; search?: string }) => {
+    const q = new URLSearchParams();
+    if (params?.category) q.append("category", params.category);
+    if (params?.search) q.append("search", params.search);
+    const qs = q.toString();
+    return request(`/dermatologist/research-publications${qs ? `?${qs}` : ""}`);
+  },
 };
