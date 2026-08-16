@@ -701,7 +701,7 @@ def _seed_demo_content():
                 "contraindicated_actives": ["Hydroquinone without dermatologist prescription", "Unbuffered glycolic acid peels at home"],
                 "precautions": "Re-apply sunscreen every 2-3 hours during outdoor exposure. Tinted sunscreen protects against visible blue light pigment stimulation.",
                 "derma_referral_triggers": "Dermal melasma, suspicious asymmetrical pigmented lesions, or resistance to 12 weeks of topical protocol."
-            }
+            },
             {
                 "protocol_code": "PROT-MELASMA-04",
                 "name": "Recalcitrant Dermal Melasma & Pigment Modulation Protocol",
@@ -906,6 +906,7 @@ def _seed_demo_content():
                 "lifestyle_guidance": "Avoid boiling hot beverages and saunas, moderate spicy food intake, and protect face from winter wind with scarves.",
                 "warnings": "Never apply topical steroids without strict dermatologist supervision as it can trigger steroid-induced rebound rosacea.",
                 "derma_referral_threshold": "Ocular symptoms (dry, gritty eyes), severe papulopustular flares, or persistent rhinophyma changes."
+            },
             {
                 "name": "Dermal & Epidermal Melasma",
                 "slug": "dermal-epidermal-melasma",
