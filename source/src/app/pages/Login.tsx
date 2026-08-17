@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { useSocialAuth } from '../hooks/useSocialAuth';
 
 const TINT: Record<string, string> = {
   emerald: '#2f6b4c',
@@ -42,6 +43,7 @@ export function Login() {
   const [loading, setLoading] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const [activeLang, setActiveLang] = useState(0);
+  const { socialState, triggerSocialLogin, clearSocialError } = useSocialAuth();
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -554,6 +556,15 @@ export function Login() {
                   </div>
                 )}
 
+                {socialState.error && (
+                  <div
+                    style={{ padding: '10px 14px', borderRadius: '12px', background: 'rgba(244,63,94,0.12)', border: '1px solid rgba(244,63,94,0.3)', color: '#e11d48', fontSize: '0.84rem', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}
+                  >
+                    <span>{socialState.error}</span>
+                    <button type="button" onClick={clearSocialError} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#e11d48', flexShrink: 0, padding: 0, lineHeight: 1 }}>✕</button>
+                  </div>
+                )}
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -595,10 +606,13 @@ export function Login() {
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
+                {/* Google */}
                 <button
                   type="button"
+                  id="li_google_btn"
                   aria-label="Continue with Google"
-                  onClick={() => alert('Continue with Google')}
+                  disabled={socialState.loading}
+                  onClick={() => triggerSocialLogin('google')}
                   style={{
                     display: 'grid',
                     placeItems: 'center',
@@ -606,24 +620,33 @@ export function Login() {
                     width: '48px',
                     borderRadius: '999px',
                     border: '1px solid rgba(255,255,255,0.6)',
-                    background: 'rgba(255,255,255,0.55)',
+                    background: socialState.loading && socialState.provider === 'google' ? 'rgba(66,133,244,0.12)' : 'rgba(255,255,255,0.55)',
                     backdropFilter: 'blur(10px)',
                     WebkitBackdropFilter: 'blur(10px)',
-                    cursor: 'pointer',
-                    transition: 'transform .2s, box-shadow .2s',
+                    cursor: socialState.loading ? 'wait' : 'pointer',
+                    transition: 'transform .2s, box-shadow .2s, background .2s',
+                    opacity: socialState.loading && socialState.provider !== 'google' ? 0.5 : 1,
                   }}
                 >
-                  <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }} aria-hidden="true">
-                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z" />
-                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z" />
-                    <path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z" />
-                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z" />
-                  </svg>
+                  {socialState.loading && socialState.provider === 'google' ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#4285F4" strokeWidth="2" strokeLinecap="round" style={{ width: '18px', height: '18px', animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }} aria-hidden="true">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1Z" />
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.65l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23Z" />
+                      <path fill="#FBBC05" d="M5.84 14.11a6.6 6.6 0 0 1 0-4.22V7.05H2.18a11 11 0 0 0 0 9.9l3.66-2.84Z" />
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1A11 11 0 0 0 2.18 7.05l3.66 2.84C6.71 7.3 9.14 5.38 12 5.38Z" />
+                    </svg>
+                  )}
                 </button>
+
+                {/* X (Twitter) */}
                 <button
                   type="button"
+                  id="li_twitter_btn"
                   aria-label="Continue with X"
-                  onClick={() => alert('Continue with X')}
+                  disabled={socialState.loading}
+                  onClick={() => triggerSocialLogin('twitter')}
                   style={{
                     display: 'grid',
                     placeItems: 'center',
@@ -631,22 +654,31 @@ export function Login() {
                     width: '48px',
                     borderRadius: '999px',
                     border: '1px solid rgba(255,255,255,0.6)',
-                    background: 'rgba(255,255,255,0.55)',
+                    background: socialState.loading && socialState.provider === 'twitter' ? 'rgba(22,48,31,0.1)' : 'rgba(255,255,255,0.55)',
                     color: 'var(--fg, #16301f)',
                     backdropFilter: 'blur(10px)',
                     WebkitBackdropFilter: 'blur(10px)',
-                    cursor: 'pointer',
+                    cursor: socialState.loading ? 'wait' : 'pointer',
                     transition: 'transform .2s, box-shadow .2s',
+                    opacity: socialState.loading && socialState.provider !== 'twitter' ? 0.5 : 1,
                   }}
                 >
-                  <svg viewBox="0 0 24 24" style={{ width: '1.1rem', height: '1.1rem' }} fill="#16301f" aria-hidden="true">
-                    <path d="M18.9 1.6h3.5l-7.6 8.7L23.7 22h-7l-5.5-7.2L4.9 22H1.4l8.1-9.3L.7 1.6h7.2l5 6.6 5.9-6.6Zm-1.2 18.3h1.9L7.1 3.6H5l12.7 16.3Z" />
-                  </svg>
+                  {socialState.loading && socialState.provider === 'twitter' ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#16301f" strokeWidth="2" strokeLinecap="round" style={{ width: '18px', height: '18px', animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" style={{ width: '1.1rem', height: '1.1rem' }} fill="#16301f" aria-hidden="true">
+                      <path d="M18.9 1.6h3.5l-7.6 8.7L23.7 22h-7l-5.5-7.2L4.9 22H1.4l8.1-9.3L.7 1.6h7.2l5 6.6 5.9-6.6Zm-1.2 18.3h1.9L7.1 3.6H5l12.7 16.3Z" />
+                    </svg>
+                  )}
                 </button>
+
+                {/* Facebook */}
                 <button
                   type="button"
+                  id="li_facebook_btn"
                   aria-label="Continue with Facebook"
-                  onClick={() => alert('Continue with Facebook')}
+                  disabled={socialState.loading}
+                  onClick={() => triggerSocialLogin('facebook')}
                   style={{
                     display: 'grid',
                     placeItems: 'center',
@@ -654,21 +686,30 @@ export function Login() {
                     width: '48px',
                     borderRadius: '999px',
                     border: '1px solid rgba(255,255,255,0.6)',
-                    background: 'rgba(255,255,255,0.55)',
+                    background: socialState.loading && socialState.provider === 'facebook' ? 'rgba(24,119,242,0.1)' : 'rgba(255,255,255,0.55)',
                     backdropFilter: 'blur(10px)',
                     WebkitBackdropFilter: 'blur(10px)',
-                    cursor: 'pointer',
+                    cursor: socialState.loading ? 'wait' : 'pointer',
                     transition: 'transform .2s, box-shadow .2s',
+                    opacity: socialState.loading && socialState.provider !== 'facebook' ? 0.5 : 1,
                   }}
                 >
-                  <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }} aria-hidden="true">
-                    <path fill="#1877F2" d="M24 12a12 12 0 1 0-13.88 11.85v-8.38H7.08V12h3.04V9.36c0-3 1.79-4.67 4.53-4.67 1.31 0 2.68.24 2.68.24v2.95h-1.5c-1.49 0-1.96.93-1.96 1.87V12h3.33l-.53 3.47h-2.8v8.38A12 12 0 0 0 24 12Z" />
-                  </svg>
+                  {socialState.loading && socialState.provider === 'facebook' ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#1877F2" strokeWidth="2" strokeLinecap="round" style={{ width: '18px', height: '18px', animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }} aria-hidden="true">
+                      <path fill="#1877F2" d="M24 12a12 12 0 1 0-13.88 11.85v-8.38H7.08V12h3.04V9.36c0-3 1.79-4.67 4.53-4.67 1.31 0 2.68.24 2.68.24v2.95h-1.5c-1.49 0-1.96.93-1.96 1.87V12h3.33l-.53 3.47h-2.8v8.38A12 12 0 0 0 24 12Z" />
+                    </svg>
+                  )}
                 </button>
+
+                {/* Instagram */}
                 <button
                   type="button"
+                  id="li_instagram_btn"
                   aria-label="Continue with Instagram"
-                  onClick={() => alert('Continue with Instagram')}
+                  disabled={socialState.loading}
+                  onClick={() => triggerSocialLogin('instagram')}
                   style={{
                     display: 'grid',
                     placeItems: 'center',
@@ -676,27 +717,32 @@ export function Login() {
                     width: '48px',
                     borderRadius: '999px',
                     border: '1px solid rgba(255,255,255,0.6)',
-                    background: 'rgba(255,255,255,0.55)',
+                    background: socialState.loading && socialState.provider === 'instagram' ? 'rgba(214,36,159,0.1)' : 'rgba(255,255,255,0.55)',
                     backdropFilter: 'blur(10px)',
                     WebkitBackdropFilter: 'blur(10px)',
-                    cursor: 'pointer',
+                    cursor: socialState.loading ? 'wait' : 'pointer',
                     transition: 'transform .2s, box-shadow .2s',
+                    opacity: socialState.loading && socialState.provider !== 'instagram' ? 0.5 : 1,
                   }}
                 >
-                  <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }} aria-hidden="true">
-                    <defs>
-                      <radialGradient id="igGrad" cx="30%" cy="107%" r="150%">
-                        <stop offset="0%" stopColor="#fdf497" />
-                        <stop offset="5%" stopColor="#fdf497" />
-                        <stop offset="45%" stopColor="#fd5949" />
-                        <stop offset="60%" stopColor="#d6249f" />
-                        <stop offset="90%" stopColor="#285AEB" />
-                      </radialGradient>
-                    </defs>
-                    <rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#igGrad)" />
-                    <circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" strokeWidth="1.6" />
-                    <circle cx="17.4" cy="6.6" r="1.2" fill="#fff" />
-                  </svg>
+                  {socialState.loading && socialState.provider === 'instagram' ? (
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#d6249f" strokeWidth="2" strokeLinecap="round" style={{ width: '18px', height: '18px', animation: 'spin 0.8s linear infinite' }}><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
+                  ) : (
+                    <svg viewBox="0 0 24 24" style={{ width: '20px', height: '20px' }} aria-hidden="true">
+                      <defs>
+                        <radialGradient id="igGrad_li" cx="30%" cy="107%" r="150%">
+                          <stop offset="0%" stopColor="#fdf497" />
+                          <stop offset="5%" stopColor="#fdf497" />
+                          <stop offset="45%" stopColor="#fd5949" />
+                          <stop offset="60%" stopColor="#d6249f" />
+                          <stop offset="90%" stopColor="#285AEB" />
+                        </radialGradient>
+                      </defs>
+                      <rect x="1.5" y="1.5" width="21" height="21" rx="6" fill="url(#igGrad_li)" />
+                      <circle cx="12" cy="12" r="4.2" fill="none" stroke="#fff" strokeWidth="1.6" />
+                      <circle cx="17.4" cy="6.6" r="1.2" fill="#fff" />
+                    </svg>
+                  )}
                 </button>
               </div>
 

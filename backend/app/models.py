@@ -12,10 +12,15 @@ class User(Base):
 
     id = Column(String, primary_key=True, default=generate_uuid)
     email = Column(String, unique=True, index=True, nullable=False)
-    hashed_password = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=True)  # nullable for social-only accounts
     name = Column(String, nullable=False)
     role = Column(String, default="User")  # User, Skincare Consultant, Dermatologist, Administrator
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    # Social OAuth fields
+    social_provider = Column(String, nullable=True)   # 'google' | 'twitter' | 'facebook' | 'instagram'
+    social_id = Column(String, nullable=True, index=True)  # provider's unique user id
+    avatar_url = Column(String, nullable=True)         # profile picture from provider
 
     profile = relationship("UserProfile", back_populates="user", uselist=False)
     assessments = relationship("SkinAssessment", back_populates="user")
@@ -351,6 +356,7 @@ class SkinConcernGuide(Base):
     lifestyle_guidance = Column(Text, nullable=True)
     warnings = Column(Text, nullable=True)
     derma_referral_threshold = Column(Text, nullable=True)
+    derma_referral_triggers = Column(Text, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 

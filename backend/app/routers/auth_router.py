@@ -186,3 +186,107 @@ def change_password(
     return {"status": "success", "message": "Password updated successfully"}
 
 
+@router.post("/social")
+def social_login(
+    data: dict,
+    db: Session = Depends(get_db),
+):
+    """
+    Social OAuth login/register endpoint.
+
+    Accepts:
+      - provider:     'google' | 'twitter' | 'facebook' | 'instagram'
+      - provider_id:  the unique user id from the OAuth provider
+      - name:         user's display name from provider
+      - email:        user's email from provider (may be empty for some providers)
+      - avatar_url:   optional profile picture URL from provider
+
+    Flow:
+      1. Look up an existing user by (provider, provider_id).
+      2. If email is provided, also check by email to link an existing account.
+      3. If no existing user, create a new User (role=User) with a randomly-generated
+         placeholder password hash (they can never log in with a password unless they
+         set one explicitly).
+      4. Return a JWT token identical to /auth/login.
+    """
+    provider = (data.get("provider") or "").lower().strip()
+    provider_id = (data.get("provider_id") or "").strip()
+    name = (data.get("name") or "").strip() or "Miracle User"
+    email_val = (data.get("email") or "").strip().lower() or None
+    avatar_url = (data.get("avatar_url") or None)
+
+    ALLOWED_PROVIDERS = {"google", "twitter", "facebook", "instagram"}
+    if provider not in ALLOWED_PROVIDERS:
+        raise HTTPException(status_code=400, detail=f"Unsupported provider: {provider}")
+
+    if not provider_id:
+        raise HTTPException(status_code=400, detail="provider_id is required")
+
+    # 1. Look up by social_id + provider
+    user = (
+        db.query(User)
+        .filter(User.social_provider == provider, User.social_id == provider_id)
+        .first()
+    )
+
+    # 2. If not found by social_id, try by email (link existing account)
+    if not user and email_val:
+        user = db.query(User).filter(User.email == email_val).first()
+        if user:
+            # Link this social identity to the existing account
+            user.social_provider = provider
+            user.social_id = provider_id
+            if avatar_url and not user.avatar_url:
+                user.avatar_url = avatar_url
+            db.commit()
+
+    # 3. Create a new user if still not found
+    if not user:
+        # Generate a synthetic unique email if provider gave none
+        if not email_val:
+            email_val = f"{provider}_{provider_id}@miracle.social"
+
+        # Placeholder un-guessable password hash for social-only accounts
+        import secrets
+        placeholder_pw = secrets.token_hex(32)
+        hashed_placeholder = hash_password(placeholder_pw)
+
+        user = User(
+            name=name,
+            email=email_val,
+            hashed_password=hashed_placeholder,
+            role="User",
+            social_provider=provider,
+            social_id=provider_id,
+            avatar_url=avatar_url,
+        )
+        db.add(user)
+        db.flush()
+
+        # Initialize empty profile atomically
+        profile = UserProfile(user_id=user.id)
+        db.add(profile)
+        db.commit()
+        db.refresh(user)
+
+    # Update name / avatar if provider gave us a fresher value
+    if name and user.name != name:
+        user.name = name
+    if avatar_url:
+        user.avatar_url = avatar_url
+    db.commit()
+
+    token = create_access_token(
+        {
+            "sub": user.id,
+            "role": user.role,
+            "name": user.name,
+        }
+    )
+
+    return Token(
+        access_token=token,
+        user_id=user.id,
+        role=user.role,
+        name=user.name,
+    )

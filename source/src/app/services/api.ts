@@ -196,6 +196,35 @@ export const api = {
     return result;
   },
 
+  socialLogin: async (data: {
+    provider: 'google' | 'twitter' | 'facebook' | 'instagram';
+    provider_id: string;
+    name: string;
+    email?: string;
+    avatar_url?: string;
+  }) => {
+    const result = await request('/auth/social', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+
+    if (result.access_token) {
+      setAuthToken(result.access_token);
+      localStorage.setItem(
+        'miracle_user',
+        JSON.stringify({
+          id: result.user_id,
+          name: result.name,
+          email: data.email || '',
+          role: result.role,
+          avatar_url: data.avatar_url || '',
+        })
+      );
+    }
+
+    return result;
+  },
+
   getMe: () => request("/auth/me"),
 
   // Assessment & Scoring

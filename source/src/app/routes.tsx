@@ -5,6 +5,8 @@ import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { SignUp } from './pages/SignUp';
 import { Dashboard } from './pages/Dashboard';
+import { OAuthCallback } from './pages/OAuthCallback';
+import { SocialLoginPopup } from './pages/SocialLoginPopup';
 
 function Root() {
   return (
@@ -13,6 +15,7 @@ function Root() {
     </AppProvider>
   );
 }
+
 
 export const router = createBrowserRouter([
   {
@@ -38,6 +41,16 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard/:roleParam',
         Component: Dashboard,
+      },
+      {
+        // OAuth popup callback — rendered inside the popup window
+        path: 'auth/callback',
+        Component: OAuthCallback,
+      },
+      {
+        // Social login provider portal popup
+        path: 'auth/social-popup',
+        Component: SocialLoginPopup,
       },
       {
         path: '*',
