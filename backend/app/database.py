@@ -29,6 +29,32 @@ else:
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
+def _run_migrations():
+    """Ensure newly added columns exist in existing SQLite database tables."""
+    try:
+        from sqlalchemy import text
+        with engine.connect() as conn:
+            # Check users table columns
+            if _is_sqlite:
+                result = conn.execute(text("PRAGMA table_info(users)")).fetchall()
+                existing_cols = {row[1] for row in result}
+                if "social_provider" not in existing_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN social_provider VARCHAR"))
+                if "social_id" not in existing_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN social_id VARCHAR"))
+                if "avatar_url" not in existing_cols:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR"))
+                conn.commit()
+            else:
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS social_provider VARCHAR;"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS social_id VARCHAR;"))
+                conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR;"))
+                conn.commit()
+    except Exception as e:
+        pass
+
+_run_migrations()
+
 def get_db():
     db = SessionLocal()
     try:
