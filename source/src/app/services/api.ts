@@ -247,6 +247,46 @@ export const api = {
     );
   },
 
+  getAllProducts: (params?: {
+    page?: number;
+    per_page?: number;
+    search?: string;
+    category?: string;
+    skin_type?: string;
+    sort_by?: string;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.per_page) query.append("per_page", String(params.per_page));
+    if (params?.search) query.append("search", params.search);
+    if (params?.category) query.append("category", params.category);
+    if (params?.skin_type) query.append("skin_type", params.skin_type);
+    if (params?.sort_by) query.append("sort_by", params.sort_by);
+    const qs = query.toString();
+    return request(`/recommendations/products${qs ? `?${qs}` : ""}`);
+  },
+
+  listIngredients: (params?: {
+    search?: string;
+    category?: string;
+    page?: number;
+    per_page?: number;
+  }) => {
+    const query = new URLSearchParams();
+    if (params?.search) query.append("search", params.search);
+    if (params?.category) query.append("category", params.category);
+    if (params?.page) query.append("page", String(params.page));
+    if (params?.per_page) query.append("per_page", String(params.per_page));
+    const qs = query.toString();
+    return request(`/ingredients${qs ? `?${qs}` : ""}`);
+  },
+
+  changePassword: (data: { current_password: string; new_password: string }) =>
+    request("/auth/password", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
   // Analytics & Progress Photos
   uploadPhoto: (data: {
     image_url: string;

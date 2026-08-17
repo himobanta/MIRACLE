@@ -161,3 +161,28 @@ def get_me(
         "created_at": user.created_at.isoformat() if user.created_at else None,
     }
 
+
+@router.put("/password")
+def change_password(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    current_pw = data.get("current_password")
+    new_pw = data.get("new_password")
+
+    if not current_pw or not new_pw:
+        raise HTTPException(status_code=400, detail="current_password and new_password are required")
+
+    if not verify_password(current_pw, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Incorrect current password")
+
+    if len(new_pw) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+
+    current_user.hashed_password = hash_password(new_pw)
+    db.commit()
+
+    return {"status": "success", "message": "Password updated successfully"}
+
+
