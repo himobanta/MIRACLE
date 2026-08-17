@@ -25,14 +25,7 @@ const BUBBLE_SPEC = [
   { id: 12, x: '22%', y: '12%', size: 34, tint: 'emerald', depth: 0.32, blur: 0, opacity: 0.6, dur: 7 },
 ];
 
-const LANGS = [
-  { code: 'en', label: 'English', native: 'English' },
-  { code: 'hi', label: 'Hindi', native: 'हिन्दी' },
-  { code: 'fr', label: 'French', native: 'Français' },
-  { code: 'es', label: 'Spanish', native: 'Español' },
-  { code: 'de', label: 'German', native: 'Deutsch' },
-  { code: 'ja', label: 'Japanese', native: '日本語' },
-];
+
 
 export function Login() {
   const nav = useNavigate();
@@ -41,8 +34,6 @@ export function Login() {
   const [focus, setFocus] = useState<string | null>(null);
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [langOpen, setLangOpen] = useState(false);
-  const [activeLang, setActiveLang] = useState(0);
   const { socialState, triggerSocialLogin, clearSocialError } = useSocialAuth();
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -68,21 +59,13 @@ export function Login() {
       if (!raf) raf = requestAnimationFrame(applyParallax);
     };
 
-    const onDown = (e: MouseEvent) => {
-      if (!langOpen) return;
-      const target = e.target as HTMLElement;
-      if (!target.closest('[data-lang]')) setLangOpen(false);
-    };
-
     window.addEventListener('mousemove', onMove, { passive: true });
-    document.addEventListener('mousedown', onDown);
 
     return () => {
       window.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mousedown', onDown);
       if (raf) cancelAnimationFrame(raf);
     };
-  }, [langOpen]);
+  }, []);
 
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -242,112 +225,7 @@ export function Login() {
         }}
       />
 
-      {/* Language selector · top-right header */}
-      <div style={{ position: 'absolute', top: '26px', right: '26px', zIndex: 60, display: 'flex', alignItems: 'center', gap: '12px' }}>
-        <div data-lang style={{ position: 'relative' }}>
-          <button
-            type="button"
-            onClick={() => setLangOpen((v) => !v)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              borderRadius: '999px',
-              border: '1px solid rgba(255,255,255,0.6)',
-              background: 'rgba(255,255,255,0.5)',
-              padding: '9px 16px',
-              fontSize: '0.82rem',
-              color: 'var(--fg, #16301f)',
-              backdropFilter: 'blur(10px)',
-              WebkitBackdropFilter: 'blur(10px)',
-              cursor: 'pointer',
-              boxShadow: '0 8px 26px -14px rgba(22,48,31,0.6)',
-              fontFamily: 'inherit',
-              transition: 'background .25s, border-color .25s',
-            }}
-          >
-            <svg viewBox="0 0 24 24" fill="none" stroke="#2f6b4c" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-              <circle cx="12" cy="12" r="9" />
-              <path d="M3 12h18" />
-              <path d="M12 3a15 15 0 0 1 0 18 15 15 0 0 1 0-18Z" />
-            </svg>
-            {LANGS[activeLang].label}
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.6"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              style={{ width: '0.9rem', height: '0.9rem', transition: 'transform .2s', transform: langOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}
-            >
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-          </button>
-          <ul
-            style={{
-              position: 'absolute',
-              right: 0,
-              top: 'calc(100% + 8px)',
-              width: '208px',
-              zIndex: 30,
-              overflow: 'hidden',
-              borderRadius: '18px',
-              border: '1px solid rgba(255,255,255,0.6)',
-              background: 'rgba(255,253,248,0.9)',
-              padding: '6px',
-              margin: 0,
-              listStyle: 'none',
-              boxShadow: '0 30px 60px -25px rgba(22,48,31,0.5)',
-              backdropFilter: 'blur(16px)',
-              WebkitBackdropFilter: 'blur(16px)',
-              transition: 'opacity .22s cubic-bezier(0.16,1,0.3,1), transform .22s cubic-bezier(0.16,1,0.3,1)',
-              transformOrigin: 'top right',
-              opacity: langOpen ? 1 : 0,
-              transform: langOpen ? 'translateY(0) scale(1)' : 'translateY(-8px) scale(0.97)',
-              visibility: langOpen ? 'visible' : 'hidden',
-              pointerEvents: langOpen ? 'auto' : 'none',
-            }}
-          >
-            {LANGS.map((lang, i) => (
-              <li key={lang.code} style={{ listStyle: 'none' }}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveLang(i);
-                    setLangOpen(false);
-                  }}
-                  style={{
-                    display: 'flex',
-                    width: '100%',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderRadius: '12px',
-                    padding: '10px 14px',
-                    fontFamily: 'inherit',
-                    fontSize: '0.85rem',
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: i === activeLang ? 'rgba(47,107,76,0.12)' : 'transparent',
-                    color: i === activeLang ? '#2f6b4c' : 'rgba(22,48,31,0.8)',
-                    transition: 'background .2s',
-                  }}
-                >
-                  <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <span style={{ fontSize: '0.78rem', color: '#5c6a57' }}>{lang.native}</span>
-                    {lang.label}
-                  </span>
-                  {i === activeLang && (
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ width: '16px', height: '16px' }}>
-                      <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                  )}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
+
 
       <div className="auth-grid">
         {/* Editorial Visual Panel (Left) */}

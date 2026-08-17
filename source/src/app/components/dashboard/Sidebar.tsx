@@ -110,6 +110,7 @@ const N = {
         ['Skin Scan', 'Start new skin assessment', 'scan'],
         ['Ask AI', 'Get skincare guidance', 'spark'],
         ['Upload Photo', 'Analyze your skin', 'upload'],
+        ['Subscription & Plans', 'Premium clinical tiers', 'shield'],
       ],
     },
   ],
@@ -238,26 +239,58 @@ export function Sidebar({ role, activeSection = 'dashboard', onSectionChange }: 
           </div>
         )}
 
-        {role === 'user' && (
-          <div style={{ borderRadius: '16px', padding: '16px', background: 'linear-gradient(135deg,#3f8a63,#2f6b4c)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ display: 'grid', placeItems: 'center', width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(255,255,255,0.22)', color: '#fff' }}>
-                <DashIcon d="<path d='M5 16 3 6l5.5 4L12 4l3.5 6L21 6l-2 10z'/><path d='M5 20h14'/>" s={17} stroke="#fff" />
-              </span>
-              <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#fff' }}>Upgrade to Premium</div>
-            </div>
-            <div style={{ marginTop: '8px', fontSize: '0.76rem', color: 'rgba(255,255,255,0.82)', lineHeight: 1.4 }}>
-              Unlock AI insights, advanced reports & more.
-            </div>
-            <button
-              type="button"
-              onClick={() => onSectionChange && onSectionChange('settings')}
-              style={{ marginTop: '12px', width: '100%', border: 'none', cursor: 'pointer', borderRadius: '10px', background: '#fff', color: '#2f6b4c', padding: '10px', fontFamily: 'inherit', fontSize: '0.82rem', fontWeight: 700 }}
+        {role === 'user' && (() => {
+          const isPrem = typeof window !== 'undefined' && localStorage.getItem('miracle_premium') === 'true';
+          return (
+            <div
+              onClick={() => onSectionChange && onSectionChange('subscription')}
+              style={{
+                borderRadius: '16px',
+                padding: '16px',
+                background: isPrem ? 'linear-gradient(135deg,#6d28d9,#4338ca)' : 'linear-gradient(135deg,#3f8a63,#2f6b4c)',
+                cursor: 'pointer',
+                transition: 'transform 0.15s, box-shadow 0.15s',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(-2px)'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.transform = 'translateY(0)'; }}
             >
-              Upgrade Now
-            </button>
-          </div>
-        )}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ display: 'grid', placeItems: 'center', width: '34px', height: '34px', borderRadius: '10px', background: 'rgba(255,255,255,0.22)', color: '#fff' }}>
+                  <DashIcon d="<path d='M5 16 3 6l5.5 4L12 4l3.5 6L21 6l-2 10z'/><path d='M5 20h14'/>" s={17} stroke="#fff" />
+                </span>
+                <div style={{ fontSize: '0.92rem', fontWeight: 800, color: '#fff' }}>
+                  {isPrem ? '⭐ Pro Member (Active)' : 'Upgrade to Premium'}
+                </div>
+              </div>
+              <div style={{ marginTop: '8px', fontSize: '0.76rem', color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>
+                {isPrem ? 'Active Clinical Membership. Full access unlocked.' : 'Unlock detailed reports, AI scans, consultant audits & more.'}
+              </div>
+              <button
+                type="button"
+                onClick={e => {
+                  e.stopPropagation();
+                  onSectionChange && onSectionChange('subscription');
+                }}
+                style={{
+                  marginTop: '12px',
+                  width: '100%',
+                  border: 'none',
+                  cursor: 'pointer',
+                  borderRadius: '10px',
+                  background: '#fff',
+                  color: isPrem ? '#6d28d9' : '#2f6b4c',
+                  padding: '10px',
+                  fontFamily: 'inherit',
+                  fontSize: '0.82rem',
+                  fontWeight: 800,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                }}
+              >
+                {isPrem ? 'Manage Plan & Perks' : 'Upgrade Now →'}
+              </button>
+            </div>
+          );
+        })()}
       </div>
     </aside>
   );
