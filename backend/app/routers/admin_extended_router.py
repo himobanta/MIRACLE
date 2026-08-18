@@ -6,7 +6,7 @@ All endpoints require Administrator role (verified by verify_admin).
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import or_
+from sqlalchemy import or_, func
 from typing import Optional
 from datetime import datetime, timezone
 

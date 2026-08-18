@@ -9,7 +9,7 @@ from .database import engine, Base, SessionLocal, check_db_connection
 from .models import (
     User, UserProfile, SystemConfig, ContentArticle, Ingredient, BackupRecord,
     ConsultantProfile, ConsultantNote, ConsultantFollowUp, ConsultantReminder,
-    ProductRecommendation, TreatmentProtocol, SkinConcernGuide
+    ProductRecommendation, TreatmentProtocol, SkinConcernGuide, Product
 )
 from .auth import hash_password
 from .config import CORS_ORIGINS_RAW, ENVIRONMENT, log_startup_summary
@@ -1200,9 +1200,61 @@ def _seed_demo_content():
                 size_bytes=1024 * 512,  # 512 KB placeholder
                 completed_at=now,
             ))
-            db.commit()
+        # ── 50,000+ Product Catalog Auto-Seed if empty ─────────────────────────
+        if db.query(Product).count() == 0:
+            logger.info("Products table is empty — seeding from SkinSAFE CSV datasets...")
+            import glob
+            import pandas as pd
+            import zlib
+            csv_files = glob.glob("Products/SkinSAFE/*.csv") or glob.glob("products/SkinSAFE/*.csv")
+            if csv_files:
+                batch = []
+                p_imported = 0
+                for file_path in csv_files:
+                    try:
+                        df = pd.read_csv(file_path)
+                        for _, row in df.iterrows():
+                            p_name = str(row.get('product_name', '')).strip()
+                            if not p_name or p_name.lower() == 'nan':
+                                continue
+                            brand = str(row.get('brand', 'Generic')).strip() if pd.notna(row.get('brand')) else 'Generic'
+                            usage_type = str(row.get('usage_type', 'Skin Care')).strip() if pd.notna(row.get('usage_type')) else 'Skin Care'
+                            category = str(row.get('category', 'General')).strip() if pd.notna(row.get('category')) else 'General'
+                            ingredients = str(row.get('ingredients', '')).strip() if pd.notna(row.get('ingredients')) else ''
+                            image_url = str(row.get('image_url', '')).strip() if pd.notna(row.get('image_url')) else ''
+                            product_url = str(row.get('product_url', '')).strip() if pd.notna(row.get('product_url')) else ''
+                            if not image_url or image_url.lower() == 'nan':
+                                image_url = '/assets/default_product.png'
+                            
+                            # Price logic
+                            hash_key = f"{p_name}_{brand}_{category}_{usage_type}".encode('utf-8')
+                            price = float([299, 449, 599, 799, 999, 1299, 1499, 1999][zlib.crc32(hash_key) % 8])
 
-        logger.info("Demo content seeded: SystemConfig, ContentArticles, Ingredients, Protocols, SkinConcerns, ConsultantData, BackupRecord")
+                            batch.append(Product(
+                                product_name=p_name,
+                                brand=brand,
+                                usage_type=usage_type,
+                                category=category,
+                                ingredients=ingredients,
+                                image_url=image_url,
+                                product_url=product_url,
+                                price=price,
+                                safety_score=92.0,
+                                rating=4.7
+                            ))
+                            p_imported += 1
+                            if len(batch) >= 3000:
+                                db.bulk_save_objects(batch)
+                                db.commit()
+                                batch = []
+                    except Exception as err:
+                        logger.warning(f"Error reading CSV {file_path}: {err}")
+                if batch:
+                    db.bulk_save_objects(batch)
+                    db.commit()
+                logger.info(f"Auto-seeded {p_imported} products into database.")
+
+        logger.info("Demo content seeded: SystemConfig, ContentArticles, Ingredients, Protocols, SkinConcerns, ConsultantData, BackupRecord, Products")
     finally:
         db.close()
 

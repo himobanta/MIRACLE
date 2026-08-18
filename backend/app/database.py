@@ -30,7 +30,7 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 def _run_migrations():
-    """Ensure newly added columns exist in existing SQLite database tables."""
+    """Ensure newly added columns and product datasets exist."""
     try:
         from sqlalchemy import text
         with engine.connect() as conn:
@@ -44,11 +44,21 @@ def _run_migrations():
                     conn.execute(text("ALTER TABLE users ADD COLUMN social_id VARCHAR"))
                 if "avatar_url" not in existing_cols:
                     conn.execute(text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR"))
+
+                # Check skin_concerns_guide table columns
+                guide_result = conn.execute(text("PRAGMA table_info(skin_concerns_guide)")).fetchall()
+                guide_cols = {row[1] for row in guide_result}
+                if "derma_referral_triggers" not in guide_cols:
+                    conn.execute(text("ALTER TABLE skin_concerns_guide ADD COLUMN derma_referral_triggers TEXT"))
+                if "derma_referral_threshold" not in guide_cols:
+                    conn.execute(text("ALTER TABLE skin_concerns_guide ADD COLUMN derma_referral_threshold TEXT"))
                 conn.commit()
             else:
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS social_provider VARCHAR;"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS social_id VARCHAR;"))
                 conn.execute(text("ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar_url VARCHAR;"))
+                conn.execute(text("ALTER TABLE skin_concerns_guide ADD COLUMN IF NOT EXISTS derma_referral_triggers TEXT;"))
+                conn.execute(text("ALTER TABLE skin_concerns_guide ADD COLUMN IF NOT EXISTS derma_referral_threshold TEXT;"))
                 conn.commit()
     except Exception as e:
         pass
