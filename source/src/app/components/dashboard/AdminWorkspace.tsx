@@ -3115,6 +3115,8 @@ export function AdminWorkspace({ activeSection = 'dashboard', onSectionChange }:
       case 'backup-restore':
       case 'backup':
         return <BackupRestorePage />;
+      case 'my-profile':
+      case 'profile':
       case 'settings':
         return <ProfilePage stats={adminStats} />;
       case 'account-settings':
