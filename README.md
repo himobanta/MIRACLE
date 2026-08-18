@@ -1,3 +1,5 @@
+
+
 # MIRACLE — AI Skincare Intelligence & Personalized Skincare Planner
 
 > **Enterprise AI Skincare Intelligence, Chemical Ingredient Analysis & Clinical Tele-Dermatology Platform**
@@ -132,3 +134,6 @@ npm run build
 
 ## 📄 License & Attribution
 Developed for educational and clinical tele-dermatology demonstration purposes. All rights reserved.
+
+
+- APP SCREEN RECORDING: https://drive.google.com/drive/folders/1ZSBVa_EldARQA9b0DLK-mYxka784CWAm?usp=sharing
