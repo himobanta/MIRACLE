@@ -51,6 +51,37 @@ def get_recommendations(
         "products": recommendations
     }
 
+
+@router.post("")
+def post_recommendations(
+    query: RecommendationQuery,
+    db: Session = Depends(get_db),
+):
+    """
+    Public / unauthenticated recommendation endpoint.
+    Accepts skin_type, concerns, allergies, and optional max_budget in body.
+    """
+    if query.max_budget is not None and query.max_budget < 0:
+        raise HTTPException(status_code=400, detail="max_budget must be a positive number")
+
+    sanitized_allergies = [a.strip() for a in query.allergies if a and a.strip()]
+
+    recommendations = get_personalized_recommendations(
+        skin_type=query.skin_type or "Normal",
+        concerns=query.concerns or [],
+        user_allergies=sanitized_allergies,
+        max_budget=query.max_budget,
+        limit=60
+    )
+
+    return {
+        "user_id": None,
+        "evaluated_skin_type": query.skin_type or "Normal",
+        "is_personalized": True,
+        "recommendations_count": len(recommendations),
+        "products": recommendations
+    }
+
 def _calculate_realistic_price(p_name: str, brand: str, category: str, usage_type: str) -> float:
     """Calculate deterministic, realistic INR price."""
     b_lower = (brand or "").lower()

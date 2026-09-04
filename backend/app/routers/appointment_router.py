@@ -31,8 +31,6 @@ def list_professionals(
             "target_role": "Consultant" if p.role == "Skincare Consultant" else "Dermatologist",
             "email": p.email,
             "registered_since": p.created_at.strftime("%Y-%m-%d") if p.created_at else None,
-            "rating": 4.9,
-            "avatar": None,
         }
         if p.role == "Skincare Consultant":
             cp = db.query(ConsultantProfile).filter(ConsultantProfile.user_id == p.id).first()
