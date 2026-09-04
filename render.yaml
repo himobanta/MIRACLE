@@ -1,8 +1,5 @@
 # ==============================================================================
 # MIRACLE — Render Blueprint Specification (render.yaml)
-# Free-Tier Architecture:
-#   1. Backend:  FastAPI Web Service (Python 3.11, Uvicorn, health check at /health)
-#   2. Frontend: React + Vite Static Site (SPA rewrite rule /* -> /index.html)
 # ==============================================================================
 
 services:
@@ -40,16 +37,16 @@ services:
         value: 1800
 
   # ── 2. Frontend Static Site ──────────────────────────────────────────────────
-  - type: static
+  - type: web
     name: miracle-frontend
+    runtime: static
     region: oregon
     plan: free
     branch: main
     buildCommand: npm install && npm run build
-    publishPath: dist
+    staticPublishPath: dist
     autoDeploy: true
     routes:
-      # SPA rewrite rule: all client paths route to index.html
       - type: rewrite
         source: /*
         destination: /index.html
