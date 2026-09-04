@@ -1,4 +1,4 @@
-﻿# ==============================================================================
+# ==============================================================================
 # MIRACLE — Render Blueprint Specification (render.yaml)
 # Free-Tier Architecture:
 #   1. Backend:  FastAPI Web Service (Python 3.11, Uvicorn, health check at /health)
@@ -9,12 +9,12 @@ services:
   # ── 1. Backend Web Service ───────────────────────────────────────────────────
   - type: web
     name: miracle-backend
-    env: python
+    runtime: python
     region: oregon
     plan: free
     branch: main
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port 
+    startCommand: "uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT"
     healthCheckPath: /health
     autoDeploy: true
     envVars:
@@ -42,7 +42,6 @@ services:
   # ── 2. Frontend Static Site ──────────────────────────────────────────────────
   - type: static
     name: miracle-frontend
-    env: static
     region: oregon
     plan: free
     branch: main
