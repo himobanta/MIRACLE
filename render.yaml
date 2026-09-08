@@ -40,7 +40,6 @@ services:
   - type: web
     name: miracle-frontend
     runtime: static
-    plan: free
     branch: main
     buildCommand: npm install && npm run build
     staticPublishPath: dist
